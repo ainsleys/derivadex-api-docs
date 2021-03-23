@@ -177,7 +177,7 @@ const task = {
       },
    publishToDocs: () => {
       // mkdirSync('docs');
-      writeFileSync('docs/CNAME', 'node-slate.js.org\n');
+      writeFileSync('docs/CNAME', 'ainsleys.github.io\n');
       return gulp.src('build/**/*')
          .pipe(gulp.dest('docs'));
       },
