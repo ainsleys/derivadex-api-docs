@@ -32,19 +32,6 @@
       <div class=page-wrapper>
          <div class=dark-box></div>
          <div class=content>
-            <hr>
-            <p>title: API Reference</p>
-            <p>language_tabs: # must be one of <a href="https://git.io/vQNgJ">https://git.io/vQNgJ</a></p>
-            <ul>
-               <li>json</li>
-            </ul>
-            <p>toc_footers:</p>
-            <ul>
-               <li><a href='#'>Sign Up for a Developer Key</a></li>
-               <li><a href='https://github.com/slatedocs/slate'>Documentation Powered by Slate</a></li>
-            </ul>
-            <p>search: true</p>
-            <h2 id="code_clipboard-true">code_clipboard: true</h2>
             <h1 id="derivadex-api">DerivaDEX API</h1>
             <p>DerivaDEX is a decentralized derivatives exchange that combines the performance of centralized exchanges with the security of decentralized exchanges.</p>
             <p>DerivaDEX currently offers a public WebSocket API for traders and developers. You must first make a deposit to the DerivaDEX ethereum contracts. The API will then enable you to open and manage your positions via commands, and subscribe to market data via subscriptions. </p>
@@ -96,9 +83,102 @@
     }
   }
 }</code></pre>
-            <p>makerAddress | The trader&#39;s address symbol | Currently always &#39;ETHPERP&#39;. New symbols coming soon! strategy | Always <code>main</code>. Support for multiple strategies coming soon! side | Whether the order is a Bid or an Ask (case sensitive) orderType | <code>Market</code>. Other order types coming soon! requestID | An incrementing numeric identifier for this request amount | The amount requested price | The Bid or Ask price stopPrice | Currently, always 0 as stops are not implemented. signature | EIP712 signature</p>
-            <p>EIP712 struct OrderParams</p>
-            <p> address | makerAddress;<br> bytes32 | symbol;<br> bytes32 | strategy;<br> uint256 | side;<br> uint256 | orderType;<br> bytes32 | clientId;<br> uint256 | assetAmount;<br> uint256 | price;<br> uint256 | stopPrice; </p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>makerAddress</td>
+                     <td>The trader&#39;s address</td>
+                  </tr>
+                  <tr>
+                     <td>symbol</td>
+                     <td>Currently always &#39;ETHPERP&#39;. New symbols coming soon!</td>
+                  </tr>
+                  <tr>
+                     <td>strategy</td>
+                     <td>Always <code>main</code>. Support for multiple strategies coming soon!</td>
+                  </tr>
+                  <tr>
+                     <td>side</td>
+                     <td>Whether the order is a Bid or an Ask (case sensitive)</td>
+                  </tr>
+                  <tr>
+                     <td>orderType</td>
+                     <td><code>Market</code>. Other order types coming soon!</td>
+                  </tr>
+                  <tr>
+                     <td>requestID</td>
+                     <td>An incrementing numeric identifier for this request</td>
+                  </tr>
+                  <tr>
+                     <td>amount</td>
+                     <td>The amount requested</td>
+                  </tr>
+                  <tr>
+                     <td>price</td>
+                     <td>The Bid or Ask price</td>
+                  </tr>
+                  <tr>
+                     <td>stopPrice</td>
+                     <td>Currently, always 0 as stops are not implemented.</td>
+                  </tr>
+                  <tr>
+                     <td>signature</td>
+                     <td>EIP712 signature</td>
+                  </tr>
+               </tbody>
+            </table>
+            <table>
+               <thead>
+                  <tr>
+                     <th>EIP712 struct OrderParams</th>
+                     <th>test</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>address</td>
+                     <td>makerAddress;</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32</td>
+                     <td>symbol;</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32</td>
+                     <td>strategy;</td>
+                  </tr>
+                  <tr>
+                     <td>uint256</td>
+                     <td>side;</td>
+                  </tr>
+                  <tr>
+                     <td>uint256</td>
+                     <td>orderType;</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32</td>
+                     <td>clientId;</td>
+                  </tr>
+                  <tr>
+                     <td>uint256</td>
+                     <td>assetAmount;</td>
+                  </tr>
+                  <tr>
+                     <td>uint256</td>
+                     <td>price;</td>
+                  </tr>
+                  <tr>
+                     <td>uint256</td>
+                     <td>stopPrice;</td>
+                  </tr>
+               </tbody>
+            </table>
             <h2 id="cancel-order">Cancel Order</h2>
             <blockquote>
                <p>Request format:</p>
@@ -115,10 +195,58 @@
   }
 }</code></pre>
             <p>EIP712 struct CancelParams</p>
-            <h2 id="type-">type | </h2>
-            <p>bytes32 | orderHash;<br>bytes32 | orderRequestid;<br>bytes32 | requestId; </p>
-            <h2 id="type--description">type | description</h2>
-            <p>symbol | Currently always &#39;ETHPERP&#39;. New symbols coming soon! orderHash| Where does this come from? orderRequestId | How is this different from requestID? requestID | An incrementing numeric identifier for this request. signature | EIP712 signature</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>test</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>bytes32</td>
+                     <td>orderHash;</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32</td>
+                     <td>orderRequestid;</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32</td>
+                     <td>requestId;</td>
+                  </tr>
+               </tbody>
+            </table>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>symbol</td>
+                     <td>Currently always &#39;ETHPERP&#39;. New symbols coming soon!</td>
+                  </tr>
+                  <tr>
+                     <td>orderHash</td>
+                     <td>Where does this come from?</td>
+                  </tr>
+                  <tr>
+                     <td>orderRequestId</td>
+                     <td>How is this different from requestID?</td>
+                  </tr>
+                  <tr>
+                     <td>requestID</td>
+                     <td>An incrementing numeric identifier for this request.</td>
+                  </tr>
+                  <tr>
+                     <td>signature</td>
+                     <td>EIP712 signature</td>
+                  </tr>
+               </tbody>
+            </table>
             <h2 id="withdraw">Withdraw</h2>
             <blockquote>
                <p>Request format:</p>
@@ -135,10 +263,41 @@
     }
   }
 }</code></pre>
-            <h2 id="field--description">field | description</h2>
-            <p>traderAddress | Address of the account for the withdrawal strategyId | currency | contract address for currency (USDC) amount | amount to be withdrawin requestId | An incrementing numeric identifier for this request. signature | EIP712 signature</p>
-            <h2 id="eip712-struct-withdrawparams">EIP712 Struct <code>WithdrawParams</code>|</h2>
-            <p>address | traderAddress bytes32 | strategyId address | currency uint128 | amount bytes32 | requestId</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>traderAddress</td>
+                     <td>Address of the account for the withdrawal</td>
+                  </tr>
+                  <tr>
+                     <td>strategyId</td>
+                     <td></td>
+                  </tr>
+                  <tr>
+                     <td>currency</td>
+                     <td>contract address for currency (USDC)</td>
+                  </tr>
+                  <tr>
+                     <td>amount</td>
+                     <td>amount to be withdrawin</td>
+                  </tr>
+                  <tr>
+                     <td>requestId</td>
+                     <td>An incrementing numeric identifier for this request.</td>
+                  </tr>
+                  <tr>
+                     <td>signature</td>
+                     <td>EIP712 signature</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>EIP712 Struct <code>WithdrawParams</code>| ---------- | -------------------- address | traderAddress bytes32 | strategyId address | currency uint128 | amount bytes32 | requestId</p>
             <h2 id="receipts">Receipts</h2>
             <pre class="highlight json"><code>{
   <span class="hljs-attr">&quot;receipt&quot;</span>: {
@@ -152,8 +311,32 @@
   }
 }</code></pre>
             <p>Each command returns a receipt, which confirms that an Operator has received the request sequenced it for processing. The receipt <code>type</code> will be either &quot;Received&quot; or &quot;Error&quot;. The <code>requestId</code> is the requestId from the original command. The <code>requestIndex</code> is the Operator&#39;s sequence id.</p>
-            <h2 id="receipt-">receipt |</h2>
-            <p>type | Received requestId | The requestId supplied in the initial request - can be used to correlated requests with receipts requestIndex | A ticket number which guarentees fair sequencing (how?) enclaveSignature | An Operator&#39;s signature which proves secure handling of the request</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>receipt</th>
+                     <th>test</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>type</td>
+                     <td>Received</td>
+                  </tr>
+                  <tr>
+                     <td>requestId</td>
+                     <td>The requestId supplied in the initial request - can be used to correlated requests with receipts</td>
+                  </tr>
+                  <tr>
+                     <td>requestIndex</td>
+                     <td>A ticket number which guarentees fair sequencing (how?)</td>
+                  </tr>
+                  <tr>
+                     <td>enclaveSignature</td>
+                     <td>An Operator&#39;s signature which proves secure handling of the request</td>
+                  </tr>
+               </tbody>
+            </table>
             <p>DerivaDEX operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the guaranteed associated with Intel SGX TEEs. </p>
             <h2 id="receipt-error">Receipt error</h2>
             <blockquote>
@@ -179,8 +362,28 @@
   }
 }</code></pre>
             <p>Account feeds are subscriptions to Strategy and Position events for a trader address. To subscribe to an account feed, send a websocket message following the code sample at right:</p>
-            <h2 id="subscription-data-">subscription data |</h2>
-            <p>trader | The address you want to subscribe to (i.e., your own Ethereum address) strategies | The strategy &#39;main&#39; must be included. events | Pass in one or both of StrategyUpdate and PositionUpdate to subscribe to an account feed</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>subscription data</th>
+                     <th>test</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>trader</td>
+                     <td>The address you want to subscribe to (i.e., your own Ethereum address)</td>
+                  </tr>
+                  <tr>
+                     <td>strategies</td>
+                     <td>The strategy &#39;main&#39; must be included.</td>
+                  </tr>
+                  <tr>
+                     <td>events</td>
+                     <td>Pass in one or both of StrategyUpdate and PositionUpdate to subscribe to an account feed</td>
+                  </tr>
+               </tbody>
+            </table>
             <h2 id="account-feed-subscription-confirmation">Account feed subscription confirmation</h2>
             <blockquote>
                <p>Confirmation receipt</p>

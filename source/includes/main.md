@@ -1,17 +1,3 @@
----
-title: API Reference
-
-language_tabs: # must be one of https://git.io/vQNgJ
-  - json
-
-toc_footers:
-  - <a href='#'>Sign Up for a Developer Key</a>
-  - <a href='https://github.com/slatedocs/slate'>Documentation Powered by Slate</a>
-
-search: true
-
-code_clipboard: true
----
 
 # DerivaDEX API
 
@@ -78,7 +64,8 @@ The websocket API offers commands for placing and canceling orders, as well as w
   }
 }
 ```
-
+type | description 
+------ | -----------
 makerAddress | The trader's address
 symbol | Currently always 'ETHPERP'. New symbols coming soon! 
 strategy | Always `main`. Support for multiple strategies coming soon!
@@ -90,8 +77,8 @@ price | The Bid or Ask price
 stopPrice | Currently, always 0 as stops are not implemented.
 signature | EIP712 signature
 
-EIP712 struct OrderParams
-
+EIP712 struct OrderParams | test
+--------------------------- | -----------
   address | makerAddress;  
   bytes32 | symbol;  
   bytes32 | strategy;  
@@ -122,15 +109,15 @@ EIP712 struct OrderParams
 ```
 EIP712 struct CancelParams
 
-type | 
----------------------------- 
+type | test
+------- | --------------------- 
 bytes32 | orderHash;  
 bytes32 | orderRequestid;  
 bytes32 | requestId;  
 
 
 type | description
------------------------------
+------ | -----------------------
 symbol | Currently always 'ETHPERP'. New symbols coming soon! 
 orderHash| Where does this come from?
 orderRequestId | How is this different from requestID?
@@ -156,7 +143,7 @@ signature | EIP712 signature
 }
 ```
 field | description
-------------------------
+------- | -----------------
 traderAddress | Address of the account for the withdrawal
 strategyId | 
 currency | contract address for currency (USDC)
@@ -165,7 +152,7 @@ requestId | An incrementing numeric identifier for this request.
 signature | EIP712 signature
 
 EIP712 Struct `WithdrawParams`|
-------------------------------
+---------- | --------------------
 address | traderAddress
 bytes32 | strategyId
 address | currency
@@ -190,8 +177,8 @@ bytes32 | requestId
 ```
 Each command returns a receipt, which confirms that an Operator has received the request sequenced it for processing. The receipt `type` will be either "Received" or "Error". The `requestId` is the requestId from the original command. The `requestIndex` is the Operator's sequence id.
 
-receipt |
----------------------
+receipt | test
+------ | ---------------
 type | Received
 requestId | The requestId supplied in the initial request - can be used to correlated requests with receipts
 requestIndex | A ticket number which guarentees fair sequencing (how?)
@@ -232,8 +219,8 @@ A error will return a receipt with type of `Error` and an error message.
 ```
 Account feeds are subscriptions to Strategy and Position events for a trader address. To subscribe to an account feed, send a websocket message following the code sample at right:
 
-subscription data |
-----------------------------
+subscription data | test
+------- | ---------------------
 trader | The address you want to subscribe to (i.e., your own Ethereum address)
 strategies | The strategy 'main' must be included.
 events | Pass in one or both of StrategyUpdate and PositionUpdate to subscribe to an account feed
