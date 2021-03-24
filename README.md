@@ -80,6 +80,15 @@ Run a dev server that live-reloads at http://localhost:4567:
 ```shell
 npm start
 ```
+The instructions just below this for deploying to gh-pages doesn't work for me. What I've found works is checking out the gh-pages branch, pulling from master, and then pushing the updated gh-pages branch. I am pretty sure something is wrong about that approach but it works for now. 
+
+```
+git checkout gh-pages
+git pull origin master
+git add .
+git push
+```
+And now you should be able to view the updated site at https://ainsleys.github.io/node-slate/#derivadex-api
 
 Publish your docs to `origin/gh-pages` branch:
 
