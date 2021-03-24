@@ -54,8 +54,7 @@ You're going to need:
 
 ### Getting Set Up
 
-1. Fork this repository on Github.
-2. Clone *your forked repository* (not this original one) to your hard drive with `git clone https://github.com/YOURUSERNAME/node-slate.git`
+1. Clone this repo
 3. `cd node-slate`
 4. Initialize and start Slate:
 
@@ -90,6 +89,14 @@ git push
 ```
 And now you should be able to view the updated site at https://ainsleys.github.io/node-slate/#derivadex-api
 
+
+# to update the docs file
+`cd source`
+`cd includes`
+`subl main.md`
+If we ever want to add more than one .md file we just add it in the `includes` folder. Changes here are built and then can be found in `/docs` which is what is deployed to gh-pages.
+
+***doesn't work***
 Publish your docs to `origin/gh-pages` branch:
 
 ```shell
