@@ -86,7 +86,7 @@
             <table>
                <thead>
                   <tr>
-                     <th>type</th>
+                     <th>field</th>
                      <th>description</th>
                   </tr>
                </thead>
@@ -136,8 +136,8 @@
             <table>
                <thead>
                   <tr>
-                     <th>EIP712 struct OrderParams</th>
-                     <th>test</th>
+                     <th>type</th>
+                     <th>field</th>
                   </tr>
                </thead>
                <tbody>
@@ -199,7 +199,7 @@
                <thead>
                   <tr>
                      <th>type</th>
-                     <th>test</th>
+                     <th>field</th>
                   </tr>
                </thead>
                <tbody>
@@ -297,16 +297,42 @@
                   </tr>
                </tbody>
             </table>
-            <p>EIP712 Struct <code>WithdrawParams</code>| ---------- | -------------------- address | traderAddress bytes32 | strategyId address | currency uint128 | amount bytes32 | requestId</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>EIP712 Struct <code>WithdrawParams</code> type</th>
+                     <th>field</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>address</td>
+                     <td>traderAddress</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32</td>
+                     <td>strategyId</td>
+                  </tr>
+                  <tr>
+                     <td>address</td>
+                     <td>currency</td>
+                  </tr>
+                  <tr>
+                     <td>uint128</td>
+                     <td>amount</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32</td>
+                     <td>requestId</td>
+                  </tr>
+               </tbody>
+            </table>
             <h2 id="receipts">Receipts</h2>
             <pre class="highlight json"><code>{
   <span class="hljs-attr">&quot;receipt&quot;</span>: {
     <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;Received&quot;</span>,
-    <span class="hljs-comment">// The requestId supplied in the initial request - can be used to correlated requests with receipts</span>
     <span class="hljs-attr">&quot;requestId&quot;</span>: <span class="hljs-string">&quot;0x0e37c859bd811c0d877940c528df79baad972282e82ef3dd37e6fbe21b988653&quot;</span>,
-    <span class="hljs-comment">// A ticket number which guarentees fair sequencing</span>
     <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-string">&quot;0x5&quot;</span>,
-    <span class="hljs-comment">// An Operator&#x27;s signature which proves secure handling of the request.</span>
     <span class="hljs-attr">&quot;enclaveSignature&quot;</span>: <span class="hljs-string">&quot;0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&quot;</span>
   }
 }</code></pre>
@@ -314,8 +340,8 @@
             <table>
                <thead>
                   <tr>
-                     <th>receipt</th>
-                     <th>test</th>
+                     <th>field</th>
+                     <th>description</th>
                   </tr>
                </thead>
                <tbody>
@@ -365,8 +391,8 @@
             <table>
                <thead>
                   <tr>
-                     <th>subscription data</th>
-                     <th>test</th>
+                     <th>field</th>
+                     <th>description</th>
                   </tr>
                </thead>
                <tbody>
@@ -524,61 +550,8 @@
             <p>Subscriptions are not rate limited.</p>
             <h1 id="errors">Errors</h1>
             <aside class=error> This error section is stored in a separate file in `includes/_errors.md`. Slate allows you to optionally separate out your docs into many files...just save them to the `includes` folder and add them to the top of your `index.md`'s front matter. Files are included in the order listed. </aside>
-            <p>The Kittn API uses the following error codes:</p>
-            <table>
-               <thead>
-                  <tr>
-                     <th>Error Code</th>
-                     <th>Meaning</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>400</td>
-                     <td>Bad Request -- The request could not be understood by the server due to malformed syntax.</td>
-                  </tr>
-                  <tr>
-                     <td>401</td>
-                     <td>Unauthorized -- Your API key is wrong.</td>
-                  </tr>
-                  <tr>
-                     <td>403</td>
-                     <td>Forbidden -- The kitten requested is hidden for administrators only.</td>
-                  </tr>
-                  <tr>
-                     <td>404</td>
-                     <td>Not Found -- The specified kitten could not be found.</td>
-                  </tr>
-                  <tr>
-                     <td>405</td>
-                     <td>Method Not Allowed -- You tried to access a kitten with an invalid method.</td>
-                  </tr>
-                  <tr>
-                     <td>406</td>
-                     <td>Not Acceptable -- You requested a format that isn&#39;t JSON.</td>
-                  </tr>
-                  <tr>
-                     <td>410</td>
-                     <td>Gone -- The kitten requested has been removed from our servers.</td>
-                  </tr>
-                  <tr>
-                     <td>418</td>
-                     <td>I&#39;m a teapot.</td>
-                  </tr>
-                  <tr>
-                     <td>429</td>
-                     <td>Too Many Requests -- You&#39;re requesting too many kittens! Slow down!</td>
-                  </tr>
-                  <tr>
-                     <td>500</td>
-                     <td>Internal Server Error -- We had a problem with our server. Try again later.</td>
-                  </tr>
-                  <tr>
-                     <td>503</td>
-                     <td>Service Unavailable -- We&#39;re temporarily offline for maintenance. Please try again later.</td>
-                  </tr>
-               </tbody>
-            </table>
+            <p>The DerivaDEX API uses the following error codes:</p>
+            <p>TBD</p>
          </div>
          <div class=dark-box>
             <div class=lang-selector>
