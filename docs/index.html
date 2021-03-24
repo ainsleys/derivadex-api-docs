@@ -84,8 +84,114 @@
     }
   }
 }</code></pre>
-            <p>type | field | description ------ | ----------- address | makerAddress | The trader&#39;s address bytes32 | symbol | Currently always &#39;ETHPERP&#39;. New symbols coming soon! bytes 32 | strategy | Always <code>main</code>. Support for multiple strategies coming soon! uint256 | side | Whether the order is a Bid or an Ask (case sensitive) uint256 | orderType | <code>Market</code>. Other order types coming soon! bytes32 | requestID | An incrementing numeric identifier for this request uint256 | amount | The amount requested uint256 | price | The Bid or Ask price uint256 | stopPrice | Currently, always 0 as stops are not implemented. ?? | signature | EIP712 signature</p>
-            <p><em><strong>I added the below to the chart above, does it matter that there are some differences, i.e., clientId vs requestID? What type is signature?</strong></em> type | field --------- | ----------- address | makerAddress;<br> bytes32 | symbol;<br> bytes32 | strategy;<br> uint256 | side;<br> uint256 | orderType;<br> bytes32 | clientId;<br> uint256 | assetAmount;<br> uint256 | price;<br> uint256 | stopPrice; </p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>address</td>
+                     <td>makerAddress</td>
+                     <td>The trader&#39;s address</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32</td>
+                     <td>symbol</td>
+                     <td>Currently always &#39;ETHPERP&#39;. New symbols coming soon!</td>
+                  </tr>
+                  <tr>
+                     <td>bytes 32</td>
+                     <td>strategy</td>
+                     <td>Always <code>main</code>. Support for multiple strategies coming soon!</td>
+                  </tr>
+                  <tr>
+                     <td>uint256</td>
+                     <td>side</td>
+                     <td>Whether the order is a Bid or an Ask (case sensitive)</td>
+                  </tr>
+                  <tr>
+                     <td>uint256</td>
+                     <td>orderType</td>
+                     <td><code>Market</code>. Other order types coming soon!</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32</td>
+                     <td>requestID</td>
+                     <td>An incrementing numeric identifier for this request</td>
+                  </tr>
+                  <tr>
+                     <td>uint256</td>
+                     <td>amount</td>
+                     <td>The amount requested</td>
+                  </tr>
+                  <tr>
+                     <td>uint256</td>
+                     <td>price</td>
+                     <td>The Bid or Ask price</td>
+                  </tr>
+                  <tr>
+                     <td>uint256</td>
+                     <td>stopPrice</td>
+                     <td>Currently, always 0 as stops are not implemented.</td>
+                  </tr>
+                  <tr>
+                     <td>??</td>
+                     <td>signature</td>
+                     <td>EIP712 signature</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p><em><strong>I added the below to the chart above, does it matter that there are some differences, i.e., clientId vs requestID? What type is signature?</strong></em></p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>address</td>
+                     <td>makerAddress;</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32</td>
+                     <td>symbol;</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32</td>
+                     <td>strategy;</td>
+                  </tr>
+                  <tr>
+                     <td>uint256</td>
+                     <td>side;</td>
+                  </tr>
+                  <tr>
+                     <td>uint256</td>
+                     <td>orderType;</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32</td>
+                     <td>clientId;</td>
+                  </tr>
+                  <tr>
+                     <td>uint256</td>
+                     <td>assetAmount;</td>
+                  </tr>
+                  <tr>
+                     <td>uint256</td>
+                     <td>price;</td>
+                  </tr>
+                  <tr>
+                     <td>uint256</td>
+                     <td>stopPrice;</td>
+                  </tr>
+               </tbody>
+            </table>
             <h2 id="cancel-order">Cancel Order</h2>
             <blockquote>
                <p>Request format:</p>
@@ -136,9 +242,9 @@
                </thead>
                <tbody>
                   <tr>
+                     <td>unknown</td>
                      <td>symbol</td>
                      <td>Currently always &#39;ETHPERP&#39;. New symbols coming soon!</td>
-                     <td></td>
                   </tr>
                   <tr>
                      <td>bytes32</td>

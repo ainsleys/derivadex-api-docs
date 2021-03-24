@@ -65,8 +65,9 @@ The websocket API offers commands for placing and canceling orders, as well as w
   }
 }
 ```
+
 type | field | description 
------- | -----------
+------ | ---- | -------
 address | makerAddress | The trader's address
 bytes32 | symbol | Currently always 'ETHPERP'. New symbols coming soon! 
 bytes 32 | strategy | Always `main`. Support for multiple strategies coming soon!
@@ -78,7 +79,11 @@ uint256 | price | The Bid or Ask price
 uint256 | stopPrice | Currently, always 0 as stops are not implemented.
 ?? | signature | EIP712 signature
 
+
+
 ***I added the below to the chart above, does it matter that there are some differences, i.e., clientId vs requestID? What type is signature?***
+
+
 type | field
 --------- | -----------
   address | makerAddress;  
@@ -121,9 +126,11 @@ bytes32 | requestId;
 
 ***again, duplicated the data avove to below. Here orderRequestid is the same across both, but i still dont know what type ETHPERP or signature is***
 
+
+
 type | field | description
 -----|---- | -----------------------
-symbol | Currently always 'ETHPERP'. New symbols coming soon! 
+unknown | symbol | Currently always 'ETHPERP'. New symbols coming soon! 
 bytes32 | orderHash| Where does this come from?
 bytes32 | orderRequestId | How is this different from requestID?
 bytes32 | requestID | An incrementing numeric identifier for this request.
