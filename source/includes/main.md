@@ -49,7 +49,8 @@ The websocket API offers commands for placing and canceling orders, as well as w
 ```json
 {
   "request": {
-    "order": {
+    "t": "Order",
+    "c": {
       "makerAddress": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
       "symbol": "ETHPERP",
       "strategy": "main",
@@ -64,19 +65,20 @@ The websocket API offers commands for placing and canceling orders, as well as w
   }
 }
 ```
-field | description 
+type | field | description 
 ------ | -----------
-makerAddress | The trader's address
-symbol | Currently always 'ETHPERP'. New symbols coming soon! 
-strategy | Always `main`. Support for multiple strategies coming soon!
-side | Whether the order is a Bid or an Ask (case sensitive)
-orderType | `Market`. Other order types coming soon!
-requestID | An incrementing numeric identifier for this request
-amount | The amount requested
-price | The Bid or Ask price
-stopPrice | Currently, always 0 as stops are not implemented.
-signature | EIP712 signature
+address | makerAddress | The trader's address
+bytes32 | symbol | Currently always 'ETHPERP'. New symbols coming soon! 
+bytes 32 | strategy | Always `main`. Support for multiple strategies coming soon!
+uint256 | side | Whether the order is a Bid or an Ask (case sensitive)
+uint256 | orderType | `Market`. Other order types coming soon!
+bytes32 | requestID | An incrementing numeric identifier for this request
+uint256 | amount | The amount requested
+uint256 | price | The Bid or Ask price
+uint256 | stopPrice | Currently, always 0 as stops are not implemented.
+?? | signature | EIP712 signature
 
+***I added the below to the chart above, does it matter that there are some differences, i.e., clientId vs requestID? What type is signature?***
 type | field
 --------- | -----------
   address | makerAddress;  
@@ -97,7 +99,8 @@ type | field
 ```json
 {
   "request": {
-    "cancelOrder": {
+    "t": "CancelOrder",
+    "c": {
       "symbol": "ETHPERP",
       "orderHash": "0xa2e47f2d462c4368fdae25028447c78118ba349141d0ba945c6f100dfd149029",
       "orderRequestId": "0x0e37c859bd811c0d877940c528df79baad972282e82ef3dd37e6fbe21b988653",
@@ -107,6 +110,7 @@ type | field
   }
 }
 ```
+
 EIP712 struct CancelParams
 
 type | field
@@ -115,14 +119,15 @@ bytes32 | orderHash;
 bytes32 | orderRequestid;  
 bytes32 | requestId;  
 
+***again, duplicated the data avove to below. Here orderRequestid is the same across both, but i still dont know what type ETHPERP or signature is***
 
-type | description
------- | -----------------------
+type | field | description
+-----|---- | -----------------------
 symbol | Currently always 'ETHPERP'. New symbols coming soon! 
-orderHash| Where does this come from?
-orderRequestId | How is this different from requestID?
-requestID | An incrementing numeric identifier for this request.
-signature | EIP712 signature
+bytes32 | orderHash| Where does this come from?
+bytes32 | orderRequestId | How is this different from requestID?
+bytes32 | requestID | An incrementing numeric identifier for this request.
+?? | signature | EIP712 signature
 
 ## Withdraw
 
@@ -131,7 +136,8 @@ signature | EIP712 signature
 ```json
 {
   "request": {
-    "withdraw": {
+    "t": "Withdraw",
+    "c": {
       "traderAddress": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
       "strategyId": "main",
       "currency": "0x41082c820342539de44c1b404fead3b4b39e15d6",
@@ -142,33 +148,28 @@ signature | EIP712 signature
   }
 }
 ```
-field | description
-------- | -----------------
-traderAddress | Address of the account for the withdrawal
-strategyId | 
-currency | contract address for currency (USDC)
-amount | amount to be withdrawin
-requestId | An incrementing numeric identifier for this request.
-signature | EIP712 signature
 
-EIP712 Struct `WithdrawParams` type| field
----------- | --------------------
-address | traderAddress
-bytes32 | strategyId
-address | currency
-uint128 | amount
-bytes32 | requestId
+type | field | description
+---- | --- | -----------------
+address | traderAddress | Address of the account for the withdrawal
+bytes32 | strategyId | ??
+address | currency | contract address for currency (USDC)
+uint128 | amount | amount to be withdrawin
+bytes32 | requestId | An incrementing numeric identifier for this request.
+signature | signature | EIP712 signature
 
 
 ## Receipts
 
+
 ```json
 {
   "receipt": {
-    "type": "Received",
-    "requestId": "0x0e37c859bd811c0d877940c528df79baad972282e82ef3dd37e6fbe21b988653",
-    "requestIndex": "0x5",
-    "enclaveSignature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    "t": "Received",
+    "c": {
+      "requestId": "0x0e37c859bd811c0d877940c528df79baad972282e82ef3dd37e6fbe21b988653",
+      "requestIndex": "0x5",
+      "enclaveSignature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
   }
 }
 ```
@@ -190,12 +191,13 @@ DerivaDEX operators execute code within a trusted execution environment. The enc
 ```json
 {
   "receipt": {
-    "type": "Error",
-    "msg": "Nonces cannot go backwards",
+    "t": "Error",
+    "c": {
+      "msg": "Nonces cannot go backwards",
+    }
   }
 }
 ```
-
 A error will return a receipt with type of `Error` and an error message.
 
 
@@ -205,12 +207,16 @@ A error will return a receipt with type of `Error` and an error message.
 
 > Subscribe to account feed
 
+
 ```json
 {
-  "subscribeAccount": {
-    "trader": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
-    "strategies": ["main"],
-    "events": ["StrategyUpdate", "PositionUpdate"]
+  "request": {
+    "t": "SubscribeAccount",
+    "c": {
+      "trader": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
+      "strategies": ["main"],
+      "events": ["OrdersUpdate", "PositionUpdate", "StrategyUpdate"]
+    }
   }
 }
 ```
@@ -226,14 +232,18 @@ events | Pass in one or both of StrategyUpdate and PositionUpdate to subscribe t
 
 > Confirmation receipt
 
+```
 ```json
 {
   "receipt": {
-    "type": "Subscribed",
-    "msg": "Subscribed to PositionUpdate for 0x0e37c859bd811c0d877940c528df79baad972282e82ef3dd37e6fbe21b988653"
+    "t": "Subscribed",
+    "c": {
+      "msg": "Subscribed to PositionUpdate for 0x0e37c859bd811c0d877940c528df79baad972282e82ef3dd37e6fbe21b988653"
+    }
   }
 }
 ```
+
 A receipt type 'Subscribed' confirms the subscription was successful.
 
 
@@ -241,9 +251,9 @@ A receipt type 'Subscribed' confirms the subscription was successful.
 
 ```json
 {
-  "type": "Partial",
-  "topic": "PositionUpdate",
-  "data": [{
+  "t": "PositionUpdate",
+  "e": "Partial",
+  "c": [{
     "trader": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
     "strategyId": "main",
     "symbol": "ETHPERP",
@@ -253,8 +263,8 @@ A receipt type 'Subscribed' confirms the subscription was successful.
     "lastEpoch": "325"
   }]
 }
-
 ```
+
 The current snapshot is returned immediately after the subscription receipt with a type of `Partial`.
 `Partial` indicates that this is an initial snapshop following a subscription.
 
@@ -263,9 +273,9 @@ The current snapshot is returned immediately after the subscription receipt with
 
 ```json
 {
-  "type": "Update",
-  "topic": "PositionUpdate",
-  "data": [{
+  "t": "PositionUpdate",
+  "e": "Update",
+  "c": [{
     "trader": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
     "strategyId": "main",
     "symbol": "ETHPERP",
@@ -273,9 +283,10 @@ The current snapshot is returned immediately after the subscription receipt with
     "balance": "423.44",
     "avgPrice": "605",
     "lastEpoch": "325"
-  }]
+  }] 
 }
 ```
+
 Streaming updates follow, with the type `Update`. `Update` indicates that this is an incremental update.
 
 
@@ -286,9 +297,12 @@ Streaming updates follow, with the type `Update`. `Update` indicates that this i
 
 ```json
 {
-  "subscribeMarket": {
-    "symbols": ["ETHPERP"],
-    "events": ["OrderBook", "Markprice"]
+  "request": {
+    "t" : "SubscribeMarket",
+    "c" : {
+      "symbols": ["ETHPERP"],
+      "events": ["OrderBookUpdate", "MarkPriceUpdate"]
+    }
   }
 }
 ```
@@ -301,8 +315,10 @@ Subscribe to Orderbook and Markprice events by sending a websocket message follo
 ```json
 {
    "receipt": {
-      "type": "Subscribed",
-      "msg": "Subscribed to OrderBook for ETHPERP"
+     "t": "Subscribed",
+     "c": {
+       "msg": "Subscribed to OrderBookUpdate for ETHPERP"
+     }
    }
 }
 ```
@@ -312,9 +328,9 @@ A successful subscription returns a confirmation message of type `Subscribed`.
 
 ```json
 {
-   "type": "Partial",
-   "topic": "OrderBook",
-   "data": [{
+   "t": "OrderBookUpdate",
+   "e": "Partial",
+   "c": [{
      "bids": [ [ "460", "1.123455666" ] ],
      "asks": [ [ "470", "0.98" ] ],
      "timestamp": 1616112500667,
@@ -331,10 +347,10 @@ The current snapshot is returned immediately after the subscription receipt with
 
 ```json
 {
-   "type": "Update",
-   "topic": "OrderBook",
-   "data": [{
-     "bids": [ [ "580.56", "1.5" ] ]
+   "t": "OrderBookUpdate",
+   "e": "Update",
+   "c": [{ 
+     "bids": [ [ "580.56", "1.5" ] ],
      "asks": [],
      "timestamp": 1616087958750,
      "nonce": "0x1e8038f562948c0fc747cdab1ee8ed69c13f5ca34e194ef147c8d140ba040f14",
@@ -351,10 +367,12 @@ Streaming updates follow, with the type `Update`.
 
 ```json
 {
-   "receipt": {
-     "type": "Subscribed",
-     "msg": "Subscribed to Markprice for ETHPERP"
-   }
+  "receipt": {
+    "t": "Subscribed",
+    "c": {
+      "msg": "Subscribed to MarkPriceUpdate for ETHPERP"
+    }
+  }
 }
 ```
 For Mark Price, the subscription confirmation is of type `subscribed`.
@@ -365,8 +383,9 @@ For Mark Price, the subscription confirmation is of type `subscribed`.
 
 ```json
 {
-   "topic": "Markprice",
-   "data": [{
+   "t": "MarkPriceUpdate",
+   "e": "Partial",
+   "c": [{
      "price": "472.96848799410645",
      "symbol": "ETHPERP",
      "createdAt": "2021-03-19T00:16:57.045Z",
@@ -382,14 +401,14 @@ A mark price subscription is followed by an initial `Partial` snapshot.
 
 ```json
 {
-    "type": "Update",
-    "topic": "Markprice",
-    "data": [{
-        "createdAt": "2021-03-04T22:51:37.113985+00:00",
-        "updatedAt": "2021-03-04T22:51:37.113985+00:00",
-        "price": "458.40712784392935",
-        "symbol": "ETHPERP"
-    }]
+  "t": "MarkPriceUpdate",
+  "e": "Update",
+  "c": [{
+    "createdAt": "2021-03-04T22:51:37.113985+00:00",
+    "updatedAt": "2021-03-04T22:51:37.113985+00:00",
+    "price": "458.40712784392935",
+    "symbol": "ETHPERP"
+  }]
 }
 ```
 Streaming updates follow the snapshot, with the type `Update`.
