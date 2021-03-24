@@ -69,7 +69,8 @@
             </blockquote>
             <pre class="highlight json"><code>{
   <span class="hljs-attr">&quot;request&quot;</span>: {
-    <span class="hljs-attr">&quot;order&quot;</span>: {
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Order&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: {
       <span class="hljs-attr">&quot;makerAddress&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>,
       <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
       <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
@@ -83,109 +84,16 @@
     }
   }
 }</code></pre>
-            <table>
-               <thead>
-                  <tr>
-                     <th>field</th>
-                     <th>description</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>makerAddress</td>
-                     <td>The trader&#39;s address</td>
-                  </tr>
-                  <tr>
-                     <td>symbol</td>
-                     <td>Currently always &#39;ETHPERP&#39;. New symbols coming soon!</td>
-                  </tr>
-                  <tr>
-                     <td>strategy</td>
-                     <td>Always <code>main</code>. Support for multiple strategies coming soon!</td>
-                  </tr>
-                  <tr>
-                     <td>side</td>
-                     <td>Whether the order is a Bid or an Ask (case sensitive)</td>
-                  </tr>
-                  <tr>
-                     <td>orderType</td>
-                     <td><code>Market</code>. Other order types coming soon!</td>
-                  </tr>
-                  <tr>
-                     <td>requestID</td>
-                     <td>An incrementing numeric identifier for this request</td>
-                  </tr>
-                  <tr>
-                     <td>amount</td>
-                     <td>The amount requested</td>
-                  </tr>
-                  <tr>
-                     <td>price</td>
-                     <td>The Bid or Ask price</td>
-                  </tr>
-                  <tr>
-                     <td>stopPrice</td>
-                     <td>Currently, always 0 as stops are not implemented.</td>
-                  </tr>
-                  <tr>
-                     <td>signature</td>
-                     <td>EIP712 signature</td>
-                  </tr>
-               </tbody>
-            </table>
-            <table>
-               <thead>
-                  <tr>
-                     <th>type</th>
-                     <th>field</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>address</td>
-                     <td>makerAddress;</td>
-                  </tr>
-                  <tr>
-                     <td>bytes32</td>
-                     <td>symbol;</td>
-                  </tr>
-                  <tr>
-                     <td>bytes32</td>
-                     <td>strategy;</td>
-                  </tr>
-                  <tr>
-                     <td>uint256</td>
-                     <td>side;</td>
-                  </tr>
-                  <tr>
-                     <td>uint256</td>
-                     <td>orderType;</td>
-                  </tr>
-                  <tr>
-                     <td>bytes32</td>
-                     <td>clientId;</td>
-                  </tr>
-                  <tr>
-                     <td>uint256</td>
-                     <td>assetAmount;</td>
-                  </tr>
-                  <tr>
-                     <td>uint256</td>
-                     <td>price;</td>
-                  </tr>
-                  <tr>
-                     <td>uint256</td>
-                     <td>stopPrice;</td>
-                  </tr>
-               </tbody>
-            </table>
+            <p>type | field | description ------ | ----------- address | makerAddress | The trader&#39;s address bytes32 | symbol | Currently always &#39;ETHPERP&#39;. New symbols coming soon! bytes 32 | strategy | Always <code>main</code>. Support for multiple strategies coming soon! uint256 | side | Whether the order is a Bid or an Ask (case sensitive) uint256 | orderType | <code>Market</code>. Other order types coming soon! bytes32 | requestID | An incrementing numeric identifier for this request uint256 | amount | The amount requested uint256 | price | The Bid or Ask price uint256 | stopPrice | Currently, always 0 as stops are not implemented. ?? | signature | EIP712 signature</p>
+            <p><em><strong>I added the below to the chart above, does it matter that there are some differences, i.e., clientId vs requestID? What type is signature?</strong></em> type | field --------- | ----------- address | makerAddress;<br> bytes32 | symbol;<br> bytes32 | strategy;<br> uint256 | side;<br> uint256 | orderType;<br> bytes32 | clientId;<br> uint256 | assetAmount;<br> uint256 | price;<br> uint256 | stopPrice; </p>
             <h2 id="cancel-order">Cancel Order</h2>
             <blockquote>
                <p>Request format:</p>
             </blockquote>
             <pre class="highlight json"><code>{
   <span class="hljs-attr">&quot;request&quot;</span>: {
-    <span class="hljs-attr">&quot;cancelOrder&quot;</span>: {
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;CancelOrder&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: {
       <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
       <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0xa2e47f2d462c4368fdae25028447c78118ba349141d0ba945c6f100dfd149029&quot;</span>,
       <span class="hljs-attr">&quot;orderRequestId&quot;</span>: <span class="hljs-string">&quot;0x0e37c859bd811c0d877940c528df79baad972282e82ef3dd37e6fbe21b988653&quot;</span>,
@@ -217,10 +125,12 @@
                   </tr>
                </tbody>
             </table>
+            <p><em><strong>again, duplicated the data avove to below. Here orderRequestid is the same across both, but i still dont know what type ETHPERP or signature is</strong></em></p>
             <table>
                <thead>
                   <tr>
                      <th>type</th>
+                     <th>field</th>
                      <th>description</th>
                   </tr>
                </thead>
@@ -228,20 +138,25 @@
                   <tr>
                      <td>symbol</td>
                      <td>Currently always &#39;ETHPERP&#39;. New symbols coming soon!</td>
+                     <td></td>
                   </tr>
                   <tr>
+                     <td>bytes32</td>
                      <td>orderHash</td>
                      <td>Where does this come from?</td>
                   </tr>
                   <tr>
+                     <td>bytes32</td>
                      <td>orderRequestId</td>
                      <td>How is this different from requestID?</td>
                   </tr>
                   <tr>
+                     <td>bytes32</td>
                      <td>requestID</td>
                      <td>An incrementing numeric identifier for this request.</td>
                   </tr>
                   <tr>
+                     <td>??</td>
                      <td>signature</td>
                      <td>EIP712 signature</td>
                   </tr>
@@ -253,7 +168,8 @@
             </blockquote>
             <pre class="highlight json"><code>{
   <span class="hljs-attr">&quot;request&quot;</span>: {
-    <span class="hljs-attr">&quot;withdraw&quot;</span>: {
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Withdraw&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: {
       <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>,
       <span class="hljs-attr">&quot;strategyId&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
       <span class="hljs-attr">&quot;currency&quot;</span>: <span class="hljs-string">&quot;0x41082c820342539de44c1b404fead3b4b39e15d6&quot;</span>,
@@ -266,74 +182,52 @@
             <table>
                <thead>
                   <tr>
+                     <th>type</th>
                      <th>field</th>
                      <th>description</th>
                   </tr>
                </thead>
                <tbody>
                   <tr>
+                     <td>address</td>
                      <td>traderAddress</td>
                      <td>Address of the account for the withdrawal</td>
                   </tr>
                   <tr>
+                     <td>bytes32</td>
                      <td>strategyId</td>
-                     <td></td>
+                     <td>??</td>
                   </tr>
                   <tr>
+                     <td>address</td>
                      <td>currency</td>
                      <td>contract address for currency (USDC)</td>
                   </tr>
                   <tr>
+                     <td>uint128</td>
                      <td>amount</td>
                      <td>amount to be withdrawin</td>
                   </tr>
                   <tr>
+                     <td>bytes32</td>
                      <td>requestId</td>
                      <td>An incrementing numeric identifier for this request.</td>
                   </tr>
                   <tr>
                      <td>signature</td>
+                     <td>signature</td>
                      <td>EIP712 signature</td>
-                  </tr>
-               </tbody>
-            </table>
-            <table>
-               <thead>
-                  <tr>
-                     <th>EIP712 Struct <code>WithdrawParams</code> type</th>
-                     <th>field</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>address</td>
-                     <td>traderAddress</td>
-                  </tr>
-                  <tr>
-                     <td>bytes32</td>
-                     <td>strategyId</td>
-                  </tr>
-                  <tr>
-                     <td>address</td>
-                     <td>currency</td>
-                  </tr>
-                  <tr>
-                     <td>uint128</td>
-                     <td>amount</td>
-                  </tr>
-                  <tr>
-                     <td>bytes32</td>
-                     <td>requestId</td>
                   </tr>
                </tbody>
             </table>
             <h2 id="receipts">Receipts</h2>
             <pre class="highlight json"><code>{
   <span class="hljs-attr">&quot;receipt&quot;</span>: {
-    <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;Received&quot;</span>,
-    <span class="hljs-attr">&quot;requestId&quot;</span>: <span class="hljs-string">&quot;0x0e37c859bd811c0d877940c528df79baad972282e82ef3dd37e6fbe21b988653&quot;</span>,
-    <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-string">&quot;0x5&quot;</span>,
-    <span class="hljs-attr">&quot;enclaveSignature&quot;</span>: <span class="hljs-string">&quot;0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&quot;</span>
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Received&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: {
+      <span class="hljs-attr">&quot;requestId&quot;</span>: <span class="hljs-string">&quot;0x0e37c859bd811c0d877940c528df79baad972282e82ef3dd37e6fbe21b988653&quot;</span>,
+      <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-string">&quot;0x5&quot;</span>,
+      <span class="hljs-attr">&quot;enclaveSignature&quot;</span>: <span class="hljs-string">&quot;0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&quot;</span>
   }
 }</code></pre>
             <p>Each command returns a receipt, which confirms that an Operator has received the request sequenced it for processing. The receipt <code>type</code> will be either &quot;Received&quot; or &quot;Error&quot;. The <code>requestId</code> is the requestId from the original command. The <code>requestIndex</code> is the Operator&#39;s sequence id.</p>
@@ -370,8 +264,10 @@
             </blockquote>
             <pre class="highlight json"><code>{
   <span class="hljs-attr">&quot;receipt&quot;</span>: {
-    <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;Error&quot;</span>,
-    <span class="hljs-attr">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Nonces cannot go backwards&quot;</span>,
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Error&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: {
+      <span class="hljs-attr">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Nonces cannot go backwards&quot;</span>,
+    }
   }
 }</code></pre>
             <p>A error will return a receipt with type of <code>Error</code> and an error message.</p>
@@ -381,10 +277,13 @@
                <p>Subscribe to account feed</p>
             </blockquote>
             <pre class="highlight json"><code>{
-  <span class="hljs-attr">&quot;subscribeAccount&quot;</span>: {
-    <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>,
-    <span class="hljs-attr">&quot;strategies&quot;</span>: [<span class="hljs-string">&quot;main&quot;</span>],
-    <span class="hljs-attr">&quot;events&quot;</span>: [<span class="hljs-string">&quot;StrategyUpdate&quot;</span>, <span class="hljs-string">&quot;PositionUpdate&quot;</span>]
+  <span class="hljs-attr">&quot;request&quot;</span>: {
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;SubscribeAccount&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: {
+      <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>,
+      <span class="hljs-attr">&quot;strategies&quot;</span>: [<span class="hljs-string">&quot;main&quot;</span>],
+      <span class="hljs-attr">&quot;events&quot;</span>: [<span class="hljs-string">&quot;OrdersUpdate&quot;</span>, <span class="hljs-string">&quot;PositionUpdate&quot;</span>, <span class="hljs-string">&quot;StrategyUpdate&quot;</span>]
+    }
   }
 }</code></pre>
             <p>Account feeds are subscriptions to Strategy and Position events for a trader address. To subscribe to an account feed, send a websocket message following the code sample at right:</p>
@@ -414,18 +313,21 @@
             <blockquote>
                <p>Confirmation receipt</p>
             </blockquote>
-            <pre class="highlight json"><code>{
-  <span class="hljs-attr">&quot;receipt&quot;</span>: {
-    <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;Subscribed&quot;</span>,
-    <span class="hljs-attr">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Subscribed to PositionUpdate for 0x0e37c859bd811c0d877940c528df79baad972282e82ef3dd37e6fbe21b988653&quot;</span>
+            <pre class="highlight "><code>```json
+{
+  <span class="hljs-string">&quot;receipt&quot;</span>: {
+    <span class="hljs-string">&quot;t&quot;</span>: <span class="hljs-string">&quot;Subscribed&quot;</span>,
+    <span class="hljs-string">&quot;c&quot;</span>: {
+      <span class="hljs-string">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Subscribed to PositionUpdate for 0x0e37c859bd811c0d877940c528df79baad972282e82ef3dd37e6fbe21b988653&quot;</span>
+    }
   }
 }</code></pre>
             <p>A receipt type &#39;Subscribed&#39; confirms the subscription was successful.</p>
             <h2 id="account-feed-snapshot">Account feed snapshot</h2>
             <pre class="highlight json"><code>{
-  <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;Partial&quot;</span>,
-  <span class="hljs-attr">&quot;topic&quot;</span>: <span class="hljs-string">&quot;PositionUpdate&quot;</span>,
-  <span class="hljs-attr">&quot;data&quot;</span>: [{
+  <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;PositionUpdate&quot;</span>,
+  <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Partial&quot;</span>,
+  <span class="hljs-attr">&quot;c&quot;</span>: [{
     <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>,
     <span class="hljs-attr">&quot;strategyId&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
     <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
@@ -434,14 +336,13 @@
     <span class="hljs-attr">&quot;avgPrice&quot;</span>: <span class="hljs-string">&quot;605&quot;</span>,
     <span class="hljs-attr">&quot;lastEpoch&quot;</span>: <span class="hljs-string">&quot;325&quot;</span>
   }]
-}
-</code></pre>
+}</code></pre>
             <p>The current snapshot is returned immediately after the subscription receipt with a type of <code>Partial</code>. <code>Partial</code> indicates that this is an initial snapshop following a subscription.</p>
             <h2 id="account-feed-update">Account feed update</h2>
             <pre class="highlight json"><code>{
-  <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;Update&quot;</span>,
-  <span class="hljs-attr">&quot;topic&quot;</span>: <span class="hljs-string">&quot;PositionUpdate&quot;</span>,
-  <span class="hljs-attr">&quot;data&quot;</span>: [{
+  <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;PositionUpdate&quot;</span>,
+  <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Update&quot;</span>,
+  <span class="hljs-attr">&quot;c&quot;</span>: [{
     <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>,
     <span class="hljs-attr">&quot;strategyId&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
     <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
@@ -449,7 +350,7 @@
     <span class="hljs-attr">&quot;balance&quot;</span>: <span class="hljs-string">&quot;423.44&quot;</span>,
     <span class="hljs-attr">&quot;avgPrice&quot;</span>: <span class="hljs-string">&quot;605&quot;</span>,
     <span class="hljs-attr">&quot;lastEpoch&quot;</span>: <span class="hljs-string">&quot;325&quot;</span>
-  }]
+  }] 
 }</code></pre>
             <p>Streaming updates follow, with the type <code>Update</code>. <code>Update</code> indicates that this is an incremental update.</p>
             <h2 id="market-events-subscription">Market events subscription</h2>
@@ -457,9 +358,12 @@
                <p>Subscribe to market</p>
             </blockquote>
             <pre class="highlight json"><code>{
-  <span class="hljs-attr">&quot;subscribeMarket&quot;</span>: {
-    <span class="hljs-attr">&quot;symbols&quot;</span>: [<span class="hljs-string">&quot;ETHPERP&quot;</span>],
-    <span class="hljs-attr">&quot;events&quot;</span>: [<span class="hljs-string">&quot;OrderBook&quot;</span>, <span class="hljs-string">&quot;Markprice&quot;</span>]
+  <span class="hljs-attr">&quot;request&quot;</span>: {
+    <span class="hljs-attr">&quot;t&quot;</span> : <span class="hljs-string">&quot;SubscribeMarket&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span> : {
+      <span class="hljs-attr">&quot;symbols&quot;</span>: [<span class="hljs-string">&quot;ETHPERP&quot;</span>],
+      <span class="hljs-attr">&quot;events&quot;</span>: [<span class="hljs-string">&quot;OrderBookUpdate&quot;</span>, <span class="hljs-string">&quot;MarkPriceUpdate&quot;</span>]
+    }
   }
 }</code></pre>
             <p>Subscribe to Orderbook and Markprice events by sending a websocket message following the code snippet format at right.</p>
@@ -469,16 +373,18 @@
             </blockquote>
             <pre class="highlight json"><code>{
    <span class="hljs-attr">&quot;receipt&quot;</span>: {
-      <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;Subscribed&quot;</span>,
-      <span class="hljs-attr">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Subscribed to OrderBook for ETHPERP&quot;</span>
+     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Subscribed&quot;</span>,
+     <span class="hljs-attr">&quot;c&quot;</span>: {
+       <span class="hljs-attr">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Subscribed to OrderBookUpdate for ETHPERP&quot;</span>
+     }
    }
 }</code></pre>
             <p>A successful subscription returns a confirmation message of type <code>Subscribed</code>.</p>
             <h2 id="market-events-partial-orderbook-snapshot">Market events partial orderbook snapshot</h2>
             <pre class="highlight json"><code>{
-   <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;Partial&quot;</span>,
-   <span class="hljs-attr">&quot;topic&quot;</span>: <span class="hljs-string">&quot;OrderBook&quot;</span>,
-   <span class="hljs-attr">&quot;data&quot;</span>: [{
+   <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;OrderBookUpdate&quot;</span>,
+   <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Partial&quot;</span>,
+   <span class="hljs-attr">&quot;c&quot;</span>: [{
      <span class="hljs-attr">&quot;bids&quot;</span>: [ [ <span class="hljs-string">&quot;460&quot;</span>, <span class="hljs-string">&quot;1.123455666&quot;</span> ] ],
      <span class="hljs-attr">&quot;asks&quot;</span>: [ [ <span class="hljs-string">&quot;470&quot;</span>, <span class="hljs-string">&quot;0.98&quot;</span> ] ],
      <span class="hljs-attr">&quot;timestamp&quot;</span>: <span class="hljs-number">1616112500667</span>,
@@ -492,11 +398,11 @@
                <p>Streaming updates</p>
             </blockquote>
             <pre class="highlight json"><code>{
-   <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;Update&quot;</span>,
-   <span class="hljs-attr">&quot;topic&quot;</span>: <span class="hljs-string">&quot;OrderBook&quot;</span>,
-   <span class="hljs-attr">&quot;data&quot;</span>: [{
-     <span class="hljs-attr">&quot;bids&quot;</span>: [ [ <span class="hljs-string">&quot;580.56&quot;</span>, <span class="hljs-string">&quot;1.5&quot;</span> ] ]
-     <span class="hljs-string">&quot;asks&quot;</span>: [],
+   <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;OrderBookUpdate&quot;</span>,
+   <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Update&quot;</span>,
+   <span class="hljs-attr">&quot;c&quot;</span>: [{ 
+     <span class="hljs-attr">&quot;bids&quot;</span>: [ [ <span class="hljs-string">&quot;580.56&quot;</span>, <span class="hljs-string">&quot;1.5&quot;</span> ] ],
+     <span class="hljs-attr">&quot;asks&quot;</span>: [],
      <span class="hljs-attr">&quot;timestamp&quot;</span>: <span class="hljs-number">1616087958750</span>,
      <span class="hljs-attr">&quot;nonce&quot;</span>: <span class="hljs-string">&quot;0x1e8038f562948c0fc747cdab1ee8ed69c13f5ca34e194ef147c8d140ba040f14&quot;</span>,
      <span class="hljs-attr">&quot;aggregationType&quot;</span>: <span class="hljs-string">&quot;0.0001&quot;</span>
@@ -508,10 +414,12 @@
                <p>Subscription confirmation for Mark Price</p>
             </blockquote>
             <pre class="highlight json"><code>{
-   <span class="hljs-attr">&quot;receipt&quot;</span>: {
-     <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;Subscribed&quot;</span>,
-     <span class="hljs-attr">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Subscribed to Markprice for ETHPERP&quot;</span>
-   }
+  <span class="hljs-attr">&quot;receipt&quot;</span>: {
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Subscribed&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: {
+      <span class="hljs-attr">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Subscribed to MarkPriceUpdate for ETHPERP&quot;</span>
+    }
+  }
 }</code></pre>
             <p>For Mark Price, the subscription confirmation is of type <code>subscribed</code>.</p>
             <h2 id="partial-mark-price-snapshot">Partial mark price snapshot</h2>
@@ -519,8 +427,9 @@
                <p>&quot;type&quot;: &quot;Partial mark price snapshot&quot;</p>
             </blockquote>
             <pre class="highlight json"><code>{
-   <span class="hljs-attr">&quot;topic&quot;</span>: <span class="hljs-string">&quot;Markprice&quot;</span>,
-   <span class="hljs-attr">&quot;data&quot;</span>: [{
+   <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;MarkPriceUpdate&quot;</span>,
+   <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Partial&quot;</span>,
+   <span class="hljs-attr">&quot;c&quot;</span>: [{
      <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;472.96848799410645&quot;</span>,
      <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
      <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-03-19T00:16:57.045Z&quot;</span>,
@@ -533,14 +442,14 @@
                <p>Mark price streaming updates</p>
             </blockquote>
             <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;Update&quot;</span>,
-    <span class="hljs-attr">&quot;topic&quot;</span>: <span class="hljs-string">&quot;Markprice&quot;</span>,
-    <span class="hljs-attr">&quot;data&quot;</span>: [{
-        <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-03-04T22:51:37.113985+00:00&quot;</span>,
-        <span class="hljs-attr">&quot;updatedAt&quot;</span>: <span class="hljs-string">&quot;2021-03-04T22:51:37.113985+00:00&quot;</span>,
-        <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;458.40712784392935&quot;</span>,
-        <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>
-    }]
+  <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;MarkPriceUpdate&quot;</span>,
+  <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Update&quot;</span>,
+  <span class="hljs-attr">&quot;c&quot;</span>: [{
+    <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-03-04T22:51:37.113985+00:00&quot;</span>,
+    <span class="hljs-attr">&quot;updatedAt&quot;</span>: <span class="hljs-string">&quot;2021-03-04T22:51:37.113985+00:00&quot;</span>,
+    <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;458.40712784392935&quot;</span>,
+    <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>
+  }]
 }</code></pre>
             <p>Streaming updates follow the snapshot, with the type <code>Update</code>.</p>
             <h1 id="validation">Validation</h1>
