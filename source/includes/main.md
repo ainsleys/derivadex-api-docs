@@ -69,7 +69,7 @@ The websocket API offers commands for placing and canceling orders, as well as w
 type | field | description 
 ------ | ---- | -------
 address | makerAddress | The trader's address
-bytes32 | symbol | Currently always 'ETHPERP'. New symbols coming soon! 
+string | symbol | Currently always 'ETHPERP'. New symbols coming soon! 
 bytes 32 | strategy | Always `main`. Support for multiple strategies coming soon!
 uint256 | side | Whether the order is a Bid or an Ask (case sensitive)
 uint256 | orderType | `Market`. Other order types coming soon!
@@ -77,24 +77,7 @@ bytes32 | requestID | An incrementing numeric identifier for this request
 uint256 | amount | The amount requested
 uint256 | price | The Bid or Ask price
 uint256 | stopPrice | Currently, always 0 as stops are not implemented.
-?? | signature | EIP712 signature
-
-
-
-***I added the below to the chart above, does it matter that there are some differences, i.e., clientId vs requestID? What type is signature?***
-
-
-type | field
---------- | -----------
-  address | makerAddress;  
-  bytes32 | symbol;  
-  bytes32 | strategy;  
-  uint256 | side;  
-  uint256 | orderType;  
-  bytes32 | clientId;  
-  uint256 | assetAmount;  
-  uint256 | price;  
-  uint256 | stopPrice;  
+bytes | signature | EIP712 signature
 
 
 ## Cancel Order
@@ -116,25 +99,13 @@ type | field
 }
 ```
 
-EIP712 struct CancelParams
-
-type | field
-------- | --------------------- 
-bytes32 | orderHash;  
-bytes32 | orderRequestid;  
-bytes32 | requestId;  
-
-***again, duplicated the data avove to below. Here orderRequestid is the same across both, but i still dont know what type ETHPERP or signature is***
-
-
-
 type | field | description
 -----|---- | -----------------------
-unknown | symbol | Currently always 'ETHPERP'. New symbols coming soon! 
+string | symbol | Currently always 'ETHPERP'. New symbols coming soon! 
 bytes32 | orderHash| Where does this come from?
 bytes32 | orderRequestId | How is this different from requestID?
-bytes32 | requestID | An incrementing numeric identifier for this request.
-?? | signature | EIP712 signature
+bytes32 | requestID | An incrementing numeric identifier for this request
+bytes | signature | EIP712 signature
 
 ## Withdraw
 
@@ -163,7 +134,7 @@ bytes32 | strategyId | ??
 address | currency | contract address for currency (USDC)
 uint128 | amount | amount to be withdrawin
 bytes32 | requestId | An incrementing numeric identifier for this request.
-signature | signature | EIP712 signature
+bytes | signature | EIP712 signature
 
 
 ## Receipts
@@ -182,12 +153,11 @@ signature | signature | EIP712 signature
 ```
 Each command returns a receipt, which confirms that an Operator has received the request sequenced it for processing. The receipt `type` will be either "Received" or "Error". The `requestId` is the requestId from the original command. The `requestIndex` is the Operator's sequence id.
 
-field | description
------- | ---------------
-type | Received
-requestId | The requestId supplied in the initial request - can be used to correlated requests with receipts
-requestIndex | A ticket number which guarentees fair sequencing (how?)
-enclaveSignature | An Operator's signature which proves secure handling of the request
+type | field | description
+------ | ---- | -----------
+bytes32 | requestId | The requestId supplied in the initial request - can be used to correlated requests with receipts
+?? | requestIndex | A ticket number which guarentees fair sequencing (how?)
+?? | enclaveSignature | An Operator's signature which proves secure handling of the request
 
 DerivaDEX operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the guaranteed associated with Intel SGX TEEs. 
 
@@ -229,17 +199,16 @@ A error will return a receipt with type of `Error` and an error message.
 ```
 Account feeds are subscriptions to Strategy and Position events for a trader address. To subscribe to an account feed, send a websocket message following the code sample at right:
 
-field | description
-------- | ---------------------
-trader | The address you want to subscribe to (i.e., your own Ethereum address)
-strategies | The strategy 'main' must be included.
-events | Pass in one or both of StrategyUpdate and PositionUpdate to subscribe to an account feed
+type | field | description
+-----|----- | ---------------------
+bytes32 | trader | The address you want to subscribe to (i.e., your own Ethereum address)
+? | strategies | The strategy 'main' must be included.
+? | events | Pass in one or both of StrategyUpdate and PositionUpdate to subscribe to an account feed
 
 ## Account feed subscription confirmation
 
 > Confirmation receipt
 
-```
 ```json
 {
   "receipt": {
@@ -273,7 +242,7 @@ A receipt type 'Subscribed' confirms the subscription was successful.
 ```
 
 The current snapshot is returned immediately after the subscription receipt with a type of `Partial`.
-`Partial` indicates that this is an initial snapshop following a subscription.
+`Partial` indicates that this is an initial snapshop following a subscription. `Epoch` indicates what DerivaDEX epoch the snapshot was taken in. DerivaDEX epochs are relevant to withdrawals, as at least one epoch must pass before an initiated withdrawal can be completed.
 
 
 ## Account feed update
