@@ -9,7 +9,7 @@ Find us online [Discord](https://discord.gg/a54BWuG) | [Telegram](https://t.me/D
 
 # Getting Started
 
-DerivaDEX is a decentralized exchange. As such, trading is non-custodial. Users are responsible for their own funds, which are deposited to the DerivaDEX smart contract on Ethereum for trading. 
+DerivaDEX is a decentralized exchange. As such, trading is non-custodial. Users are responsible for their own funds, which are deposited to the DerivaDEX smart contracts on Ethereum for trading. 
 
 To begin interacting with the DerivaDEX ecosystem programmatically, you generally will want to follow these steps:
 1. Deposit funds via Ethereum via an Ethereum client
@@ -21,7 +21,7 @@ Additionally, you should familiarize yourself with [EIP 712 signatures](https://
 
 ## Making a deposit
 
-To deposit funds on DerivaDEX, first ensure that you have created an Ethereum account. The deposit interaction is between a user and the DerivaDEX smart contract. To be more explicit, you will not be utilizing the WebSocket API to facilitate a deposit. The DerivaDEX Solidity smart contracts adhere to the [Diamond Standard](https://medium.com/derivadex/the-diamond-standard-a-new-paradigm-for-upgradeability-569121a08954). The `deposit` smart contract function you will need to use is located in the `Trader` facet, at the address of the main `DerivaDEX` proxy contract.
+To deposit funds on DerivaDEX, first ensure that you have created an Ethereum account. The deposit interaction is between a user and the DerivaDEX smart contracts. To be more explicit, you will not be utilizing the WebSocket API to facilitate a deposit. The DerivaDEX Solidity smart contracts adhere to the [Diamond Standard](https://medium.com/derivadex/the-diamond-standard-a-new-paradigm-for-upgradeability-569121a08954). The `deposit` smart contract function you will need to use is located in the `Trader` facet, at the address of the main `DerivaDEX` proxy contract.
 
 ```text
 // solidity
@@ -58,7 +58,7 @@ The websocket API offers commands for placing and canceling orders, as well as w
 
 ## Place order
 
-Traders can place new orders by specifying specific attributes in the `Order` command's request payload. These requests are subject to a set of validations.
+You can place new orders by specifying specific attributes in the `Order` command's request payload. These requests are subject to a set of validations.
 
 > Request format:
 
@@ -98,7 +98,7 @@ bytes | signature | EIP-712 signature
 
 ## Cancel order
 
-Traders can cancel existing orders by specifying specific attributes in the `CancelOrder` command's request payload.
+You can cancel existing orders by specifying specific attributes in the `CancelOrder` command's request payload.
 
 >Request format:
 
@@ -125,7 +125,7 @@ bytes | signature | EIP-712 signature
 
 ## Withdraw
 
-Traders can signal withdrawal intents to the Operators by specifying specific attributes in the `Withdraw` command's request payload. While you won't be able to trade with this collateral you are attempting to withdraw, you will only be able to formally initiate a smart contract withdrawal/token transfer once the epoch in which you signal your withdrawal desire has concluded. 
+You can signal withdrawal intents to the Operators by specifying specific attributes in the `Withdraw` command's request payload. While you won't be able to trade with this collateral you are attempting to withdraw, you will only be able to formally initiate a smart contract withdrawal/token transfer once the epoch in which you signal your withdrawal desire has concluded. 
 
 >Request format:
 
@@ -204,15 +204,15 @@ string | msg | Error message
 
 # Subscriptions
 
-Traders can subscribe to two different kinds of feeds corresponding to a specific trader's account or market data with `SubscribeAccount` or `SubscribeMarket` requests, respectively.
+You can subscribe to two different kinds of feeds corresponding to a specific trader's account or market data with `SubscribeAccount` or `SubscribeMarket` requests, respectively.
 
 ## Account
 
-Traders can subscribe to data feeds corresponding to events for a particular trader's Ethereum address. The possible account events traders can subscribe to are `StrategyUpdate`, `OrdersUpdate`, and `PositionUpdate`. These will be discussed below individually. 
+You can subscribe to data feeds corresponding to events for a particular trader's Ethereum address. The possible account events you can subscribe to are `StrategyUpdate`, `OrdersUpdate`, and `PositionUpdate`. These will be discussed below individually. 
 
 ## Strategy update (account)
 
-Traders can subscribe to updates to their strategy with the `StrategyUpdate` event. A strategy is a cross-margined account in which a trader can deposit/withdraw collateral and make trades. Strategies are siloed off from one another. Any updates to the free or frozen collaterals you have (whether it's from deposits, withdrawals, or realized PNL) will be registered in this feed.
+You can subscribe to updates to their strategy with the `StrategyUpdate` event. A strategy is a cross-margined account in which you can deposit/withdraw collateral and make trades. Strategies are siloed off from one another. Any updates to the free or frozen collaterals you have (whether it's from deposits, withdrawals, or realized PNL) will be registered in this feed.
 
 Upon subscription, you will receive a `Partial` back, containing a snapshot of your strategy at that moment in time. From then on, you will receive streaming `Update` messages as appropriate.
 
@@ -378,11 +378,11 @@ TBD
 
 ## Market
 
-Traders can subscribe to data feeds corresponding to events for the broader market. The possible market events traders can subscribe to at this time are `OrderBookUpdate` and `MarkPriceUpdate`. These will be discussed below individually. 
+You can subscribe to data feeds corresponding to events for the broader market. The possible market events you can subscribe to at this time are `OrderBookUpdate` and `MarkPriceUpdate`. These will be discussed below individually. 
 
 ## Order book update (market)
 
-You can subscribe to updates to an L2-order book for any given market with the `OrderBookUpdate` event. As is typically seen, an order book is a price-time FIFO priority queue market place for traders to interact with. Since this is an L2-aggregation, the response will collapse any given price level to the aggregate quantity at that level irrespective of the number of participants or the individual order details that comprise that price level.
+You can subscribe to updates to an L2-order book for any given market with the `OrderBookUpdate` event. As is typically seen, an order book is a price-time FIFO priority queue market place for you to interact with. Since this is an L2-aggregation, the response will collapse any given price level to the aggregate quantity at that level irrespective of the number of participants or the individual order details that comprise that price level.
 
 Upon subscription, you will receive a `Partial` back, containing an L2-aggregate snapshot of the order book at that moment in time. From then on, you will receive streaming/incremental `Update` messages as appropriate containing only the aggregated price levels that are different (due to the placement of new orders, order cancellation, or liquidations/matches that have taken place). Updates will come in with a reference to the side of the order book and in the form of 2-item lists with the format `[price, new aggregate quantity]`. A new aggregate quantity of `0` indicates that the price level is now gone. 
 
