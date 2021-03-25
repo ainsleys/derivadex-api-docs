@@ -45,7 +45,7 @@ Addresses used to connect to the websocket API must _already_ have funds deposit
 The steps to connect are:
 
 1. Generate a numeric value (`nonce`) that is greater than the last value used for this address. Typically, [Unix time](https://en.wikipedia.org/wiki/Unix_time) (either milliseconds or nanoseconds) is used, but users may opt to maintain their own sequence counter. Requests with a nonce that are less than or equal to the previous value will be rejected.
-2. `Keccak-256` hash the following ABI-encoded values with the specified types(using `Keccak-256`):
+2. `Keccak-256` hash the following ABI-encoded values with the specified types:
     - "DerivaDEX API" (`bytes32`) 
     - `nonce` (`uint256`)
 3. Generate a `signature` of the hash using eth_sign or equivalent signer.
