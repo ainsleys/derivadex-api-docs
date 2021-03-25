@@ -37,33 +37,63 @@
             <p>DerivaDEX currently offers a public WebSocket API for traders and developers. You must first make a deposit to the DerivaDEX ethereum contracts. The API will then enable you to open and manage your positions via commands, and subscribe to market data via subscriptions. </p>
             <p>Find us online <a href="https://discord.gg/a54BWuG">Discord</a> | <a href="https://t.me/DerivaDEX">Telegram</a> | <a href="https://medium.com/derivadex">Medium</a></p>
             <h1 id="getting-started">Getting Started</h1>
-            <p>DerivaDEX is a Decentralized Exchange, which means trading is non-custodial. Users are responsible for their own funds, which are deposited to the DerivaDEX smart contract on Ethereum or trading. </p>
-            <p>You will connect to DerivaDEX and authenticate yourself via your Ethereum account. You can deposit funds via an Ethereum client, and then authenticate yourself with the DerivaDEX API. Generally, you will want to follow these steps:</p>
+            <p>DerivaDEX is a decentralized exchange. As such, trading is non-custodial. Users are responsible for their own funds, which are deposited to the DerivaDEX smart contract on Ethereum for trading. </p>
+            <p>To begin interacting with the DerivaDEX ecosystem programmatically, you generally will want to follow these steps:</p>
             <ol>
-               <li>Deposit funds via Ethereum</li>
-               <li>Connect to the websocket API</li>
+               <li>Deposit funds via Ethereum via an Ethereum client</li>
+               <li>Authenticate and connect to the websocket API</li>
                <li>Submit and cancel orders via <code>commands</code></li>
-               <li>Subscribe to data feeds via <code>subscriptions</code>. </li>
+               <li>Subscribe to market and account data feeds via <code>subscriptions</code> </li>
             </ol>
-            <p>Additionally, you should familiarize yourself with EIP 712 signatures, which is how <code>command</code> data is signed and submitted. </p>
+            <p>Additionally, you should familiarize yourself with <a href="https://eips.ethereum.org/EIPS/eip-712">EIP 712 signatures</a>, which is how you will sign <code>command</code> data prior to submission. </p>
             <h2 id="making-a-deposit">Making a deposit</h2>
-            <p>To deposit funds on DerivaDEX, first ensure that you have created an Ethereum account. TBD -- based on Adi&#39;s work.</p>
+            <p>To deposit funds on DerivaDEX, first ensure that you have created an Ethereum account. The deposit interaction is between a user and the DerivaDEX smart contract. To be more explicit, you will not be utilizing the WebSocket API to facilitate a deposit. The DerivaDEX Solidity smart contracts adhere to the <a href="https://medium.com/derivadex/the-diamond-standard-a-new-paradigm-for-upgradeability-569121a08954">Diamond Standard</a>. The <code>deposit</code> smart contract function you will need to use is located in the <code>Trader</code> facet, at the address of the main <code>DerivaDEX</code> proxy contract.</p>
+            <pre class="highlight text"><code>// solidity
+function deposit(
+    address _collateralAddress,
+    bytes32 _strategyId,
+    uint128 _amount
+) external;</code></pre>
+            <table>
+               <thead>
+                  <tr>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>_collateralAddress</td>
+                     <td>ERC-20 token address deposited as collateral</td>
+                  </tr>
+                  <tr>
+                     <td>_strategyId</td>
+                     <td>Strategy ID (encoded as a 32-byte value) being funded</td>
+                  </tr>
+                  <tr>
+                     <td>_amount</td>
+                     <td>Amount deposited (be sure to use the grains format specific to the collateral token being used (e.g. if you wanted to deposit 1 USDC, you would enter 1000000 since the USDC token contract has 6 decimal places)</td>
+                  </tr>
+               </tbody>
+            </table>
             <h2 id="connecting-to-the-websocket-api">Connecting to the Websocket API</h2>
-            <p>Addresses used to connect to the websocket API must <em>already</em> have funds deposited. If you haven&#39;t, [do that first](Making a deposit)</p>
+            <p>Addresses used to connect to the websocket API must <em>already</em> have funds deposited. If you haven&#39;t, [do that first](#Making a deposit).</p>
             <p>The steps to connect are:</p>
-            <ul>
-               <li>Generate a numeric value (nonce) that is greater than the last value used for this address<ul>
-                     <li> <a href="https://en.wikipedia.org/wiki/Unix_time">Unix time</a> is commonly used, but users may opt to maintain their own sequence counter. Requests with a nonce that are less than or equal to the previous value will be rejected.</li>
+            <ol>
+               <li>Generate a numeric value (<code>nonce</code>) that is greater than the last value used for this address. Typically, <a href="https://en.wikipedia.org/wiki/Unix_time">Unix time</a> (either milliseconds or nanoseconds) is used, but users may opt to maintain their own sequence counter. Requests with a nonce that are less than or equal to the previous value will be rejected.</li>
+               <li><code>Keccak-256</code> hash the following ABI-encoded values with the specified types(using <code>Keccak-256</code>):<ul>
+                     <li>&quot;DerivaDEX API&quot; (<code>bytes32</code>) </li>
+                     <li><code>nonce</code> (<code>uint256</code>)</li>
                   </ul>
                </li>
-               <li>Concatenate and hash the nonce with &quot;Derivadex API&quot;: <code>keccak256(abi.encode(&quot;DerivaDEX API&quot;, nonce))</code></li>
-               <li> Generate a signature of the hash using eth_sign or equivalent signer.</li>
+               <li>Generate a <code>signature</code> of the hash using eth_sign or equivalent signer.</li>
                <li>Connect to the websocket with the url: <code>wss://api.derivadex.com?nonce=[nonce]&amp;signature=[signature]</code></li>
-            </ul>
+            </ol>
             <p>For more information, see the <a href="samples.md">code samples</a>.</p>
             <h1 id="commands">Commands</h1>
-            <p>The websocket API offers commands for placing and canceling orders, as well as withdrawals. Requests must include an <a href="https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md">EIP712 signature</a>. Examples are included in the <a href="samples.md">sample code</a>.</p>
+            <p>The websocket API offers commands for placing and canceling orders, as well as withdrawals. Since commands modify system state, these requests must include an <a href="https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md">EIP712 signature</a>. Examples are included in the <a href="samples.md">sample code</a>.</p>
             <h2 id="place-order">Place Order</h2>
+            <p>Traders can place new orders by specifying specific attributes in the <code>Order</code> command&#39;s request payload. These requests are subject to a set of validations.</p>
             <blockquote>
                <p>Request format:</p>
             </blockquote>
@@ -76,7 +106,7 @@
       <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
       <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Bid&quot;</span>,
       <span class="hljs-attr">&quot;orderType&quot;</span>: <span class="hljs-string">&quot;Market&quot;</span>,
-      <span class="hljs-attr">&quot;requestId&quot;</span>: <span class="hljs-string">&quot;0x0e37c859bd811c0d877940c528df79baad972282e82ef3dd37e6fbe21b988653&quot;</span>,
+      <span class="hljs-attr">&quot;requestId&quot;</span>: <span class="hljs-string">&quot;0x0000000000000000000000000000000000000000000000000000000000000001&quot;</span>,
       <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;123.45&quot;</span>,
       <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;234.56&quot;</span>,
       <span class="hljs-attr">&quot;stopPrice&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
@@ -96,17 +126,17 @@
                   <tr>
                      <td>address</td>
                      <td>makerAddress</td>
-                     <td>The trader&#39;s address</td>
+                     <td>Trader&#39;s Ethereum address (same as the one that facilitated the deposit)</td>
+                  </tr>
+                  <tr>
+                     <td>string</td>
+                     <td>symbol</td>
+                     <td>Name of the market to trade. Currently, this is limited to &#39;ETHPERP&#39;, but new symbols are coming soon!</td>
                   </tr>
                   <tr>
                      <td>bytes32</td>
-                     <td>symbol</td>
-                     <td>Currently always &#39;ETHPERP&#39;. New symbols coming soon!</td>
-                  </tr>
-                  <tr>
-                     <td>bytes 32</td>
                      <td>strategy</td>
-                     <td>Always <code>main</code>. Support for multiple strategies coming soon!</td>
+                     <td>Name of the Always <code>main</code>. Support for multiple strategies coming soon!</td>
                   </tr>
                   <tr>
                      <td>uint256</td>
@@ -139,56 +169,9 @@
                      <td>Currently, always 0 as stops are not implemented.</td>
                   </tr>
                   <tr>
-                     <td>??</td>
+                     <td>bytes</td>
                      <td>signature</td>
                      <td>EIP712 signature</td>
-                  </tr>
-               </tbody>
-            </table>
-            <p><em><strong>I added the below to the chart above, does it matter that there are some differences, i.e., clientId vs requestID? What type is signature?</strong></em></p>
-            <table>
-               <thead>
-                  <tr>
-                     <th>type</th>
-                     <th>field</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>address</td>
-                     <td>makerAddress;</td>
-                  </tr>
-                  <tr>
-                     <td>bytes32</td>
-                     <td>symbol;</td>
-                  </tr>
-                  <tr>
-                     <td>bytes32</td>
-                     <td>strategy;</td>
-                  </tr>
-                  <tr>
-                     <td>uint256</td>
-                     <td>side;</td>
-                  </tr>
-                  <tr>
-                     <td>uint256</td>
-                     <td>orderType;</td>
-                  </tr>
-                  <tr>
-                     <td>bytes32</td>
-                     <td>clientId;</td>
-                  </tr>
-                  <tr>
-                     <td>uint256</td>
-                     <td>assetAmount;</td>
-                  </tr>
-                  <tr>
-                     <td>uint256</td>
-                     <td>price;</td>
-                  </tr>
-                  <tr>
-                     <td>uint256</td>
-                     <td>stopPrice;</td>
                   </tr>
                </tbody>
             </table>
@@ -208,30 +191,6 @@
     }
   }
 }</code></pre>
-            <p>EIP712 struct CancelParams</p>
-            <table>
-               <thead>
-                  <tr>
-                     <th>type</th>
-                     <th>field</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>bytes32</td>
-                     <td>orderHash;</td>
-                  </tr>
-                  <tr>
-                     <td>bytes32</td>
-                     <td>orderRequestid;</td>
-                  </tr>
-                  <tr>
-                     <td>bytes32</td>
-                     <td>requestId;</td>
-                  </tr>
-               </tbody>
-            </table>
-            <p><em><strong>again, duplicated the data avove to below. Here orderRequestid is the same across both, but i still dont know what type ETHPERP or signature is</strong></em></p>
             <table>
                <thead>
                   <tr>
@@ -242,7 +201,7 @@
                </thead>
                <tbody>
                   <tr>
-                     <td>unknown</td>
+                     <td>string</td>
                      <td>symbol</td>
                      <td>Currently always &#39;ETHPERP&#39;. New symbols coming soon!</td>
                   </tr>
@@ -259,10 +218,10 @@
                   <tr>
                      <td>bytes32</td>
                      <td>requestID</td>
-                     <td>An incrementing numeric identifier for this request.</td>
+                     <td>An incrementing numeric identifier for this request</td>
                   </tr>
                   <tr>
-                     <td>??</td>
+                     <td>bytes</td>
                      <td>signature</td>
                      <td>EIP712 signature</td>
                   </tr>
@@ -320,7 +279,7 @@
                      <td>An incrementing numeric identifier for this request.</td>
                   </tr>
                   <tr>
-                     <td>signature</td>
+                     <td>bytes</td>
                      <td>signature</td>
                      <td>EIP712 signature</td>
                   </tr>
@@ -340,24 +299,24 @@
             <table>
                <thead>
                   <tr>
+                     <th>type</th>
                      <th>field</th>
                      <th>description</th>
                   </tr>
                </thead>
                <tbody>
                   <tr>
-                     <td>type</td>
-                     <td>Received</td>
-                  </tr>
-                  <tr>
+                     <td>bytes32</td>
                      <td>requestId</td>
                      <td>The requestId supplied in the initial request - can be used to correlated requests with receipts</td>
                   </tr>
                   <tr>
+                     <td>??</td>
                      <td>requestIndex</td>
                      <td>A ticket number which guarentees fair sequencing (how?)</td>
                   </tr>
                   <tr>
+                     <td>??</td>
                      <td>enclaveSignature</td>
                      <td>An Operator&#39;s signature which proves secure handling of the request</td>
                   </tr>
@@ -396,20 +355,24 @@
             <table>
                <thead>
                   <tr>
+                     <th>type</th>
                      <th>field</th>
                      <th>description</th>
                   </tr>
                </thead>
                <tbody>
                   <tr>
+                     <td>bytes32</td>
                      <td>trader</td>
                      <td>The address you want to subscribe to (i.e., your own Ethereum address)</td>
                   </tr>
                   <tr>
+                     <td>?</td>
                      <td>strategies</td>
                      <td>The strategy &#39;main&#39; must be included.</td>
                   </tr>
                   <tr>
+                     <td>?</td>
                      <td>events</td>
                      <td>Pass in one or both of StrategyUpdate and PositionUpdate to subscribe to an account feed</td>
                   </tr>
@@ -419,12 +382,11 @@
             <blockquote>
                <p>Confirmation receipt</p>
             </blockquote>
-            <pre class="highlight "><code>```json
-{
-  <span class="hljs-string">&quot;receipt&quot;</span>: {
-    <span class="hljs-string">&quot;t&quot;</span>: <span class="hljs-string">&quot;Subscribed&quot;</span>,
-    <span class="hljs-string">&quot;c&quot;</span>: {
-      <span class="hljs-string">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Subscribed to PositionUpdate for 0x0e37c859bd811c0d877940c528df79baad972282e82ef3dd37e6fbe21b988653&quot;</span>
+            <pre class="highlight json"><code>{
+  <span class="hljs-attr">&quot;receipt&quot;</span>: {
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Subscribed&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: {
+      <span class="hljs-attr">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Subscribed to PositionUpdate for 0x0e37c859bd811c0d877940c528df79baad972282e82ef3dd37e6fbe21b988653&quot;</span>
     }
   }
 }</code></pre>
@@ -443,7 +405,7 @@
     <span class="hljs-attr">&quot;lastEpoch&quot;</span>: <span class="hljs-string">&quot;325&quot;</span>
   }]
 }</code></pre>
-            <p>The current snapshot is returned immediately after the subscription receipt with a type of <code>Partial</code>. <code>Partial</code> indicates that this is an initial snapshop following a subscription.</p>
+            <p>The current snapshot is returned immediately after the subscription receipt with a type of <code>Partial</code>. <code>Partial</code> indicates that this is an initial snapshop following a subscription. <code>Epoch</code> indicates what DerivaDEX epoch the snapshot was taken in. DerivaDEX epochs are relevant to withdrawals, as at least one epoch must pass before an initiated withdrawal can be completed.</p>
             <h2 id="account-feed-update">Account feed update</h2>
             <pre class="highlight json"><code>{
   <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;PositionUpdate&quot;</span>,
