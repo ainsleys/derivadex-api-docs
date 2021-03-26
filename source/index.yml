@@ -2,6 +2,7 @@ title: API Reference
 
 language_tabs:
    - json
+   - plaintext
    - python
 
 toc_footers:

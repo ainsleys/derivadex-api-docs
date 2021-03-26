@@ -10,7 +10,7 @@
       <link href=stylesheets/highlight-monokai.css rel=stylesheet media=screen,print>
       <script src=javascripts/all.js></script>
    </head>
-   <body class="" data-languages="[&#34;json&#34;,&#34;python&#34;]">
+   <body class="" data-languages="[&#34;json&#34;,&#34;plaintext&#34;,&#34;python&#34;]">
       <a href=# id=nav-button>
          <span>NAV <img alt=navbar class=image-navbar src=images/navbar.png></span>
       </a>
@@ -18,6 +18,7 @@
          <img alt=logo class=image-logo src=images/logo.png>
          <div class=lang-selector>
             <a href=# data-language-name="json">json</a>
+            <a href=# data-language-name="plaintext">plaintext</a>
             <a href=# data-language-name="python">python</a>
          </div>
          <div class=search>
@@ -49,7 +50,7 @@
             <p>Additionally, you should familiarize yourself with <a href="https://eips.ethereum.org/EIPS/eip-712">EIP-712 signatures</a>, which is how you will sign <code>command</code> data prior to submission. </p>
             <h2 id="making-a-deposit">Making a deposit</h2>
             <p>To deposit funds on DerivaDEX, first ensure that you have created an Ethereum account. The deposit interaction is between a user and the DerivaDEX smart contracts. To be more explicit, you will not be utilizing the WebSocket API to facilitate a deposit. The DerivaDEX Solidity smart contracts adhere to the <a href="https://medium.com/derivadex/the-diamond-standard-a-new-paradigm-for-upgradeability-569121a08954">Diamond Standard</a>. The <code>deposit</code> smart contract function you will need to use is located in the <code>Trader</code> facet, at the address of the main <code>DerivaDEX</code> proxy contract.</p>
-            <pre class="highlight text"><code>// solidity
+            <pre class="highlight plaintext"><code>// solidity
 function deposit(
     address _collateralAddress,
     bytes32 _strategyId,
@@ -941,9 +942,62 @@ function deposit(
             <p>As described above, all <code>commands</code> on the API must be signed. The payload you will sign using an Ethereum wallet client of your choice (e.g. ethers, web3.js, web3.py, etc.) will need to be hashed as per the EIP-712 standard. We <strong>highly recommend</strong> referring to the <a href="https://eips.ethereum.org/EIPS/eip-712">original proposal</a> for full context, but in short, this standard introduced a framework by which users can securely sign typed structured data. This greatly improves the crypto UX as users can now sign data they see and understand as opposed to unreadable byte-strings. While these benefits may not be readily apparent for programmatic traders, you will need to conform to this standard regardless.</p>
             <p>EIP-712 hashing consists of three critical components - a <code>header</code>, <code>domain</code> struct hash, and <code>message</code> struct hash.</p>
             <h2 id="header">Header</h2>
-            <p>The <code>header</code> is simply the byte-string <code>\x19\x01</code>. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.</p>
-            <pre class="highlight python"><code>eip191_header = <span class="hljs-string">b&quot;\x19\x01&quot;</span></code></pre>
+            <blockquote>
+               <p>Sample EIP-191 header definition</p>
+            </blockquote>
+            <pre class="highlight plaintext"><code>// solidity
+bytes2 eip191_header = 0x1901;</code></pre><pre class="highlight python"><code>eip191_header = <span class="hljs-string">b&quot;\x19\x01&quot;</span></code></pre>
+            <p>The <code>header</code> is simply the byte-string <code>\x19\x01</code>. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. Example Solidity and Python reference implementations are displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.</p>
             <h2 id="domain">Domain</h2>
+            <blockquote>
+               <p>Domain separator for mainnet. DO NOT modify these parameters.</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+    <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;DerivaDEX&quot;</span>,
+    <span class="hljs-attr">&quot;version&quot;</span>: <span class="hljs-string">&quot;1&quot;</span>,
+    <span class="hljs-attr">&quot;chainId&quot;</span>:  <span class="hljs-number">1</span>
+}</code></pre>
+            <blockquote>
+               <p>Sample computation of domain struct hash</p>
+            </blockquote>
+            <pre class="highlight plaintext"><code>// solidity
+function compute_eip712_domain_struct_hash(string memory _name, string memory _version, uint256 _chainId) public view returns (bytes32) {
+    // keccak-256 hash of the encoded schema for the domain separator
+    bytes32 domainSchemaHash = keccak256(abi.encodePacked(
+        &quot;EIP712Domain(&quot;,
+        &quot;string name,&quot;,
+        &quot;string version,&quot;,
+        &quot;uint256 chainId&quot;,
+        &quot;)&quot;
+    ));
+    
+    bytes32 domainStructHash = keccak256(abi.encodePacked(
+        domainSchemaHash,
+        keccak256(bytes(_name)),
+        keccak256(bytes(_version)),
+        _chainId
+    ));
+    
+    return domainStructHash;
+}</code></pre><pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single
+<span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">compute_eip712_domain_struct_hash</span>(<span class="hljs-params">chain_id</span>):</span>
+    <span class="hljs-comment"># keccak-256 hash of the encoded schema for the domain separator</span>
+    eip712_domain_separator_schema_hash = keccak(
+        <span class="hljs-string">b&quot;EIP712Domain(&quot;</span>
+        + <span class="hljs-string">b&quot;string name,&quot;</span>
+        + <span class="hljs-string">b&quot;string version,&quot;</span>
+        + <span class="hljs-string">b&quot;uint256 chainId&quot;</span>
+        + <span class="hljs-string">b&quot;)&quot;</span>
+    )
+    
+    <span class="hljs-keyword">return</span> keccak(
+        eip712_domain_separator_schema_hash
+        + keccak(<span class="hljs-string">b&quot;DerivaDEX&quot;</span>)
+        + keccak(<span class="hljs-string">b&quot;1&quot;</span>)
+        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, chain_id)
+    )</code></pre>
             <p>The <code>domain</code> is a mandatory field that allows for signature/hashing schemes on one dApp to be unique to itself from other dApps. All <code>commands</code> use the same <code>domain</code> specification. The parameters that comprise the domain are as follows:</p>
             <table>
                <thead>
@@ -971,43 +1025,98 @@ function deposit(
                   </tr>
                </tbody>
             </table>
-            <blockquote>
-               <p>Domain separator for mainnet. DO NOT modify these parameters.</p>
-            </blockquote>
-            <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;DerivaDEX&quot;</span>,
-    <span class="hljs-attr">&quot;version&quot;</span>: <span class="hljs-string">&quot;1&quot;</span>,
-    <span class="hljs-attr">&quot;chainId&quot;</span>:  <span class="hljs-number">1</span>
-}</code></pre>
-            <p>To generate the <code>domain</code> struct hash, you must perform a series of encodings and hashings of the schema and contents of the <code>domain</code> specfication. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.</p>
-            <blockquote>
-               <p>Sample computation of domain struct hash</p>
-            </blockquote>
-            <pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single
-<span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
-
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">compute_eip712_domain_struct_hash</span>(<span class="hljs-params">chain_id</span>):</span>
-    eip712_domain_separator_schema_hash = keccak(
-        <span class="hljs-string">b&quot;EIP712Domain(&quot;</span>
-        + <span class="hljs-string">b&quot;string name,&quot;</span>
-        + <span class="hljs-string">b&quot;string version,&quot;</span>
-        + <span class="hljs-string">b&quot;uint256 chainId&quot;</span>
-        + <span class="hljs-string">b&quot;)&quot;</span>
-    )
-    
-    eip712_domain_struct_header = (
-        eip712_domain_separator_schema_hash
-        + keccak(<span class="hljs-string">b&quot;DerivaDEX&quot;</span>)
-        + keccak(<span class="hljs-string">b&quot;1&quot;</span>)
-    )
-    
-    <span class="hljs-keyword">return</span> keccak(
-        eip712_domain_struct_header
-        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, chain_id)
-    )</code></pre>
+            <p>To generate the <code>domain</code> struct hash, you must perform a series of encodings and hashings of the schema and contents of the <code>domain</code> specfication. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. Example Solidity and Python reference implementations are displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.</p>
             <h2 id="message">Message</h2>
             <p>The <code>message</code> field varies depending on the typed data you are signing, and is illustrated on a case-by-case basis below.</p>
             <h2 id="place-order-message">Place order (message)</h2>
+            <blockquote>
+               <p>Sample computation of order struct hash</p>
+            </blockquote>
+            <pre class="highlight plaintext"><code>// solidity
+function compute_eip712_order_struct_hash(address _makerAddress, bytes32 _symbol, bytes32 _strategy, uint256 _side, uint256 _orderType, bytes32 _requestId, uint256 _amount, uint256 _price, uint256 _stopPrice) public view returns (bytes32) {
+    // keccak-256 hash of the encoded schema for the order params struct
+    bytes32 orderSchemaHash = keccak256(abi.encodePacked(
+        &quot;OrderParams(&quot;,
+        &quot;address makerAddress,&quot;,
+        &quot;bytes32 symbol,&quot;,
+        &quot;bytes32 strategy,&quot;,
+        &quot;uint256 side,&quot;,
+        &quot;uint256 orderType,&quot;,
+        &quot;bytes32 clientId,&quot;,
+        &quot;uint256 assetAmount,&quot;,
+        &quot;uint256 price,&quot;,
+        &quot;uint256 stopPrice&quot;,
+        &quot;)&quot;
+    ));
+    
+    bytes32 orderStructHash = keccak256(abi.encodePacked(
+        orderSchemaHash,
+        uint256(_makerAddress),
+        _symbol,
+        _strategy,
+        _side,
+        _orderType,
+        _requestId,
+        _amount,
+        _price,
+        _stopPrice
+    ));
+    
+    return orderStructHash;
+}</code></pre><pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single
+<span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
+<span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">compute_eip712_order_struct_hash</span>(<span class="hljs-params">maker_address: <span class="hljs-built_in">str</span>, symbol: <span class="hljs-built_in">str</span>, strategy: <span class="hljs-built_in">str</span>, side: <span class="hljs-built_in">str</span>, order_type: <span class="hljs-built_in">str</span>, client_id: <span class="hljs-built_in">str</span>, amount: Decimal, price: Decimal, stop_price: Decimal</span>) -&gt; bytes:</span>
+    <span class="hljs-comment"># keccak-256 hash of the encoded schema for the place order command</span>
+    eip712_order_params_schema_hash = keccak(
+        <span class="hljs-string">b&quot;OrderParams(&quot;</span>
+        + <span class="hljs-string">b&quot;address makerAddress,&quot;</span>
+        + <span class="hljs-string">b&quot;bytes32 symbol,&quot;</span>
+        + <span class="hljs-string">b&quot;bytes32 strategy,&quot;</span>
+        + <span class="hljs-string">b&quot;uint256 side,&quot;</span>
+        + <span class="hljs-string">b&quot;uint256 orderType,&quot;</span>
+        + <span class="hljs-string">b&quot;bytes32 clientId,&quot;</span>
+        + <span class="hljs-string">b&quot;uint256 assetAmount,&quot;</span>
+        + <span class="hljs-string">b&quot;uint256 price,&quot;</span>
+        + <span class="hljs-string">b&quot;uint256 stopPrice&quot;</span>
+        + <span class="hljs-string">b&quot;)&quot;</span>
+    )
+    
+    <span class="hljs-comment"># Ensure decimal value has no more than 18 decimals of precision</span>
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">round_to_unit</span>(<span class="hljs-params">val</span>):</span>
+        <span class="hljs-keyword">return</span> val.quantize(Decimal(<span class="hljs-string">&quot;.000000000000000001&quot;</span>), rounding=ROUND_DOWN)
+    
+    <span class="hljs-comment"># Scale up to DDX grains format (i.e. multiply by 1e18)</span>
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(round_to_unit(val) * <span class="hljs-number">10</span> ** decimals)
+
+    <span class="hljs-comment"># Convert order side string to int representation</span>
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">order_side_to_int</span>(<span class="hljs-params">order_side: <span class="hljs-built_in">str</span></span>) -&gt; int:</span>
+        <span class="hljs-keyword">if</span> order_side == <span class="hljs-string">&#x27;Bid&#x27;</span>:
+            <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>
+    
+    <span class="hljs-comment"># Convert order type string to int representation</span>
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">order_type_to_int</span>(<span class="hljs-params">order_type: <span class="hljs-built_in">str</span></span>) -&gt; int:</span>
+        <span class="hljs-keyword">if</span> order_type == <span class="hljs-string">&#x27;Limit&#x27;</span>:
+            <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>
+        <span class="hljs-keyword">elif</span> order_type == <span class="hljs-string">&#x27;Market&#x27;</span>:
+            <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-number">2</span>
+
+    <span class="hljs-keyword">return</span> keccak(
+        eip712_order_params_schema_hash
+        + encode_single(<span class="hljs-string">&#x27;address&#x27;</span>, maker_address)
+        + encode_single(<span class="hljs-string">&#x27;bytes32&#x27;</span>, symbol.encode(<span class="hljs-string">&#x27;utf8&#x27;</span>))
+        + encode_single(<span class="hljs-string">&#x27;bytes32&#x27;</span>, strategy.encode(<span class="hljs-string">&#x27;utf8&#x27;</span>))
+        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, order_side_to_int(side))
+        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, order_type_to_int(order_type))
+        + encode_single(<span class="hljs-string">&#x27;bytes32&#x27;</span>, <span class="hljs-built_in">bytes</span>.fromhex(request_id[<span class="hljs-number">2</span>:]))
+        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, to_base_unit_amount(amount, <span class="hljs-number">18</span>))
+        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, to_base_unit_amount(price, <span class="hljs-number">18</span>))
+        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, to_base_unit_amount(stop_price, <span class="hljs-number">18</span>))
+    )</code></pre>
             <p>The parameters that comprise the <code>message</code> for the <code>command</code> to place an order are as follows:</p>
             <table>
                <thead>
@@ -1065,67 +1174,18 @@ function deposit(
                   </tr>
                </tbody>
             </table>
-            <p><strong>Take special note of the transformations done on several fields as described in the table above. In other words, the order intent you submit to the API will have different representations for some fields than the order intent you hash.</strong> You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.</p>
-            <blockquote>
-               <p>Sample computation of order struct hash</p>
-            </blockquote>
-            <pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single
-<span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
-<span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
-
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">compute_eip712_order_struct_hash</span>(<span class="hljs-params">maker_address: <span class="hljs-built_in">str</span>, symbol: <span class="hljs-built_in">str</span>, strategy: <span class="hljs-built_in">str</span>, side: <span class="hljs-built_in">str</span>, order_type: <span class="hljs-built_in">str</span>, client_id: <span class="hljs-built_in">str</span>, amount: Decimal, price: Decimal, stop_price: Decimal</span>) -&gt; bytes:</span>
-    <span class="hljs-comment"># keccak-256 hash of the encoded schema for the place order command</span>
-    eip712_order_params_schema_hash = keccak(
-        <span class="hljs-string">b&quot;OrderParams(&quot;</span>
-        + <span class="hljs-string">b&quot;address makerAddress,&quot;</span>
-        + <span class="hljs-string">b&quot;bytes32 symbol,&quot;</span>
-        + <span class="hljs-string">b&quot;bytes32 strategy,&quot;</span>
-        + <span class="hljs-string">b&quot;uint256 side,&quot;</span>
-        + <span class="hljs-string">b&quot;uint256 orderType,&quot;</span>
-        + <span class="hljs-string">b&quot;bytes32 clientId,&quot;</span>
-        + <span class="hljs-string">b&quot;uint256 assetAmount,&quot;</span>
-        + <span class="hljs-string">b&quot;uint256 price,&quot;</span>
-        + <span class="hljs-string">b&quot;uint256 stopPrice&quot;</span>
-        + <span class="hljs-string">b&quot;)&quot;</span>
-    )
-    
-    <span class="hljs-comment"># Ensure decimal value has no more than 18 decimals of precision</span>
-    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">round_to_unit</span>(<span class="hljs-params">val</span>):</span>
-        <span class="hljs-keyword">return</span> val.quantize(Decimal(<span class="hljs-string">&quot;.000000000000000001&quot;</span>), rounding=ROUND_DOWN)
-    
-    <span class="hljs-comment"># Scale up to DDX grains format (i.e. multiply by 1e18)</span>
-    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
-        <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(round_to_unit(val) * <span class="hljs-number">10</span> ** decimals)
-
-    <span class="hljs-comment"># Convert order side string to int representation</span>
-    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">order_side_to_int</span>(<span class="hljs-params">order_side: <span class="hljs-built_in">str</span></span>) -&gt; int:</span>
-        <span class="hljs-keyword">if</span> order_side == <span class="hljs-string">&#x27;Bid&#x27;</span>:
-            <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>
-        <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>
-    
-    <span class="hljs-comment"># Convert order type string to int representation</span>
-    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">order_type_to_int</span>(<span class="hljs-params">order_type: <span class="hljs-built_in">str</span></span>) -&gt; int:</span>
-        <span class="hljs-keyword">if</span> order_type == <span class="hljs-string">&#x27;Limit&#x27;</span>:
-            <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>
-        <span class="hljs-keyword">elif</span> order_type == <span class="hljs-string">&#x27;Market&#x27;</span>:
-            <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>
-        <span class="hljs-keyword">return</span> <span class="hljs-number">2</span>
-
-    <span class="hljs-keyword">return</span> keccak(
-        eip712_order_params_schema_hash
-        + encode_single(<span class="hljs-string">&#x27;address&#x27;</span>, maker_address)
-        + encode_single(<span class="hljs-string">&#x27;bytes32&#x27;</span>, symbol.encode(<span class="hljs-string">&#x27;utf8&#x27;</span>))
-        + encode_single(<span class="hljs-string">&#x27;bytes32&#x27;</span>, strategy.encode(<span class="hljs-string">&#x27;utf8&#x27;</span>))
-        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, order_side_to_int(side))
-        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, order_type_to_int(order_type))
-        + encode_single(<span class="hljs-string">&#x27;bytes32&#x27;</span>, <span class="hljs-built_in">bytes</span>.fromhex(request_id[<span class="hljs-number">2</span>:]))
-        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, to_base_unit_amount(amount, <span class="hljs-number">18</span>))
-        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, to_base_unit_amount(price, <span class="hljs-number">18</span>))
-        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, to_base_unit_amount(stop_price, <span class="hljs-number">18</span>))
-    )</code></pre>
+            <p><strong>Take special note of the transformations done on several fields as described in the table above. In other words, the order intent you submit to the API will have different representations for some fields than the order intent you hash.</strong> You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. Example Solidity and Python reference implementations are displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.</p>
             <h2 id="tying-it-all-together">Tying it all together</h2>
-            <p>To derive the final EIP-712 hash of the typed data you will sign, you will need to <code>keccak256</code> hash the <code>header</code>, <code>eip712_domain_struct_hash</code>, and <code>eip712_message_struct_hash</code> (will vary depending on which <code>command</code> specifically you are sending). You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.</p>
-            <pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
+            <blockquote>
+               <p>Computing the final EIP-712 hash</p>
+            </blockquote>
+            <pre class="highlight plaintext"><code>function compute_eip712_hash(bytes2 _eip191_header, bytes32 _domainStructHash, bytes32 _orderStructHash) public view returns (bytes32) {
+    return keccak256(abi.encodePacked(
+        _eip191_header,
+        _domainStructHash,
+        _orderStructHash
+    ));
+}</code></pre><pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">compute_eip712_hash</span>(<span class="hljs-params">eip191_header: <span class="hljs-built_in">bytes</span>, eip712_domain_struct_hash: <span class="hljs-built_in">bytes</span>, eip712_message_struct_hash: <span class="hljs-built_in">bytes</span></span>) -&gt; str:</span>
     <span class="hljs-comment"># Converting bytes result to a hexadecimal string</span>
@@ -1134,6 +1194,7 @@ function deposit(
         + eip712_domain_struct_hash
         + eip712_message_struct_hash
     ).<span class="hljs-built_in">hex</span>()</code></pre>
+            <p>To derive the final EIP-712 hash of the typed data you will sign, you will need to <code>keccak256</code> hash the <code>header</code>, <code>eip712_domain_struct_hash</code>, and <code>eip712_message_struct_hash</code> (will vary depending on which <code>command</code> specifically you are sending). You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. Example Solidity and Python reference implementations are displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.</p>
             <h1 id="errors">Errors</h1>
             <aside class=error> This error section is stored in a separate file in `includes/_errors.md`. Slate allows you to optionally separate out your docs into many files...just save them to the `includes` folder and add them to the top of your `index.md`'s front matter. Files are included in the order listed. </aside>
             <p>The DerivaDEX API uses the following error codes:</p>
@@ -1142,6 +1203,7 @@ function deposit(
          <div class=dark-box>
             <div class=lang-selector>
                <a href=# data-language-name="json">json</a>
+               <a href=# data-language-name="plaintext">plaintext</a>
                <a href=# data-language-name="python">python</a>
             </div>
          </div>

@@ -23,7 +23,7 @@ Additionally, you should familiarize yourself with [EIP-712 signatures](https://
 
 To deposit funds on DerivaDEX, first ensure that you have created an Ethereum account. The deposit interaction is between a user and the DerivaDEX smart contracts. To be more explicit, you will not be utilizing the WebSocket API to facilitate a deposit. The DerivaDEX Solidity smart contracts adhere to the [Diamond Standard](https://medium.com/derivadex/the-diamond-standard-a-new-paradigm-for-upgradeability-569121a08954). The `deposit` smart contract function you will need to use is located in the `Trader` facet, at the address of the main `DerivaDEX` proxy contract.
 
-```text
+```plaintext
 // solidity
 function deposit(
     address _collateralAddress,
@@ -598,11 +598,17 @@ EIP-712 hashing consists of three critical components - a `header`, `domain` str
 
 ## Header
 
+> Sample EIP-191 header definition
+```plaintext
+// solidity
+bytes2 eip191_header = 0x1901;
+```
+
 ```python
 eip191_header = b"\x19\x01"
 ```
 
-The `header` is simply the byte-string `\x19\x01`. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.
+The `header` is simply the byte-string `\x19\x01`. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. Example Solidity and Python reference implementations are displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.
 
 ## Domain
 
@@ -616,11 +622,35 @@ The `header` is simply the byte-string `\x19\x01`. You are welcome to do this ho
 ```
 
 > Sample computation of domain struct hash
+```plaintext
+// solidity
+function compute_eip712_domain_struct_hash(string memory _name, string memory _version, uint256 _chainId) public view returns (bytes32) {
+    // keccak-256 hash of the encoded schema for the domain separator
+    bytes32 domainSchemaHash = keccak256(abi.encodePacked(
+        "EIP712Domain(",
+        "string name,",
+        "string version,",
+        "uint256 chainId",
+        ")"
+    ));
+    
+    bytes32 domainStructHash = keccak256(abi.encodePacked(
+        domainSchemaHash,
+        keccak256(bytes(_name)),
+        keccak256(bytes(_version)),
+        _chainId
+    ));
+    
+    return domainStructHash;
+}
+```
+
 ```python
 from eth_abi import encode_single
 from eth_utils.crypto import keccak
 
 def compute_eip712_domain_struct_hash(chain_id):
+    # keccak-256 hash of the encoded schema for the domain separator
     eip712_domain_separator_schema_hash = keccak(
         b"EIP712Domain("
         + b"string name,"
@@ -629,14 +659,10 @@ def compute_eip712_domain_struct_hash(chain_id):
         + b")"
     )
     
-    eip712_domain_struct_header = (
+    return keccak(
         eip712_domain_separator_schema_hash
         + keccak(b"DerivaDEX")
         + keccak(b"1")
-    )
-    
-    return keccak(
-        eip712_domain_struct_header
         + encode_single('uint256', chain_id)
     )
 ```
@@ -649,7 +675,7 @@ name  | string | Name of the dApp or protocol
 version  | string | Current version of the signing domain
 chainId | uint256 | EIP-155 chain ID
 
-To generate the `domain` struct hash, you must perform a series of encodings and hashings of the schema and contents of the `domain` specfication. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.
+To generate the `domain` struct hash, you must perform a series of encodings and hashings of the schema and contents of the `domain` specfication. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. Example Solidity and Python reference implementations are displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.
 
 ## Message
 
@@ -658,6 +684,41 @@ The `message` field varies depending on the typed data you are signing, and is i
 ## Place order (message)
 
 > Sample computation of order struct hash
+```plaintext
+// solidity
+function compute_eip712_order_struct_hash(address _makerAddress, bytes32 _symbol, bytes32 _strategy, uint256 _side, uint256 _orderType, bytes32 _requestId, uint256 _amount, uint256 _price, uint256 _stopPrice) public view returns (bytes32) {
+    // keccak-256 hash of the encoded schema for the order params struct
+    bytes32 orderSchemaHash = keccak256(abi.encodePacked(
+        "OrderParams(",
+        "address makerAddress,",
+        "bytes32 symbol,",
+        "bytes32 strategy,",
+        "uint256 side,",
+        "uint256 orderType,",
+        "bytes32 clientId,",
+        "uint256 assetAmount,",
+        "uint256 price,",
+        "uint256 stopPrice",
+        ")"
+    ));
+    
+    bytes32 orderStructHash = keccak256(abi.encodePacked(
+        orderSchemaHash,
+        uint256(_makerAddress),
+        _symbol,
+        _strategy,
+        _side,
+        _orderType,
+        _requestId,
+        _amount,
+        _price,
+        _stopPrice
+    ));
+    
+    return orderStructHash;
+}
+```
+
 ```python
 from eth_abi import encode_single
 from eth_utils.crypto import keccak
@@ -729,10 +790,21 @@ assetAmount | uint256 | Order amount (scaled up by 18 decimals). The `amount` of
 price | uint256 | Order price (scaled up by 18 decimals). The `price` of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.
 stopPrice | uint256 | Stop price (scaled up by 18 decimals). The `stopPrice` of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.
 
-**Take special note of the transformations done on several fields as described in the table above. In other words, the order intent you submit to the API will have different representations for some fields than the order intent you hash.** You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.
+**Take special note of the transformations done on several fields as described in the table above. In other words, the order intent you submit to the API will have different representations for some fields than the order intent you hash.** You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. Example Solidity and Python reference implementations are displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.
 
 
 ## Tying it all together
+
+> Computing the final EIP-712 hash
+```plaintext
+function compute_eip712_hash(bytes2 _eip191_header, bytes32 _domainStructHash, bytes32 _orderStructHash) public view returns (bytes32) {
+    return keccak256(abi.encodePacked(
+        _eip191_header,
+        _domainStructHash,
+        _orderStructHash
+    ));
+}
+```
 
 ```python
 from eth_utils.crypto import keccak
@@ -746,5 +818,5 @@ def compute_eip712_hash(eip191_header: bytes, eip712_domain_struct_hash: bytes, 
     ).hex()
 ```
 
-To derive the final EIP-712 hash of the typed data you will sign, you will need to `keccak256` hash the `header`, `eip712_domain_struct_hash`, and `eip712_message_struct_hash` (will vary depending on which `command` specifically you are sending). You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.
+To derive the final EIP-712 hash of the typed data you will sign, you will need to `keccak256` hash the `header`, `eip712_domain_struct_hash`, and `eip712_message_struct_hash` (will vary depending on which `command` specifically you are sending). You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. Example Solidity and Python reference implementations are displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.
 
