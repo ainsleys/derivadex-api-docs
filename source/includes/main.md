@@ -15,9 +15,9 @@ To begin interacting with the DerivaDEX ecosystem programmatically, you generall
 1. Deposit funds via Ethereum via an Ethereum client
 2. Authenticate and connect to the websocket API
 3. Submit and cancel orders via `commands`
-4. Subscribe to market and account data feeds via `subscriptions` 
+4. Subscribe to market and account data feeds via `subscriptions`
 
-Additionally, you should familiarize yourself with [EIP 712 signatures](https://eips.ethereum.org/EIPS/eip-712), which is how you will sign `command` data prior to submission. 
+Additionally, you should familiarize yourself with [EIP-712 signatures](https://eips.ethereum.org/EIPS/eip-712), which is how you will sign `command` data prior to submission. 
 
 ## Making a deposit
 
@@ -54,7 +54,7 @@ The steps to connect are:
 For more information, see the [code samples](samples.md).
 
 # Commands
-The websocket API offers commands for placing and canceling orders, as well as withdrawals. Since commands modify system state, these requests must include an [EIP712 signature](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md). Examples are included in the [sample code](samples.md).
+The websocket API offers commands for placing and canceling orders, as well as withdrawals. Since commands modify system state, these requests must include an [EIP-712 signature](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md). Examples are included in the [sample code](samples.md).
 
 ## Place order
 
@@ -64,36 +64,36 @@ You can place new orders by specifying specific attributes in the `Order` comman
 
 ```json
 {
-  "request": {
-    "t": "Order",
-    "c": {
-      "makerAddress": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
-      "symbol": "ETHPERP",
-      "strategy": "main",
-      "side": "Bid",
-      "orderType": "Market",
-      "requestId": "0x0000000000000000000000000000000000000000000000000000000000000001",
-      "amount": "123.45",
-      "price": "234.56",
-      "stopPrice": "0",
-      "signature": "0x89fb49d2d125adfef56328ee7367d23d1642d2fb6cfdf8843fa94ae7eac9ab23"
-    }
-  }
+	"request": {
+		"t": "Order",
+		"c": {
+			"makerAddress": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
+			"symbol": "ETHPERP",
+			"strategy": "main",
+			"side": "Bid",
+			"orderType": "Limit",
+			"requestId": "0x0000000000000000000000000000000000000000000000000000000000000001",
+			"amount": 10,
+			"price": 497.97,
+			"stopPrice": 0,
+			"signature": "0x"
+		}
+	}
 }
 ```
 
 type | field | description 
 ------ | ---- | -------
-address | makerAddress | Trader's Ethereum address (same as the one that facilitated the deposit)
+address_s | makerAddress | Trader's Ethereum address (same as the one that facilitated the deposit)
 string  | symbol | Name of the market to trade. Currently, this is limited to 'ETHPERP', but new symbols are coming soon! 
-bytes32 | strategy | Name of the cross-margined strategy this trade belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
-uint256 | side | Side of trade, either `Bid` (buy/long) or an `Ask` (sell/short)
-uint256 | orderType | Order type, either `Limit` or `Market`. Other order types coming soon!
-bytes32 | requestID | An incrementing numeric identifier for this request
-uint256 | amount | The order amount/size requested
-uint256 | price | The order price
-uint256 | stopPrice | Currently, always 0 as stops are not implemented.
-bytes | signature | EIP-712 signature
+string | strategy | Name of the cross-margined strategy this trade belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
+string | side | Side of trade, either `Bid` (buy/long) or an `Ask` (sell/short)
+string | orderType | Order type, either `Limit` or `Market`. Other order types coming soon!
+bytes32_s | requestID | An incrementing numeric identifier for this request
+decimal | amount | The order amount/size requested
+decimal | price | The order price
+decimal | stopPrice | Currently, always 0 as stops are not implemented.
+bytes_s | signature | EIP-712 signature of the order placement intent
 
 
 ## Cancel order
@@ -119,9 +119,10 @@ You can cancel existing orders by specifying specific attributes in the `CancelO
 type | field | description
 -----|---- | -----------------------
 string | symbol | Currently always 'ETHPERP'. New symbols coming soon! 
-bytes32 | orderHash| The hash of the order being canceled
-bytes32 | requestID | An incrementing numeric identifier for this request
-bytes | signature | EIP-712 signature
+bytes32_s | orderHash| The hash of the order being canceled
+bytes32_s | requestID | An incrementing numeric identifier for this request
+bytes_s | signature | EIP-712 signature
+
 
 ## Withdraw
 
@@ -137,7 +138,7 @@ You can signal withdrawal intents to the Operators by specifying specific attrib
       "traderAddress": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
       "strategyId": "main",
       "currency": "0x41082c820342539de44c1b404fead3b4b39e15d6",
-      "amount": "440.32",
+      "amount": 440.32,
       "requestId": "0x0000000000000000000000000000000000000000000000000000000000000003",
       "signature": "0x89fb49d2d125adfef56328ee7367d23d1642d2fb6cfdf8843fa94ae7eac9ab23"
     }
@@ -147,12 +148,12 @@ You can signal withdrawal intents to the Operators by specifying specific attrib
 
 type | field | description
 ---- | --- | -----------------
-address | traderAddress | Trader's Ethereum address (same as the one that facilitated the deposit)
-bytes32 | strategyId | Name of the cross-margined strategy this trade belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
-address | currency | ERC-20 token address being withdrawn
-uint128 | amount | Amount withdrawn (be sure to use the grains format specific to the collateral token being used (e.g. if you wanted to withdraw 1 USDC, you would enter 1000000 since the USDC token contract has 6 decimal places)
-bytes32 | requestId | An incrementing numeric identifier for this request.
-bytes | signature | EIP-712 signature
+address_s | traderAddress | Trader's Ethereum address (same as the one that facilitated the deposit)
+string | strategyId | Name of the cross-margined strategy this trade belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
+address_s | currency | ERC-20 token address being withdrawn
+decimal | amount | Amount withdrawn (be sure to use the grains format specific to the collateral token being used (e.g. if you wanted to withdraw 1 USDC, you would enter 1000000 since the USDC token contract has 6 decimal places)
+bytes32_s | requestId | An incrementing numeric identifier for this request.
+bytes_s | signature | EIP-712 signature
 
 
 ## Receipts
@@ -178,9 +179,9 @@ A successful command returns a `Received` receipt from the Operator. DerivaDEX O
 
 type | field | description
 ------ | ---- | -----------
-bytes32 | requestId | The requestId supplied in the initial request - can be used to correlate requests with receipts
+bytes32_s | requestId | The requestId supplied in the initial request - can be used to correlate requests with receipts
 ?? | requestIndex | A ticket number which guarantees fair sequencing
-bytes | enclaveSignature | An Operator's signature which proves secure handling of the request 
+bytes_s | enclaveSignature | An Operator's signature which proves secure handling of the request 
 
 ### Error (failed) receipts
 
@@ -267,7 +268,7 @@ Upon subscription, you will receive a `Partial` back, containing a snapshot of y
 
 type | field | description
 -----|----- | ---------------------
-address  | trader | Trader's Ethereum address (same as the one that facilitated the deposit)
+address_s  | trader | Trader's Ethereum address (same as the one that facilitated the deposit)
 string[] | strategies | Strategies being subscribed to. Currently, the only supported strategy is `main`, but support for multiple strategies is coming soon!
 string[] | events | Events being subscribed to. This can be one or more of `OrdersUpdate`, `PositionUpdate`, and `StrategyUpdate`
 
@@ -275,11 +276,11 @@ string[] | events | Events being subscribed to. This can be one or more of `Orde
 
 type | field | description
 -----|----- | ---------------------
-address  | trader | Trader's Ethereum address (same as the one requested)
-string   | strategy | Strategy being subscribed to. Currently, the only supported strategy is `main`, but support for multiple strategies is coming soon!
-int   | maxLeverage | Maximum leverage for strategy, which impacts the maintenance margin ratio associated to any given trader
-Decimal  | freeCollateral | Collateral available for trading (not to be confused with the `Free Collateral` displayed on the UI, which is the collateral available to a trader wishing to signal a withdraw intent)
-Decimal  | frozenCollateral | Collateral available for a smart contract withdrawal, but not for trading, since the Operators have received the withdraw intent)
+address_s  | trader | Trader's Ethereum address (same as the one requested)
+string_s   | strategy | Strategy being subscribed to. Currently, the only supported strategy is `main`, but support for multiple strategies is coming soon!
+int_s   | maxLeverage | Maximum leverage for strategy, which impacts the maintenance margin ratio associated to any given trader
+decimal_s  | freeCollateral | Collateral available for trading (not to be confused with the `Free Collateral` displayed on the UI, which is the collateral available to a trader wishing to signal a withdraw intent)
+decimal_s  | frozenCollateral | Collateral available for a smart contract withdrawal, but not for trading, since the Operators have received the withdraw intent)
 bool     | frozen | Whether the account and its collateral is frozen or not
 
 ## Orders update (account)
@@ -348,7 +349,7 @@ Upon subscription, you will receive a `Partial` back, containing a snapshot of a
 
 type | field | description
 -----|----- | ---------------------
-address  | trader | Trader's Ethereum address (same as the one that facilitated the deposit)
+address_s  | trader | Trader's Ethereum address (same as the one that facilitated the deposit)
 string[] | strategies | Strategies being subscribed to. Currently, the only supported strategy is `main`, but support for multiple strategies is coming soon!
 string[] | events | Events being subscribed to. This can be one or more of `OrdersUpdate`, `PositionUpdate`, and `StrategyUpdate`
 
@@ -356,19 +357,19 @@ string[] | events | Events being subscribed to. This can be one or more of `Orde
 
 type | field | description 
 ------ | ---- | -------
-address | orderHash | Hash of the order that has changed or is new
-address | makerAddress | Trader's Ethereum address associated with this order
+bytes32_s | orderHash | Hash of the order that has changed or is new
+address_s | makerAddress | Trader's Ethereum address associated with this order
 string  | symbol | Name of the market this order belongs to. Currently, this is limited to 'ETHPERP', but new symbols are coming soon! 
-bytes32 | strategy | Name of the cross-margined strategy this order belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
-uint256 | side | Side of order, either `Bid` (buy/long) or an `Ask` (sell/short)
-uint256 | orderType | Order type, either `Limit` or `Market`. Other order types coming soon!
-bytes32 | requestID | Numeric identifier for the order
-Decimal | amount | The original order amount/size requested
-Decimal | remainingAmount | The order amount/size remaining on the order book
-Decimal | price | The order price
-Decimal | stopPrice | Currently, always 0 as stops are not implemented.
-bytes   | signature | EIP-712 signature
-string  | createdAt | Timestamp when order was initially created
+string | strategy | Name of the cross-margined strategy this order belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
+int_s | side | Side of order, either `Bid` (buy/long) or an `Ask` (sell/short)
+int_s | orderType | Order type, either `Limit` or `Market`. Other order types coming soon!
+bytes32_s | requestID | Numeric identifier for the order
+decimal_s | amount | The original order amount/size requested
+decimal_s | remainingAmount | The order amount/size remaining on the order book
+decimal_s | price | The order price
+decimal_s | stopPrice | Currently, always 0 as stops are not implemented.
+bytes_s   | signature | EIP-712 signature
+timestamp_s  | createdAt | Timestamp when order was initially created
 
 
 ## Positions update (account)
@@ -447,11 +448,11 @@ string[] | events | Events being subscribed to. This can be one or more of `Orde
 
 type | field | description
 -----|----- | ---------------------
-Decimal[2][]  | bids | The price and corresponding updated aggregate quantity for the bids
-Decimal[2][]  | asks | The price and corresponding updated aggregate quantity for the asks
-bytes32  | timestamp | Timestamp of order book partial/update
-bytes32  | nonce | ???
-Decimal   | aggregationType | ???
+decimal_s[2][]  | bids | The price and corresponding updated aggregate quantity for the bids
+decimal_s[2][]  | asks | The price and corresponding updated aggregate quantity for the asks
+timestamp_i  | timestamp | Timestamp of order book partial/update
+bytes32_s  | nonce | ???
+decimal_s   | aggregationType | ???
 
 
 ## Mark price update (market)
@@ -512,9 +513,9 @@ string[] | events | Events being subscribed to. This can be one or more of `Orde
 
 type | field | description
 -----|----- | ---------------------
-string  | createdAt | Timestamp of original mark price entry
-string  | updatedAt | Timestamp of mark price update
-Decimal | price | Mark price for the market
+timestamp_s  | createdAt | Timestamp of original mark price entry
+timestamp_s  | updatedAt | Timestamp of mark price update
+decimal_s | price | Mark price for the market
 string  | symbol | Market subscribed to
 
 
@@ -572,4 +573,177 @@ The websocket API will (eventually) use tiers to determine rate limits for each 
 Rate limits restrict the number of "Commands" an account can place per minute.
 
 Subscriptions are not rate limited.
+
+# Types
+
+The types labeled above in the request and response parameters may be familiar to those who have a background in Ethereum. In any case, please refer to the table below for additional information on the terminology used above. This reference in conjunction with the JSON samples should provide enough clarity:
+
+type | description
+-----| ---------------------
+string | Literal of a sequence of characters surrounded by quotes
+address_s  | 20-byte "0x"-prefixed hexadecimal string literal (i.e. 40 digits long) corresponding to an `address` ETH type
+decimal | Numerical value with up to, but no more than 18 decimals of precision
+decimal_s  | String representation of `decimal`
+bool  | Boolean value, either `true` or `false`
+bytes32_s  | 32-byte "0x"-prefixed hexadecimal string literal (i.e. 64 digits long) corresponding to an `bytes32` ETH type
+timestamp_i | Numerical UNIX timestamp representing the number of seconds since 1/1/1970
+timestamp_s | String representation representing the ISO 8601 UTC timestamp
+
+
+# Signatures & hashing
+
+As described above, all `commands` on the API must be signed. The payload you will sign using an Ethereum wallet client of your choice (e.g. ethers, web3.js, web3.py, etc.) will need to be hashed as per the EIP-712 standard. We **highly recommend** referring to the [original proposal](https://eips.ethereum.org/EIPS/eip-712) for full context, but in short, this standard introduced a framework by which users can securely sign typed structured data. This greatly improves the crypto UX as users can now sign data they see and understand as opposed to unreadable byte-strings. While these benefits may not be readily apparent for programmatic traders, you will need to conform to this standard regardless.
+
+EIP-712 hashing consists of three critical components - a `header`, `domain` struct hash, and `message` struct hash.
+
+## Header
+
+The `header` is simply the byte-string `\x19\x01`. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.
+
+```python
+eip191_header = b"\x19\x01"
+```
+
+## Domain
+
+The `domain` is a mandatory field that allows for signature/hashing schemes on one dApp to be unique to itself from other dApps. All `commands` use the same `domain` specification. The parameters that comprise the domain are as follows:
+
+type | field | description
+-----|----- | ---------------------
+name  | string | Name of the dApp or protocol
+version  | string | Current version of the signing domain
+chainId | uint256 | EIP-155 chain ID
+
+> Domain separator for mainnet. DO NOT modify these parameters.
+```json
+{
+    "name": "DerivaDEX",
+    "version": "1",
+    "chainId":  1
+}
+```
+
+To generate the `domain` struct hash, you must perform a series of encodings and hashings of the schema and contents of the `domain` specfication. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.
+
+> Sample computation of domain struct hash
+```python
+from eth_abi import encode_single
+from eth_utils.crypto import keccak
+
+def compute_eip712_domain_struct_hash(chain_id):
+    eip712_domain_separator_schema_hash = keccak(
+        b"EIP712Domain("
+        + b"string name,"
+        + b"string version,"
+        + b"uint256 chainId"
+        + b")"
+    )
+    
+    eip712_domain_struct_header = (
+        eip712_domain_separator_schema_hash
+        + keccak(b"DerivaDEX")
+        + keccak(b"1")
+    )
+    
+    return keccak(
+        eip712_domain_struct_header
+        + encode_single('uint256', chain_id)
+    )
+```
+
+## Message
+
+The `message` field varies depending on the typed data you are signing, and is illustrated on a case-by-case basis below.
+
+## Place order (message)
+
+The parameters that comprise the `message` for the `command` to place an order are as follows:
+
+type | field | description
+-----|----- | ---------------------
+makerAddress  | address | Trader's ETH address used to sign order intent
+symbol  | bytes32 | 32-byte encoding of the symbol this order is for. The `symbol` of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly.
+strategy | bytes32 | 32-byte encoding of the strategy this order belongs to. The `strategy` of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly.
+side | uint256 | An integer value either `0` (Bid) or `1` (Ask)
+orderType | uint256 | An integer value either `0` (Limit) or `1` (Market)
+clientId | bytes32 | 32-byte nonce resulting in uniqueness
+assetAmount | uint256 | Order amount (scaled up by 18 decimals). The `amount` of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.
+price | uint256 | Order price (scaled up by 18 decimals). The `price` of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.
+stopPrice | uint256 | Stop price (scaled up by 18 decimals). The `stopPrice` of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.
+
+**Take special note of the transformations done on several fields as described in the table above. In other words, the order intent you submit to the API will have different representations for some fields than the order intent you hash.** You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.
+
+> Sample computation of order struct hash
+```python
+from eth_abi import encode_single
+from eth_utils.crypto import keccak
+from decimal import Decimal, ROUND_DOWN
+
+def compute_eip712_order_struct_hash(maker_address: str, symbol: str, strategy: str, side: str, order_type: str, client_id: str, amount: Decimal, price: Decimal, stop_price: Decimal) -> bytes:
+    # keccak-256 hash of the encoded schema for the place order command
+    eip712_order_params_schema_hash = keccak(
+        b"OrderParams("
+        + b"address makerAddress,"
+        + b"bytes32 symbol,"
+        + b"bytes32 strategy,"
+        + b"uint256 side,"
+        + b"uint256 orderType,"
+        + b"bytes32 clientId,"
+        + b"uint256 assetAmount,"
+        + b"uint256 price,"
+        + b"uint256 stopPrice"
+        + b")"
+    )
+    
+    # Ensure decimal value has no more than 18 decimals of precision
+    def round_to_unit(val):
+        return val.quantize(Decimal(".000000000000000001"), rounding=ROUND_DOWN)
+    
+    # Scale up to DDX grains format (i.e. multiply by 1e18)
+    def to_base_unit_amount(val, decimals):
+        return int(round_to_unit(val) * 10 ** decimals)
+
+    # Convert order side string to int representation
+    def order_side_to_int(order_side: str) -> int:
+        if order_side == 'Bid':
+            return 0
+        return 1
+    
+    # Convert order type string to int representation
+    def order_type_to_int(order_type: str) -> int:
+        if order_type == 'Limit':
+            return 0
+        elif order_type == 'Market':
+            return 1
+        return 2
+
+    return keccak(
+        eip712_order_params_schema_hash
+        + encode_single('address', maker_address)
+        + encode_single('bytes32', symbol.encode('utf8'))
+        + encode_single('bytes32', strategy.encode('utf8'))
+        + encode_single('uint256', order_side_to_int(side))
+        + encode_single('uint256', order_type_to_int(order_type))
+        + encode_single('bytes32', bytes.fromhex(request_id[2:]))
+        + encode_single('uint256', to_base_unit_amount(amount, 18))
+        + encode_single('uint256', to_base_unit_amount(price, 18))
+        + encode_single('uint256', to_base_unit_amount(stop_price, 18))
+    )
+```
+
+## Tying it all together
+
+To derive the final EIP-712 hash of the typed data you will sign, you will need to `keccak256` hash the `header`, `eip712_domain_struct_hash`, and `eip712_message_struct_hash` (will vary depending on which `command` specifically you are sending). You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.
+
+```python
+from eth_utils.crypto import keccak
+
+def compute_eip712_hash(eip191_header: bytes, eip712_domain_struct_hash: bytes, eip712_message_struct_hash: bytes) -> str:
+    # Converting bytes result to a hexadecimal string
+    return keccak(
+        eip191_header
+        + eip712_domain_struct_hash
+        + eip712_message_struct_hash
+    ).hex()
+```
 

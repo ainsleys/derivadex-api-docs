@@ -43,9 +43,9 @@
                <li>Deposit funds via Ethereum via an Ethereum client</li>
                <li>Authenticate and connect to the websocket API</li>
                <li>Submit and cancel orders via <code>commands</code></li>
-               <li>Subscribe to market and account data feeds via <code>subscriptions</code> </li>
+               <li>Subscribe to market and account data feeds via <code>subscriptions</code></li>
             </ol>
-            <p>Additionally, you should familiarize yourself with <a href="https://eips.ethereum.org/EIPS/eip-712">EIP 712 signatures</a>, which is how you will sign <code>command</code> data prior to submission. </p>
+            <p>Additionally, you should familiarize yourself with <a href="https://eips.ethereum.org/EIPS/eip-712">EIP-712 signatures</a>, which is how you will sign <code>command</code> data prior to submission. </p>
             <h2 id="making-a-deposit">Making a deposit</h2>
             <p>To deposit funds on DerivaDEX, first ensure that you have created an Ethereum account. The deposit interaction is between a user and the DerivaDEX smart contracts. To be more explicit, you will not be utilizing the WebSocket API to facilitate a deposit. The DerivaDEX Solidity smart contracts adhere to the <a href="https://medium.com/derivadex/the-diamond-standard-a-new-paradigm-for-upgradeability-569121a08954">Diamond Standard</a>. The <code>deposit</code> smart contract function you will need to use is located in the <code>Trader</code> facet, at the address of the main <code>DerivaDEX</code> proxy contract.</p>
             <pre class="highlight text"><code>// solidity
@@ -81,7 +81,7 @@ function deposit(
             <p>The steps to connect are:</p>
             <ol>
                <li>Generate a numeric value (<code>nonce</code>) that is greater than the last value used for this address. Typically, <a href="https://en.wikipedia.org/wiki/Unix_time">Unix time</a> (either milliseconds or nanoseconds) is used, but users may opt to maintain their own sequence counter. Requests with a nonce that are less than or equal to the previous value will be rejected.</li>
-               <li><code>Keccak-256</code> hash the following ABI-encoded values with the specified types(using <code>Keccak-256</code>):<ul>
+               <li><code>Keccak-256</code> hash the following ABI-encoded values with the specified types:<ul>
                      <li>&quot;DerivaDEX API&quot; (<code>bytes32</code>) </li>
                      <li><code>nonce</code> (<code>uint256</code>)</li>
                   </ul>
@@ -91,28 +91,28 @@ function deposit(
             </ol>
             <p>For more information, see the <a href="samples.md">code samples</a>.</p>
             <h1 id="commands">Commands</h1>
-            <p>The websocket API offers commands for placing and canceling orders, as well as withdrawals. Since commands modify system state, these requests must include an <a href="https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md">EIP712 signature</a>. Examples are included in the <a href="samples.md">sample code</a>.</p>
+            <p>The websocket API offers commands for placing and canceling orders, as well as withdrawals. Since commands modify system state, these requests must include an <a href="https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md">EIP-712 signature</a>. Examples are included in the <a href="samples.md">sample code</a>.</p>
             <h2 id="place-order">Place order</h2>
             <p>You can place new orders by specifying specific attributes in the <code>Order</code> command&#39;s request payload. These requests are subject to a set of validations.</p>
             <blockquote>
                <p>Request format:</p>
             </blockquote>
             <pre class="highlight json"><code>{
-  <span class="hljs-attr">&quot;request&quot;</span>: {
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Order&quot;</span>,
-    <span class="hljs-attr">&quot;c&quot;</span>: {
-      <span class="hljs-attr">&quot;makerAddress&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>,
-      <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
-      <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
-      <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Bid&quot;</span>,
-      <span class="hljs-attr">&quot;orderType&quot;</span>: <span class="hljs-string">&quot;Market&quot;</span>,
-      <span class="hljs-attr">&quot;requestId&quot;</span>: <span class="hljs-string">&quot;0x0000000000000000000000000000000000000000000000000000000000000001&quot;</span>,
-      <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;123.45&quot;</span>,
-      <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;234.56&quot;</span>,
-      <span class="hljs-attr">&quot;stopPrice&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
-      <span class="hljs-attr">&quot;signature&quot;</span>: <span class="hljs-string">&quot;0x89fb49d2d125adfef56328ee7367d23d1642d2fb6cfdf8843fa94ae7eac9ab23&quot;</span>
+    <span class="hljs-attr">&quot;request&quot;</span>: {
+        <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Order&quot;</span>,
+        <span class="hljs-attr">&quot;c&quot;</span>: {
+            <span class="hljs-attr">&quot;makerAddress&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>,
+            <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
+            <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
+            <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Bid&quot;</span>,
+            <span class="hljs-attr">&quot;orderType&quot;</span>: <span class="hljs-string">&quot;Limit&quot;</span>,
+            <span class="hljs-attr">&quot;requestId&quot;</span>: <span class="hljs-string">&quot;0x0000000000000000000000000000000000000000000000000000000000000001&quot;</span>,
+            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-number">10</span>,
+            <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-number">497.97</span>,
+            <span class="hljs-attr">&quot;stopPrice&quot;</span>: <span class="hljs-number">0</span>,
+            <span class="hljs-attr">&quot;signature&quot;</span>: <span class="hljs-string">&quot;0x&quot;</span>
+        }
     }
-  }
 }</code></pre>
             <table>
                <thead>
@@ -124,7 +124,7 @@ function deposit(
                </thead>
                <tbody>
                   <tr>
-                     <td>address</td>
+                     <td>address_s</td>
                      <td>makerAddress</td>
                      <td>Trader&#39;s Ethereum address (same as the one that facilitated the deposit)</td>
                   </tr>
@@ -134,44 +134,44 @@ function deposit(
                      <td>Name of the market to trade. Currently, this is limited to &#39;ETHPERP&#39;, but new symbols are coming soon!</td>
                   </tr>
                   <tr>
-                     <td>bytes32</td>
+                     <td>string</td>
                      <td>strategy</td>
                      <td>Name of the cross-margined strategy this trade belongs to. Currently, this is limited to the default <code>main</code> strategy, but support for multiple strategies is coming soon!</td>
                   </tr>
                   <tr>
-                     <td>uint256</td>
+                     <td>string</td>
                      <td>side</td>
                      <td>Side of trade, either <code>Bid</code> (buy/long) or an <code>Ask</code> (sell/short)</td>
                   </tr>
                   <tr>
-                     <td>uint256</td>
+                     <td>string</td>
                      <td>orderType</td>
                      <td>Order type, either <code>Limit</code> or <code>Market</code>. Other order types coming soon!</td>
                   </tr>
                   <tr>
-                     <td>bytes32</td>
+                     <td>bytes32_s</td>
                      <td>requestID</td>
                      <td>An incrementing numeric identifier for this request</td>
                   </tr>
                   <tr>
-                     <td>uint256</td>
+                     <td>decimal</td>
                      <td>amount</td>
                      <td>The order amount/size requested</td>
                   </tr>
                   <tr>
-                     <td>uint256</td>
+                     <td>decimal</td>
                      <td>price</td>
                      <td>The order price</td>
                   </tr>
                   <tr>
-                     <td>uint256</td>
+                     <td>decimal</td>
                      <td>stopPrice</td>
                      <td>Currently, always 0 as stops are not implemented.</td>
                   </tr>
                   <tr>
-                     <td>bytes</td>
+                     <td>bytes_s</td>
                      <td>signature</td>
-                     <td>EIP-712 signature</td>
+                     <td>EIP-712 signature of the order placement intent</td>
                   </tr>
                </tbody>
             </table>
@@ -206,17 +206,17 @@ function deposit(
                      <td>Currently always &#39;ETHPERP&#39;. New symbols coming soon!</td>
                   </tr>
                   <tr>
-                     <td>bytes32</td>
+                     <td>bytes32_s</td>
                      <td>orderHash</td>
                      <td>The hash of the order being canceled</td>
                   </tr>
                   <tr>
-                     <td>bytes32</td>
+                     <td>bytes32_s</td>
                      <td>requestID</td>
                      <td>An incrementing numeric identifier for this request</td>
                   </tr>
                   <tr>
-                     <td>bytes</td>
+                     <td>bytes_s</td>
                      <td>signature</td>
                      <td>EIP-712 signature</td>
                   </tr>
@@ -234,7 +234,7 @@ function deposit(
       <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>,
       <span class="hljs-attr">&quot;strategyId&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
       <span class="hljs-attr">&quot;currency&quot;</span>: <span class="hljs-string">&quot;0x41082c820342539de44c1b404fead3b4b39e15d6&quot;</span>,
-      <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;440.32&quot;</span>,
+      <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-number">440.32</span>,
       <span class="hljs-attr">&quot;requestId&quot;</span>: <span class="hljs-string">&quot;0x0000000000000000000000000000000000000000000000000000000000000003&quot;</span>,
       <span class="hljs-attr">&quot;signature&quot;</span>: <span class="hljs-string">&quot;0x89fb49d2d125adfef56328ee7367d23d1642d2fb6cfdf8843fa94ae7eac9ab23&quot;</span>
     }
@@ -250,32 +250,32 @@ function deposit(
                </thead>
                <tbody>
                   <tr>
-                     <td>address</td>
+                     <td>address_s</td>
                      <td>traderAddress</td>
                      <td>Trader&#39;s Ethereum address (same as the one that facilitated the deposit)</td>
                   </tr>
                   <tr>
-                     <td>bytes32</td>
+                     <td>string</td>
                      <td>strategyId</td>
                      <td>Name of the cross-margined strategy this trade belongs to. Currently, this is limited to the default <code>main</code> strategy, but support for multiple strategies is coming soon!</td>
                   </tr>
                   <tr>
-                     <td>address</td>
+                     <td>address_s</td>
                      <td>currency</td>
                      <td>ERC-20 token address being withdrawn</td>
                   </tr>
                   <tr>
-                     <td>uint128</td>
+                     <td>decimal</td>
                      <td>amount</td>
                      <td>Amount withdrawn (be sure to use the grains format specific to the collateral token being used (e.g. if you wanted to withdraw 1 USDC, you would enter 1000000 since the USDC token contract has 6 decimal places)</td>
                   </tr>
                   <tr>
-                     <td>bytes32</td>
+                     <td>bytes32_s</td>
                      <td>requestId</td>
                      <td>An incrementing numeric identifier for this request.</td>
                   </tr>
                   <tr>
-                     <td>bytes</td>
+                     <td>bytes_s</td>
                      <td>signature</td>
                      <td>EIP-712 signature</td>
                   </tr>
@@ -305,7 +305,7 @@ function deposit(
                </thead>
                <tbody>
                   <tr>
-                     <td>bytes32</td>
+                     <td>bytes32_s</td>
                      <td>requestId</td>
                      <td>The requestId supplied in the initial request - can be used to correlate requests with receipts</td>
                   </tr>
@@ -315,7 +315,7 @@ function deposit(
                      <td>A ticket number which guarantees fair sequencing</td>
                   </tr>
                   <tr>
-                     <td>bytes</td>
+                     <td>bytes_s</td>
                      <td>enclaveSignature</td>
                      <td>An Operator&#39;s signature which proves secure handling of the request</td>
                   </tr>
@@ -409,7 +409,7 @@ function deposit(
                </thead>
                <tbody>
                   <tr>
-                     <td>address</td>
+                     <td>address_s</td>
                      <td>trader</td>
                      <td>Trader&#39;s Ethereum address (same as the one that facilitated the deposit)</td>
                   </tr>
@@ -436,27 +436,27 @@ function deposit(
                </thead>
                <tbody>
                   <tr>
-                     <td>address</td>
+                     <td>address_s</td>
                      <td>trader</td>
                      <td>Trader&#39;s Ethereum address (same as the one requested)</td>
                   </tr>
                   <tr>
-                     <td>string</td>
+                     <td>string_s</td>
                      <td>strategy</td>
                      <td>Strategy being subscribed to. Currently, the only supported strategy is <code>main</code>, but support for multiple strategies is coming soon!</td>
                   </tr>
                   <tr>
-                     <td>int</td>
+                     <td>int_s</td>
                      <td>maxLeverage</td>
                      <td>Maximum leverage for strategy, which impacts the maintenance margin ratio associated to any given trader</td>
                   </tr>
                   <tr>
-                     <td>Decimal</td>
+                     <td>decimal_s</td>
                      <td>freeCollateral</td>
                      <td>Collateral available for trading (not to be confused with the <code>Free Collateral</code> displayed on the UI, which is the collateral available to a trader wishing to signal a withdraw intent)</td>
                   </tr>
                   <tr>
-                     <td>Decimal</td>
+                     <td>decimal_s</td>
                      <td>frozenCollateral</td>
                      <td>Collateral available for a smart contract withdrawal, but not for trading, since the Operators have received the withdraw intent)</td>
                   </tr>
@@ -532,7 +532,7 @@ function deposit(
                </thead>
                <tbody>
                   <tr>
-                     <td>address</td>
+                     <td>address_s</td>
                      <td>trader</td>
                      <td>Trader&#39;s Ethereum address (same as the one that facilitated the deposit)</td>
                   </tr>
@@ -559,12 +559,12 @@ function deposit(
                </thead>
                <tbody>
                   <tr>
-                     <td>address</td>
+                     <td>bytes32_s</td>
                      <td>orderHash</td>
                      <td>Hash of the order that has changed or is new</td>
                   </tr>
                   <tr>
-                     <td>address</td>
+                     <td>address_s</td>
                      <td>makerAddress</td>
                      <td>Trader&#39;s Ethereum address associated with this order</td>
                   </tr>
@@ -574,52 +574,52 @@ function deposit(
                      <td>Name of the market this order belongs to. Currently, this is limited to &#39;ETHPERP&#39;, but new symbols are coming soon!</td>
                   </tr>
                   <tr>
-                     <td>bytes32</td>
+                     <td>string</td>
                      <td>strategy</td>
                      <td>Name of the cross-margined strategy this order belongs to. Currently, this is limited to the default <code>main</code> strategy, but support for multiple strategies is coming soon!</td>
                   </tr>
                   <tr>
-                     <td>uint256</td>
+                     <td>int_s</td>
                      <td>side</td>
                      <td>Side of order, either <code>Bid</code> (buy/long) or an <code>Ask</code> (sell/short)</td>
                   </tr>
                   <tr>
-                     <td>uint256</td>
+                     <td>int_s</td>
                      <td>orderType</td>
                      <td>Order type, either <code>Limit</code> or <code>Market</code>. Other order types coming soon!</td>
                   </tr>
                   <tr>
-                     <td>bytes32</td>
+                     <td>bytes32_s</td>
                      <td>requestID</td>
                      <td>Numeric identifier for the order</td>
                   </tr>
                   <tr>
-                     <td>Decimal</td>
+                     <td>decimal_s</td>
                      <td>amount</td>
                      <td>The original order amount/size requested</td>
                   </tr>
                   <tr>
-                     <td>Decimal</td>
+                     <td>decimal_s</td>
                      <td>remainingAmount</td>
                      <td>The order amount/size remaining on the order book</td>
                   </tr>
                   <tr>
-                     <td>Decimal</td>
+                     <td>decimal_s</td>
                      <td>price</td>
                      <td>The order price</td>
                   </tr>
                   <tr>
-                     <td>Decimal</td>
+                     <td>decimal_s</td>
                      <td>stopPrice</td>
                      <td>Currently, always 0 as stops are not implemented.</td>
                   </tr>
                   <tr>
-                     <td>bytes</td>
+                     <td>bytes_s</td>
                      <td>signature</td>
                      <td>EIP-712 signature</td>
                   </tr>
                   <tr>
-                     <td>string</td>
+                     <td>timestamp_s</td>
                      <td>createdAt</td>
                      <td>Timestamp when order was initially created</td>
                   </tr>
@@ -712,27 +712,27 @@ function deposit(
                </thead>
                <tbody>
                   <tr>
-                     <td>Decimal[2][]</td>
+                     <td>decimal_s[2][]</td>
                      <td>bids</td>
                      <td>The price and corresponding updated aggregate quantity for the bids</td>
                   </tr>
                   <tr>
-                     <td>Decimal[2][]</td>
+                     <td>decimal_s[2][]</td>
                      <td>asks</td>
                      <td>The price and corresponding updated aggregate quantity for the asks</td>
                   </tr>
                   <tr>
-                     <td>bytes32</td>
+                     <td>timestamp_i</td>
                      <td>timestamp</td>
                      <td>Timestamp of order book partial/update</td>
                   </tr>
                   <tr>
-                     <td>bytes32</td>
+                     <td>bytes32_s</td>
                      <td>nonce</td>
                      <td>???</td>
                   </tr>
                   <tr>
-                     <td>Decimal</td>
+                     <td>decimal_s</td>
                      <td>aggregationType</td>
                      <td>???</td>
                   </tr>
@@ -812,17 +812,17 @@ function deposit(
                </thead>
                <tbody>
                   <tr>
-                     <td>string</td>
+                     <td>timestamp_s</td>
                      <td>createdAt</td>
                      <td>Timestamp of original mark price entry</td>
                   </tr>
                   <tr>
-                     <td>string</td>
+                     <td>timestamp_s</td>
                      <td>updatedAt</td>
                      <td>Timestamp of mark price update</td>
                   </tr>
                   <tr>
-                     <td>Decimal</td>
+                     <td>decimal_s</td>
                      <td>price</td>
                      <td>Mark price for the market</td>
                   </tr>
@@ -892,6 +892,247 @@ function deposit(
             <h1 id="rate-limits">Rate Limits</h1>
             <p>The websocket API will (eventually) use tiers to determine rate limits for each ethereum account. Rate limits restrict the number of &quot;Commands&quot; an account can place per minute.</p>
             <p>Subscriptions are not rate limited.</p>
+            <h1 id="types">Types</h1>
+            <p>The types labeled above in the request and response parameters may be familiar to those who have a background in Ethereum. In any case, please refer to the table below for additional information on the terminology used above. This reference in conjunction with the JSON samples should provide enough clarity:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>string</td>
+                     <td>Literal of a sequence of characters surrounded by quotes</td>
+                  </tr>
+                  <tr>
+                     <td>address_s</td>
+                     <td>20-byte &quot;0x&quot;-prefixed hexadecimal string literal (i.e. 40 digits long) corresponding to an <code>address</code> ETH type</td>
+                  </tr>
+                  <tr>
+                     <td>decimal</td>
+                     <td>Numerical value with up to, but no more than 18 decimals of precision</td>
+                  </tr>
+                  <tr>
+                     <td>decimal_s</td>
+                     <td>String representation of <code>decimal</code></td>
+                  </tr>
+                  <tr>
+                     <td>bool</td>
+                     <td>Boolean value, either <code>true</code> or <code>false</code></td>
+                  </tr>
+                  <tr>
+                     <td>bytes32_s</td>
+                     <td>32-byte &quot;0x&quot;-prefixed hexadecimal string literal (i.e. 64 digits long) corresponding to an <code>bytes32</code> ETH type</td>
+                  </tr>
+                  <tr>
+                     <td>timestamp_i</td>
+                     <td>Numerical UNIX timestamp representing the number of seconds since 1/1/1970</td>
+                  </tr>
+                  <tr>
+                     <td>timestamp_s</td>
+                     <td>String representation representing the ISO 8601 UTC timestamp</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h1 id="signatures--hashing">Signatures &amp; hashing</h1>
+            <p>As described above, all <code>commands</code> on the API must be signed. The payload you will sign using an Ethereum wallet client of your choice (e.g. ethers, web3.js, web3.py, etc.) will need to be hashed as per the EIP-712 standard. Please refer to the <a href="https://eips.ethereum.org/EIPS/eip-712">original proposal</a> for full context, but in short, this standard introduced a framework by which users can securely sign typed structured data. This greatly improves the crypto UX as users can now sign data they see and understand as opposed to unreadable byte-strings. Each <code>command</code> has a</p>
+            <p>EIP-712 hashing consists of three critical components - a <code>header</code>, <code>domain</code> struct hash, and <code>message</code> struct hash.</p>
+            <h2 id="header">Header</h2>
+            <p>The <code>header</code> is simply the byte-string <code>\x19\x01</code>. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise will not resolve as a valid signature. An example implementation is displayed on the right.</p>
+            <pre class="highlight python"><code>eip191_header = <span class="hljs-string">b&quot;\x19\x01&quot;</span></code></pre>
+            <h2 id="domain">Domain</h2>
+            <p>The <code>domain</code> is a mandatory field that allows for signature/hashing schemes on one dApp to be unique to itself from other dApps. All three <code>commands</code> use the same <code>domain</code> specification. The parameters that comprise the domain are as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>name</td>
+                     <td>string</td>
+                     <td>Name of the dApp or protocol</td>
+                  </tr>
+                  <tr>
+                     <td>version</td>
+                     <td>string</td>
+                     <td>Current version of the signing domain</td>
+                  </tr>
+                  <tr>
+                     <td>chainId</td>
+                     <td>uint256</td>
+                     <td>EIP-155 chain ID</td>
+                  </tr>
+               </tbody>
+            </table>
+            <blockquote>
+               <p>Domain separator</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+    <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;DerivaDEX&quot;</span>,
+    <span class="hljs-attr">&quot;version&quot;</span>: <span class="hljs-string">&quot;1&quot;</span>,
+    <span class="hljs-attr">&quot;chainId&quot;</span>:  <span class="hljs-number">1</span>
+}</code></pre>
+            <p>To generate the <code>domain</code> struct hash, you must perform a series of encodings and hashings of the schema and contents of the <code>domain</code> specfication. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise will not resolve as a valid signature. An example implementation is displayed on the right.</p>
+            <blockquote>
+               <p>Sample computation of domain struct hash</p>
+            </blockquote>
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single
+<span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">compute_eip712_domain_struct_hash</span>(<span class="hljs-params">chain_id</span>):</span>
+    eip712_domain_separator_schema_hash = keccak(
+        <span class="hljs-string">b&quot;EIP712Domain(&quot;</span>
+        + <span class="hljs-string">b&quot;string name,&quot;</span>
+        + <span class="hljs-string">b&quot;string version,&quot;</span>
+        + <span class="hljs-string">b&quot;uint256 chainId&quot;</span>
+        + <span class="hljs-string">b&quot;)&quot;</span>
+    )
+    
+    eip712_domain_struct_header = (
+        eip712_domain_separator_schema_hash
+        + keccak(<span class="hljs-string">b&quot;DerivaDEX&quot;</span>)
+        + keccak(<span class="hljs-string">b&quot;1&quot;</span>)
+    )
+    
+    <span class="hljs-keyword">return</span> keccak(
+        eip712_domain_struct_header
+        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, chain_id)
+    )</code></pre>
+            <h2 id="message">Message</h2>
+            <p>The <code>message</code> field varies depending on the typed data you are signing, and is illustrated on a case-by-case basis below.</p>
+            <h2 id="place-order-message">Place order (message)</h2>
+            <p>The parameters that comprise the <code>message</code> for the <code>command</code> to place an order are as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>makerAddress</td>
+                     <td>address</td>
+                     <td>Trader&#39;s ETH address used to sign order intent</td>
+                  </tr>
+                  <tr>
+                     <td>symbol</td>
+                     <td>bytes32</td>
+                     <td>32-byte encoding of the symbol this order is for</td>
+                  </tr>
+                  <tr>
+                     <td>strategy</td>
+                     <td>uint256</td>
+                     <td>32-byte encoding of the strategy this order belongs to</td>
+                  </tr>
+                  <tr>
+                     <td>side</td>
+                     <td>uint256</td>
+                     <td>Represents either <code>Bid</code> or <code>Ask</code></td>
+                  </tr>
+                  <tr>
+                     <td>orderType</td>
+                     <td>uint256</td>
+                     <td>Represents either <code>Limit</code> or <code>Market</code></td>
+                  </tr>
+                  <tr>
+                     <td>clientId</td>
+                     <td>bytes32</td>
+                     <td>32-byte nonce resulting in uniqueness</td>
+                  </tr>
+                  <tr>
+                     <td>assetAmount</td>
+                     <td>uint256</td>
+                     <td>Order amount (scaled up by 18 decimals)</td>
+                  </tr>
+                  <tr>
+                     <td>price</td>
+                     <td>uint256</td>
+                     <td>Order price (scaled up by 18 decimals)</td>
+                  </tr>
+                  <tr>
+                     <td>stopPrice</td>
+                     <td>uint256</td>
+                     <td>Stop price (scaled up by 18 decimals)</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p><strong>Take special note of the transformations done on several fields shown in the table above. In other words, the order intent you submit to the API will have slightly different representations for some fields than the order intent you hash.</strong> You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise will not resolve as a valid signature. An example implementation is displayed on the right.</p>
+            <blockquote>
+               <p>Sample computation of order struct hash</p>
+            </blockquote>
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single
+<span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
+<span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">compute_eip712_order_struct_hash</span>(<span class="hljs-params">maker_address: <span class="hljs-built_in">str</span>, symbol: <span class="hljs-built_in">str</span>, strategy: <span class="hljs-built_in">str</span>, side: <span class="hljs-built_in">str</span>, order_type: <span class="hljs-built_in">str</span>, client_id: <span class="hljs-built_in">str</span>, amount: Decimal, price: Decimal, stop_price: Decimal</span>) -&gt; bytes:</span>
+    <span class="hljs-comment"># keccak-256 hash of the encoded schema for the place order command</span>
+    eip712_order_params_schema_hash = keccak(
+        <span class="hljs-string">b&quot;OrderParams(&quot;</span>
+        + <span class="hljs-string">b&quot;address makerAddress,&quot;</span>
+        + <span class="hljs-string">b&quot;bytes32 symbol,&quot;</span>
+        + <span class="hljs-string">b&quot;bytes32 strategy,&quot;</span>
+        + <span class="hljs-string">b&quot;uint256 side,&quot;</span>
+        + <span class="hljs-string">b&quot;uint256 orderType,&quot;</span>
+        + <span class="hljs-string">b&quot;bytes32 clientId,&quot;</span>
+        + <span class="hljs-string">b&quot;uint256 assetAmount,&quot;</span>
+        + <span class="hljs-string">b&quot;uint256 price,&quot;</span>
+        + <span class="hljs-string">b&quot;uint256 stopPrice&quot;</span>
+        + <span class="hljs-string">b&quot;)&quot;</span>
+    )
+    
+    <span class="hljs-comment"># Ensure decimal value has no more than 18 decimals of precision</span>
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">round_to_unit</span>(<span class="hljs-params">val</span>):</span>
+        <span class="hljs-keyword">return</span> val.quantize(Decimal(<span class="hljs-string">&quot;.000000000000000001&quot;</span>), rounding=ROUND_DOWN)
+    
+    <span class="hljs-comment"># Scale up to DDX grains format (i.e. multiply by 1e18)</span>
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(round_to_unit(val) * <span class="hljs-number">10</span> ** decimals)
+
+    <span class="hljs-comment"># Convert order side string to int representation</span>
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">order_side_to_int</span>(<span class="hljs-params">order_side: <span class="hljs-built_in">str</span></span>) -&gt; int:</span>
+        <span class="hljs-keyword">if</span> order_side == <span class="hljs-string">&#x27;Bid&#x27;</span>:
+            <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>
+    
+    <span class="hljs-comment"># Convert order type string to int representation</span>
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">order_type_to_int</span>(<span class="hljs-params">order_type: <span class="hljs-built_in">str</span></span>) -&gt; int:</span>
+        <span class="hljs-keyword">if</span> order_type == <span class="hljs-string">&#x27;Limit&#x27;</span>:
+            <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>
+        <span class="hljs-keyword">elif</span> order_type == <span class="hljs-string">&#x27;Market&#x27;</span>:
+            <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-number">2</span>
+
+    <span class="hljs-keyword">return</span> keccak(
+        eip712_order_params_schema_hash
+        + encode_single(<span class="hljs-string">&#x27;address&#x27;</span>, maker_address)
+        + encode_single(<span class="hljs-string">&#x27;bytes32&#x27;</span>, symbol.encode(<span class="hljs-string">&#x27;utf8&#x27;</span>))
+        + encode_single(<span class="hljs-string">&#x27;bytes32&#x27;</span>, strategy.encode(<span class="hljs-string">&#x27;utf8&#x27;</span>))
+        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, order_side_to_int(side))
+        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, order_type_to_int(order_type))
+        + encode_single(<span class="hljs-string">&#x27;bytes32&#x27;</span>, <span class="hljs-built_in">bytes</span>.fromhex(request_id[<span class="hljs-number">2</span>:]))
+        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, to_base_unit_amount(amount, <span class="hljs-number">18</span>))
+        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, to_base_unit_amount(price, <span class="hljs-number">18</span>))
+        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, to_base_unit_amount(stop_price, <span class="hljs-number">18</span>))
+    )</code></pre>
+            <h2 id="tying-it-all-together">Tying it all together</h2>
+            <p>To derive the final EIP-712 hash of the typed data you will sign, you will need to <code>keccak256</code> hash the <code>header</code>, <code>eip712_domain_struct_hash</code>, and <code>eip712_message_struct_hash</code> (will vary depending on which <code>command</code> specifically you are sending). You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise will not resolve as a valid signature. An example implementation is displayed on the right.</p>
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">compute_eip712_hash</span>(<span class="hljs-params">eip191_header: <span class="hljs-built_in">bytes</span>, eip712_domain_struct_hash: <span class="hljs-built_in">bytes</span>, eip712_message_struct_hash: <span class="hljs-built_in">bytes</span></span>) -&gt; str:</span>
+    <span class="hljs-comment"># Converting bytes result to a hexadecimal string</span>
+    <span class="hljs-keyword">return</span> keccak(
+        eip191_header
+        + eip712_domain_struct_hash
+        + eip712_message_struct_hash
+    ).<span class="hljs-built_in">hex</span>()</code></pre>
             <h1 id="errors">Errors</h1>
             <aside class=error> This error section is stored in a separate file in `includes/_errors.md`. Slate allows you to optionally separate out your docs into many files...just save them to the `includes` folder and add them to the top of your `index.md`'s front matter. Files are included in the order listed. </aside>
             <p>The DerivaDEX API uses the following error codes:</p>
