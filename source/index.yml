@@ -2,6 +2,7 @@ title: API Reference
 
 language_tabs:
    - json
+   - python
 
 toc_footers:
    - <a href=https://github.com/center-key/node-slate>node-slate on GitHub</a>

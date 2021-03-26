@@ -10,7 +10,7 @@
       <link href=stylesheets/highlight-monokai.css rel=stylesheet media=screen,print>
       <script src=javascripts/all.js></script>
    </head>
-   <body class="" data-languages="[&#34;json&#34;]">
+   <body class="" data-languages="[&#34;json&#34;,&#34;python&#34;]">
       <a href=# id=nav-button>
          <span>NAV <img alt=navbar class=image-navbar src=images/navbar.png></span>
       </a>
@@ -18,6 +18,7 @@
          <img alt=logo class=image-logo src=images/logo.png>
          <div class=lang-selector>
             <a href=# data-language-name="json">json</a>
+            <a href=# data-language-name="python">python</a>
          </div>
          <div class=search>
             <input type=text class=search id=input-search placeholder="Search">
@@ -937,13 +938,13 @@ function deposit(
                </tbody>
             </table>
             <h1 id="signatures--hashing">Signatures &amp; hashing</h1>
-            <p>As described above, all <code>commands</code> on the API must be signed. The payload you will sign using an Ethereum wallet client of your choice (e.g. ethers, web3.js, web3.py, etc.) will need to be hashed as per the EIP-712 standard. Please refer to the <a href="https://eips.ethereum.org/EIPS/eip-712">original proposal</a> for full context, but in short, this standard introduced a framework by which users can securely sign typed structured data. This greatly improves the crypto UX as users can now sign data they see and understand as opposed to unreadable byte-strings. Each <code>command</code> has a</p>
+            <p>As described above, all <code>commands</code> on the API must be signed. The payload you will sign using an Ethereum wallet client of your choice (e.g. ethers, web3.js, web3.py, etc.) will need to be hashed as per the EIP-712 standard. We <strong>highly recommend</strong> referring to the <a href="https://eips.ethereum.org/EIPS/eip-712">original proposal</a> for full context, but in short, this standard introduced a framework by which users can securely sign typed structured data. This greatly improves the crypto UX as users can now sign data they see and understand as opposed to unreadable byte-strings. While these benefits may not be readily apparent for programmatic traders, you will need to conform to this standard regardless.</p>
             <p>EIP-712 hashing consists of three critical components - a <code>header</code>, <code>domain</code> struct hash, and <code>message</code> struct hash.</p>
             <h2 id="header">Header</h2>
-            <p>The <code>header</code> is simply the byte-string <code>\x19\x01</code>. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise will not resolve as a valid signature. An example implementation is displayed on the right.</p>
+            <p>The <code>header</code> is simply the byte-string <code>\x19\x01</code>. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.</p>
             <pre class="highlight python"><code>eip191_header = <span class="hljs-string">b&quot;\x19\x01&quot;</span></code></pre>
             <h2 id="domain">Domain</h2>
-            <p>The <code>domain</code> is a mandatory field that allows for signature/hashing schemes on one dApp to be unique to itself from other dApps. All three <code>commands</code> use the same <code>domain</code> specification. The parameters that comprise the domain are as follows:</p>
+            <p>The <code>domain</code> is a mandatory field that allows for signature/hashing schemes on one dApp to be unique to itself from other dApps. All <code>commands</code> use the same <code>domain</code> specification. The parameters that comprise the domain are as follows:</p>
             <table>
                <thead>
                   <tr>
@@ -971,14 +972,14 @@ function deposit(
                </tbody>
             </table>
             <blockquote>
-               <p>Domain separator</p>
+               <p>Domain separator for mainnet. DO NOT modify these parameters.</p>
             </blockquote>
             <pre class="highlight json"><code>{
     <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;DerivaDEX&quot;</span>,
     <span class="hljs-attr">&quot;version&quot;</span>: <span class="hljs-string">&quot;1&quot;</span>,
     <span class="hljs-attr">&quot;chainId&quot;</span>:  <span class="hljs-number">1</span>
 }</code></pre>
-            <p>To generate the <code>domain</code> struct hash, you must perform a series of encodings and hashings of the schema and contents of the <code>domain</code> specfication. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise will not resolve as a valid signature. An example implementation is displayed on the right.</p>
+            <p>To generate the <code>domain</code> struct hash, you must perform a series of encodings and hashings of the schema and contents of the <code>domain</code> specfication. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.</p>
             <blockquote>
                <p>Sample computation of domain struct hash</p>
             </blockquote>
@@ -1025,22 +1026,22 @@ function deposit(
                   <tr>
                      <td>symbol</td>
                      <td>bytes32</td>
-                     <td>32-byte encoding of the symbol this order is for</td>
+                     <td>32-byte encoding of the symbol this order is for. The <code>symbol</code> of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly.</td>
                   </tr>
                   <tr>
                      <td>strategy</td>
-                     <td>uint256</td>
-                     <td>32-byte encoding of the strategy this order belongs to</td>
+                     <td>bytes32</td>
+                     <td>32-byte encoding of the strategy this order belongs to. The <code>strategy</code> of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly.</td>
                   </tr>
                   <tr>
                      <td>side</td>
                      <td>uint256</td>
-                     <td>Represents either <code>Bid</code> or <code>Ask</code></td>
+                     <td>An integer value either <code>0</code> (Bid) or <code>1</code> (Ask)</td>
                   </tr>
                   <tr>
                      <td>orderType</td>
                      <td>uint256</td>
-                     <td>Represents either <code>Limit</code> or <code>Market</code></td>
+                     <td>An integer value either <code>0</code> (Limit) or <code>1</code> (Market)</td>
                   </tr>
                   <tr>
                      <td>clientId</td>
@@ -1050,21 +1051,21 @@ function deposit(
                   <tr>
                      <td>assetAmount</td>
                      <td>uint256</td>
-                     <td>Order amount (scaled up by 18 decimals)</td>
+                     <td>Order amount (scaled up by 18 decimals). The <code>amount</code> of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.</td>
                   </tr>
                   <tr>
                      <td>price</td>
                      <td>uint256</td>
-                     <td>Order price (scaled up by 18 decimals)</td>
+                     <td>Order price (scaled up by 18 decimals). The <code>price</code> of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.</td>
                   </tr>
                   <tr>
                      <td>stopPrice</td>
                      <td>uint256</td>
-                     <td>Stop price (scaled up by 18 decimals)</td>
+                     <td>Stop price (scaled up by 18 decimals). The <code>stopPrice</code> of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.</td>
                   </tr>
                </tbody>
             </table>
-            <p><strong>Take special note of the transformations done on several fields shown in the table above. In other words, the order intent you submit to the API will have slightly different representations for some fields than the order intent you hash.</strong> You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise will not resolve as a valid signature. An example implementation is displayed on the right.</p>
+            <p><strong>Take special note of the transformations done on several fields as described in the table above. In other words, the order intent you submit to the API will have different representations for some fields than the order intent you hash.</strong> You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.</p>
             <blockquote>
                <p>Sample computation of order struct hash</p>
             </blockquote>
@@ -1123,7 +1124,7 @@ function deposit(
         + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, to_base_unit_amount(stop_price, <span class="hljs-number">18</span>))
     )</code></pre>
             <h2 id="tying-it-all-together">Tying it all together</h2>
-            <p>To derive the final EIP-712 hash of the typed data you will sign, you will need to <code>keccak256</code> hash the <code>header</code>, <code>eip712_domain_struct_hash</code>, and <code>eip712_message_struct_hash</code> (will vary depending on which <code>command</code> specifically you are sending). You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise will not resolve as a valid signature. An example implementation is displayed on the right.</p>
+            <p>To derive the final EIP-712 hash of the typed data you will sign, you will need to <code>keccak256</code> hash the <code>header</code>, <code>eip712_domain_struct_hash</code>, and <code>eip712_message_struct_hash</code> (will vary depending on which <code>command</code> specifically you are sending). You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.</p>
             <pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">compute_eip712_hash</span>(<span class="hljs-params">eip191_header: <span class="hljs-built_in">bytes</span>, eip712_domain_struct_hash: <span class="hljs-built_in">bytes</span>, eip712_message_struct_hash: <span class="hljs-built_in">bytes</span></span>) -&gt; str:</span>
@@ -1141,6 +1142,7 @@ function deposit(
          <div class=dark-box>
             <div class=lang-selector>
                <a href=# data-language-name="json">json</a>
+               <a href=# data-language-name="python">python</a>
             </div>
          </div>
       </div>

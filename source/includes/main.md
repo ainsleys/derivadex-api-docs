@@ -598,21 +598,13 @@ EIP-712 hashing consists of three critical components - a `header`, `domain` str
 
 ## Header
 
-The `header` is simply the byte-string `\x19\x01`. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.
-
 ```python
 eip191_header = b"\x19\x01"
 ```
 
+The `header` is simply the byte-string `\x19\x01`. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.
+
 ## Domain
-
-The `domain` is a mandatory field that allows for signature/hashing schemes on one dApp to be unique to itself from other dApps. All `commands` use the same `domain` specification. The parameters that comprise the domain are as follows:
-
-type | field | description
------|----- | ---------------------
-name  | string | Name of the dApp or protocol
-version  | string | Current version of the signing domain
-chainId | uint256 | EIP-155 chain ID
 
 > Domain separator for mainnet. DO NOT modify these parameters.
 ```json
@@ -622,8 +614,6 @@ chainId | uint256 | EIP-155 chain ID
     "chainId":  1
 }
 ```
-
-To generate the `domain` struct hash, you must perform a series of encodings and hashings of the schema and contents of the `domain` specfication. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.
 
 > Sample computation of domain struct hash
 ```python
@@ -651,27 +641,21 @@ def compute_eip712_domain_struct_hash(chain_id):
     )
 ```
 
+The `domain` is a mandatory field that allows for signature/hashing schemes on one dApp to be unique to itself from other dApps. All `commands` use the same `domain` specification. The parameters that comprise the domain are as follows:
+
+type | field | description
+-----|----- | ---------------------
+name  | string | Name of the dApp or protocol
+version  | string | Current version of the signing domain
+chainId | uint256 | EIP-155 chain ID
+
+To generate the `domain` struct hash, you must perform a series of encodings and hashings of the schema and contents of the `domain` specfication. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.
+
 ## Message
 
 The `message` field varies depending on the typed data you are signing, and is illustrated on a case-by-case basis below.
 
 ## Place order (message)
-
-The parameters that comprise the `message` for the `command` to place an order are as follows:
-
-type | field | description
------|----- | ---------------------
-makerAddress  | address | Trader's ETH address used to sign order intent
-symbol  | bytes32 | 32-byte encoding of the symbol this order is for. The `symbol` of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly.
-strategy | bytes32 | 32-byte encoding of the strategy this order belongs to. The `strategy` of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly.
-side | uint256 | An integer value either `0` (Bid) or `1` (Ask)
-orderType | uint256 | An integer value either `0` (Limit) or `1` (Market)
-clientId | bytes32 | 32-byte nonce resulting in uniqueness
-assetAmount | uint256 | Order amount (scaled up by 18 decimals). The `amount` of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.
-price | uint256 | Order price (scaled up by 18 decimals). The `price` of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.
-stopPrice | uint256 | Stop price (scaled up by 18 decimals). The `stopPrice` of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.
-
-**Take special note of the transformations done on several fields as described in the table above. In other words, the order intent you submit to the API will have different representations for some fields than the order intent you hash.** You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.
 
 > Sample computation of order struct hash
 ```python
@@ -731,9 +715,24 @@ def compute_eip712_order_struct_hash(maker_address: str, symbol: str, strategy: 
     )
 ```
 
-## Tying it all together
+The parameters that comprise the `message` for the `command` to place an order are as follows:
 
-To derive the final EIP-712 hash of the typed data you will sign, you will need to `keccak256` hash the `header`, `eip712_domain_struct_hash`, and `eip712_message_struct_hash` (will vary depending on which `command` specifically you are sending). You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.
+type | field | description
+-----|----- | ---------------------
+makerAddress  | address | Trader's ETH address used to sign order intent
+symbol  | bytes32 | 32-byte encoding of the symbol this order is for. The `symbol` of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly.
+strategy | bytes32 | 32-byte encoding of the strategy this order belongs to. The `strategy` of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly.
+side | uint256 | An integer value either `0` (Bid) or `1` (Ask)
+orderType | uint256 | An integer value either `0` (Limit) or `1` (Market)
+clientId | bytes32 | 32-byte nonce resulting in uniqueness
+assetAmount | uint256 | Order amount (scaled up by 18 decimals). The `amount` of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.
+price | uint256 | Order price (scaled up by 18 decimals). The `price` of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.
+stopPrice | uint256 | Stop price (scaled up by 18 decimals). The `stopPrice` of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.
+
+**Take special note of the transformations done on several fields as described in the table above. In other words, the order intent you submit to the API will have different representations for some fields than the order intent you hash.** You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.
+
+
+## Tying it all together
 
 ```python
 from eth_utils.crypto import keccak
@@ -746,4 +745,6 @@ def compute_eip712_hash(eip191_header: bytes, eip712_domain_struct_hash: bytes, 
         + eip712_message_struct_hash
     ).hex()
 ```
+
+To derive the final EIP-712 hash of the typed data you will sign, you will need to `keccak256` hash the `header`, `eip712_domain_struct_hash`, and `eip712_message_struct_hash` (will vary depending on which `command` specifically you are sending). You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. An example implementation is displayed on the right.
 
