@@ -3,7 +3,7 @@
 
 DerivaDEX is a decentralized derivatives exchange that combines the performance of centralized exchanges with the security of decentralized exchanges.
 
-DerivaDEX currently offers a public WebSocket API for traders and developers. You must first make a deposit to the DerivaDEX ethereum contracts. The API will then enable you to open and manage your positions via commands, and subscribe to market data via subscriptions. 
+DerivaDEX currently offers a public WebSocket API for traders and developers. You must first make a deposit to the DerivaDEX Ethereum contracts. The API will then enable you to open and manage your positions via commands, and subscribe to market data via subscriptions. 
 
 Find us online [Discord](https://discord.gg/a54BWuG) | [Telegram](https://t.me/DerivaDEX) | [Medium](https://medium.com/derivadex)
 
@@ -36,7 +36,7 @@ field | description
 ------ | -----------
 _collateralAddress | ERC-20 token address deposited as collateral
 _strategyId | Strategy ID (encoded as a 32-byte value) being funded 
-_amount | Amount deposited (be sure to use the grains format specific to the collateral token being used (e.g. if you wanted to deposit 1 USDC, you would enter 1000000 since the USDC token contract has 6 decimal places)
+_amount | Amount deposited (be sure to use the grains format specific of the collateral token you are using (e.g. if you wanted to deposit 1 USDC, you would enter 1000000 since the USDC token contract has 6 decimal places)
 
 ## Connecting to the Websocket API
 
@@ -89,7 +89,7 @@ string  | symbol | Name of the market to trade. Currently, this is limited to 'E
 string | strategy | Name of the cross-margined strategy this trade belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
 string | side | Side of trade, either `Bid` (buy/long) or an `Ask` (sell/short)
 string | orderType | Order type, either `Limit` or `Market`. Other order types coming soon!
-bytes32_s | requestID | An incrementing numeric identifier for this request
+bytes32_s | requestId | An incrementing numeric identifier for this request
 decimal | amount | The order amount/size requested
 decimal | price | The order price
 decimal | stopPrice | Currently, always 0 as stops are not implemented.
@@ -120,7 +120,7 @@ type | field | description
 -----|---- | -----------------------
 string | symbol | Currently always 'ETHPERP'. New symbols coming soon! 
 bytes32_s | orderHash| The hash of the order being canceled
-bytes32_s | requestID | An incrementing numeric identifier for this request
+bytes32_s | requestId | An incrementing numeric identifier for this request
 bytes_s | signature | EIP-712 signature
 
 
@@ -149,7 +149,7 @@ You can signal withdrawal intents to the Operators by specifying specific attrib
 type | field | description
 ---- | --- | -----------------
 address_s | traderAddress | Trader's Ethereum address (same as the one that facilitated the deposit)
-string | strategyId | Name of the cross-margined strategy this trade belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
+string | strategyId | Name of the cross-margined strategy this withdrawal belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
 address_s | currency | ERC-20 token address being withdrawn
 decimal | amount | Amount withdrawn (be sure to use the grains format specific to the collateral token being used (e.g. if you wanted to withdraw 1 USDC, you would enter 1000000 since the USDC token contract has 6 decimal places)
 bytes32_s | requestId | An incrementing numeric identifier for this request.
@@ -240,8 +240,12 @@ Upon subscription, you will receive a `Partial` back, containing a snapshot of y
 		"trader": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
 		"strategy": "main",
 		"maxLeverage": "20",
-		"freeCollateral": "1000",
-		"frozenCollateral": "0",
+		"freeCollateral": {
+          "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": "1000"
+        },
+		"frozenCollateral": {
+          "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": "0"
+        },
 		"createdAt": "2021-03-23T20:03:45.850Z"
 	}]
 }
@@ -256,8 +260,12 @@ Upon subscription, you will receive a `Partial` back, containing a snapshot of y
 		"trader": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
 		"strategy": "main",
 		"maxLeverage": "20",
-		"freeCollateral": "2000",
-		"frozenCollateral": "0",
+		"freeCollateral": {
+          "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": "2000"
+        },
+		"frozenCollateral": {
+          "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": "0"
+        },
 		"frozen": false,
 		"createdAt": "2021-03-23T20:03:45.850Z"
 	}]
@@ -279,8 +287,8 @@ type | field | description
 address_s  | trader | Trader's Ethereum address (same as the one requested)
 string_s   | strategy | Strategy being subscribed to. Currently, the only supported strategy is `main`, but support for multiple strategies is coming soon!
 int_s   | maxLeverage | Maximum leverage for strategy, which impacts the maintenance margin ratio associated to any given trader
-decimal_s  | freeCollateral | Collateral available for trading (not to be confused with the `Free Collateral` displayed on the UI, which is the collateral available to a trader wishing to signal a withdraw intent)
-decimal_s  | frozenCollateral | Collateral available for a smart contract withdrawal, but not for trading, since the Operators have received the withdraw intent)
+<address_s, decimal_s>  | freeCollateral | Collateral (on a per token basis) available for trading (not to be confused with the `Free Collateral` displayed on the UI, which is the collateral available to a trader wishing to signal a withdraw intent)
+<address_s, decimal_s>  | frozenCollateral | Collateral (on a per token basis) available for a smart contract withdrawal, but not for trading, since the Operators have received the withdraw intent)
 bool     | frozen | Whether the account and its collateral is frozen or not
 
 ## Orders update (account)
@@ -361,9 +369,9 @@ bytes32_s | orderHash | Hash of the order that has changed or is new
 address_s | makerAddress | Trader's Ethereum address associated with this order
 string  | symbol | Name of the market this order belongs to. Currently, this is limited to 'ETHPERP', but new symbols are coming soon! 
 string | strategy | Name of the cross-margined strategy this order belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
-int_s | side | Side of order, either `Bid` (buy/long) or an `Ask` (sell/short)
-int_s | orderType | Order type, either `Limit` or `Market`. Other order types coming soon!
-bytes32_s | requestID | Numeric identifier for the order
+int_s | side | Side of order, either `0` (`Bid`) or an `1` (`Ask`)
+int_s | orderType | Order type, either `0` (`Limit`) or `0` (`Market`). Other order types coming soon!
+bytes32_s | requestId | Numeric identifier for the order
 decimal_s | amount | The original order amount/size requested
 decimal_s | remainingAmount | The order amount/size remaining on the order book
 decimal_s | price | The order price
