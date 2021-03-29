@@ -40,6 +40,38 @@ _amount | Amount deposited (be sure to use the grains format specific of the col
 
 ## Connecting to the Websocket API
 
+> Sample API URL connection generation
+```python
+from web3 import Web3
+from eth_account.messages import encode_defunct
+from eth_abi import encode_abi
+import time
+
+def get_url(self) -> str:
+    # A Web3 instance
+    w3 = Web3(Web3.HTTPProvider("https://kovan.infura.io/v3/<your_api_key>"))
+    
+    # Initialize a Web3 account from a private key
+    web3_account = self.w3.eth.account.from_key("<private_key>")
+
+    # Retrieve current UNIX time in nanoseconds to derive a unique, monotonically-increasing nonce
+    nonce = time.time_ns()
+
+    # keccak256(abi.encode(['bytes32', 'uint256'], ['DerivaDEX API', nonce]))
+    connect_message = w3.keccak(
+        encode_abi(["bytes32", "uint256"], ["DerivaDEX API".encode("utf8"), nonce])
+    )
+
+    # Obtain signable message
+    encoded_message = encode_defunct(text=connect_message.hex())
+
+    # Obtain signature
+    signature = web3_account.sign_message(encoded_message)
+
+    # Construct WS connection url with format
+    return f"wss://alpha.derivadex.io/trader/v1?nonce={nonce}&signature={signature.signature.hex()}"
+```
+
 Addresses used to connect to the websocket API must _already_ have funds deposited. If you haven't, [do that first](#Making a deposit).
 
 The steps to connect are:
@@ -51,7 +83,7 @@ The steps to connect are:
 3. Generate a `signature` of the hash using eth_sign or equivalent signer.
 4. Connect to the websocket with the url: `wss://api.derivadex.com?nonce=[nonce]&signature=[signature]`
 
-For more information, see the [code samples](samples.md).
+An example Python implementation is displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.
 
 # Commands
 The websocket API offers commands for placing and canceling orders, as well as withdrawals. Since commands modify system state, these requests must include an [EIP-712 signature](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md). Examples are included in the [sample code](samples.md).

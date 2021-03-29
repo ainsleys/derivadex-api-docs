@@ -36,7 +36,7 @@
          <div class=content>
             <h1 id="derivadex-api">DerivaDEX API</h1>
             <p>DerivaDEX is a decentralized derivatives exchange that combines the performance of centralized exchanges with the security of decentralized exchanges.</p>
-            <p>DerivaDEX currently offers a public WebSocket API for traders and developers. You must first make a deposit to the DerivaDEX ethereum contracts. The API will then enable you to open and manage your positions via commands, and subscribe to market data via subscriptions. </p>
+            <p>DerivaDEX currently offers a public WebSocket API for traders and developers. You must first make a deposit to the DerivaDEX Ethereum contracts. The API will then enable you to open and manage your positions via commands, and subscribe to market data via subscriptions. </p>
             <p>Find us online <a href="https://discord.gg/a54BWuG">Discord</a> | <a href="https://t.me/DerivaDEX">Telegram</a> | <a href="https://medium.com/derivadex">Medium</a></p>
             <h1 id="getting-started">Getting Started</h1>
             <p>DerivaDEX is a decentralized exchange. As such, trading is non-custodial. Users are responsible for their own funds, which are deposited to the DerivaDEX smart contracts on Ethereum for trading. </p>
@@ -74,11 +74,42 @@ function deposit(
                   </tr>
                   <tr>
                      <td>_amount</td>
-                     <td>Amount deposited (be sure to use the grains format specific to the collateral token being used (e.g. if you wanted to deposit 1 USDC, you would enter 1000000 since the USDC token contract has 6 decimal places)</td>
+                     <td>Amount deposited (be sure to use the grains format specific of the collateral token you are using (e.g. if you wanted to deposit 1 USDC, you would enter 1000000 since the USDC token contract has 6 decimal places)</td>
                   </tr>
                </tbody>
             </table>
             <h2 id="connecting-to-the-websocket-api">Connecting to the Websocket API</h2>
+            <blockquote>
+               <p>Sample API URL connection generation</p>
+            </blockquote>
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> web3 <span class="hljs-keyword">import</span> Web3
+<span class="hljs-keyword">from</span> eth_account.messages <span class="hljs-keyword">import</span> encode_defunct
+<span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_abi
+<span class="hljs-keyword">import</span> time
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">get_url</span>(<span class="hljs-params">self</span>) -&gt; str:</span>
+        <span class="hljs-comment"># A Web3 instance</span>
+        w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura.io/v3/&lt;your_key&gt;&quot;</span>))
+        
+        <span class="hljs-comment"># Initialize a Web3 account from a private key</span>
+        web3_account = self.w3.eth.account.from_key(<span class="hljs-string">&quot;&lt;private_key&gt;&quot;</span>)
+
+        <span class="hljs-comment"># Retrieve current UNIX time in nanoseconds to derive a unique, monotonically-increasing nonce</span>
+        nonce = time.time_ns()
+
+        <span class="hljs-comment"># keccak256(abi.encode([&#x27;bytes32&#x27;, &#x27;uint256&#x27;], [&#x27;DerivaDEX API&#x27;, nonce]))</span>
+        connect_message = w3.keccak(
+            encode_abi([<span class="hljs-string">&quot;bytes32&quot;</span>, <span class="hljs-string">&quot;uint256&quot;</span>], [<span class="hljs-string">&quot;DerivaDEX API&quot;</span>.encode(<span class="hljs-string">&quot;utf8&quot;</span>), nonce])
+        )
+
+        <span class="hljs-comment"># Obtain signable message</span>
+        encoded_message = encode_defunct(text=connect_message.<span class="hljs-built_in">hex</span>())
+
+        <span class="hljs-comment"># Obtain signature</span>
+        signature = web3_account.sign_message(encoded_message)
+
+        <span class="hljs-comment"># Construct WS connection url with format</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-string">f&quot;wss://alpha.derivadex.io/trader/v1?nonce=<span class="hljs-subst">{nonce}</span>&amp;signature=<span class="hljs-subst">{signature.signature.<span class="hljs-built_in">hex</span>()}</span>&quot;</span></code></pre>
             <p>Addresses used to connect to the websocket API must <em>already</em> have funds deposited. If you haven&#39;t, [do that first](#Making a deposit).</p>
             <p>The steps to connect are:</p>
             <ol>
@@ -91,7 +122,7 @@ function deposit(
                <li>Generate a <code>signature</code> of the hash using eth_sign or equivalent signer.</li>
                <li>Connect to the websocket with the url: <code>wss://api.derivadex.com?nonce=[nonce]&amp;signature=[signature]</code></li>
             </ol>
-            <p>For more information, see the <a href="samples.md">code samples</a>.</p>
+            <p>An example Python implementation is displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.</p>
             <h1 id="commands">Commands</h1>
             <p>The websocket API offers commands for placing and canceling orders, as well as withdrawals. Since commands modify system state, these requests must include an <a href="https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md">EIP-712 signature</a>. Examples are included in the <a href="samples.md">sample code</a>.</p>
             <h2 id="place-order">Place order</h2>
@@ -152,7 +183,7 @@ function deposit(
                   </tr>
                   <tr>
                      <td>bytes32_s</td>
-                     <td>requestID</td>
+                     <td>requestId</td>
                      <td>An incrementing numeric identifier for this request</td>
                   </tr>
                   <tr>
@@ -214,7 +245,7 @@ function deposit(
                   </tr>
                   <tr>
                      <td>bytes32_s</td>
-                     <td>requestID</td>
+                     <td>requestId</td>
                      <td>An incrementing numeric identifier for this request</td>
                   </tr>
                   <tr>
@@ -259,7 +290,7 @@ function deposit(
                   <tr>
                      <td>string</td>
                      <td>strategyId</td>
-                     <td>Name of the cross-margined strategy this trade belongs to. Currently, this is limited to the default <code>main</code> strategy, but support for multiple strategies is coming soon!</td>
+                     <td>Name of the cross-margined strategy this withdrawal belongs to. Currently, this is limited to the default <code>main</code> strategy, but support for multiple strategies is coming soon!</td>
                   </tr>
                   <tr>
                      <td>address_s</td>
@@ -379,8 +410,12 @@ function deposit(
         <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0xe36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
         <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
         <span class="hljs-attr">&quot;maxLeverage&quot;</span>: <span class="hljs-string">&quot;20&quot;</span>,
-        <span class="hljs-attr">&quot;freeCollateral&quot;</span>: <span class="hljs-string">&quot;1000&quot;</span>,
-        <span class="hljs-attr">&quot;frozenCollateral&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+        <span class="hljs-attr">&quot;freeCollateral&quot;</span>: {
+          <span class="hljs-attr">&quot;0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48&quot;</span>: <span class="hljs-string">&quot;1000&quot;</span>
+        },
+        <span class="hljs-attr">&quot;frozenCollateral&quot;</span>: {
+          <span class="hljs-attr">&quot;0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>
+        },
         <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-03-23T20:03:45.850Z&quot;</span>
     }]
 }</code></pre>
@@ -394,8 +429,12 @@ function deposit(
         <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0xe36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
         <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
         <span class="hljs-attr">&quot;maxLeverage&quot;</span>: <span class="hljs-string">&quot;20&quot;</span>,
-        <span class="hljs-attr">&quot;freeCollateral&quot;</span>: <span class="hljs-string">&quot;2000&quot;</span>,
-        <span class="hljs-attr">&quot;frozenCollateral&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+        <span class="hljs-attr">&quot;freeCollateral&quot;</span>: {
+          <span class="hljs-attr">&quot;0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48&quot;</span>: <span class="hljs-string">&quot;2000&quot;</span>
+        },
+        <span class="hljs-attr">&quot;frozenCollateral&quot;</span>: {
+          <span class="hljs-attr">&quot;0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>
+        },
         <span class="hljs-attr">&quot;frozen&quot;</span>: <span class="hljs-literal">false</span>,
         <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-03-23T20:03:45.850Z&quot;</span>
     }]
@@ -453,14 +492,14 @@ function deposit(
                      <td>Maximum leverage for strategy, which impacts the maintenance margin ratio associated to any given trader</td>
                   </tr>
                   <tr>
-                     <td>decimal_s</td>
+                     <td>&lt;address_s, decimal_s&gt;</td>
                      <td>freeCollateral</td>
-                     <td>Collateral available for trading (not to be confused with the <code>Free Collateral</code> displayed on the UI, which is the collateral available to a trader wishing to signal a withdraw intent)</td>
+                     <td>Collateral (on a per token basis) available for trading (not to be confused with the <code>Free Collateral</code> displayed on the UI, which is the collateral available to a trader wishing to signal a withdraw intent)</td>
                   </tr>
                   <tr>
-                     <td>decimal_s</td>
+                     <td>&lt;address_s, decimal_s&gt;</td>
                      <td>frozenCollateral</td>
-                     <td>Collateral available for a smart contract withdrawal, but not for trading, since the Operators have received the withdraw intent)</td>
+                     <td>Collateral (on a per token basis) available for a smart contract withdrawal, but not for trading, since the Operators have received the withdraw intent)</td>
                   </tr>
                   <tr>
                      <td>bool</td>
@@ -583,16 +622,16 @@ function deposit(
                   <tr>
                      <td>int_s</td>
                      <td>side</td>
-                     <td>Side of order, either <code>Bid</code> (buy/long) or an <code>Ask</code> (sell/short)</td>
+                     <td>Side of order, either <code>0</code> (<code>Bid</code>) or an <code>1</code> (<code>Ask</code>)</td>
                   </tr>
                   <tr>
                      <td>int_s</td>
                      <td>orderType</td>
-                     <td>Order type, either <code>Limit</code> or <code>Market</code>. Other order types coming soon!</td>
+                     <td>Order type, either <code>0</code> (<code>Limit</code>) or <code>0</code> (<code>Market</code>). Other order types coming soon!</td>
                   </tr>
                   <tr>
                      <td>bytes32_s</td>
-                     <td>requestID</td>
+                     <td>requestId</td>
                      <td>Numeric identifier for the order</td>
                   </tr>
                   <tr>
