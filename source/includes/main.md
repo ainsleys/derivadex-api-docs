@@ -3,13 +3,11 @@
 
 DerivaDEX is a decentralized derivatives exchange that combines the performance of centralized exchanges with the security of decentralized exchanges.
 
-DerivaDEX currently offers a public WebSocket API for traders and developers. You must first make a deposit to the DerivaDEX Ethereum contracts. The API will then enable you to open and manage your positions via commands, and subscribe to market data via subscriptions. 
+DerivaDEX currently offers a public WebSocket API for traders and developers. In order to use this API, you must must first make a deposit to the DerivaDEX Ethereum contracts. The API will then enable you to open and manage your positions via commands, and subscribe to market data via subscriptions. 
 
 Find us online [Discord](https://discord.gg/a54BWuG) | [Telegram](https://t.me/DerivaDEX) | [Medium](https://medium.com/derivadex)
 
 # Getting Started
-
-DerivaDEX is a decentralized exchange. As such, trading is non-custodial. Users are responsible for their own funds, which are deposited to the DerivaDEX smart contracts on Ethereum for trading. 
 
 To begin interacting with the DerivaDEX ecosystem programmatically, you generally will want to follow these steps:
 1. Deposit funds via Ethereum via an Ethereum client
@@ -21,7 +19,11 @@ Additionally, you should familiarize yourself with [EIP-712 signatures](https://
 
 ## Making a deposit
 
+DerivaDEX is a decentralized exchange. As such, trading is non-custodial. Users are responsible for their own funds, which are deposited to the DerivaDEX smart contracts on Ethereum for trading. 
+
 To deposit funds on DerivaDEX, first ensure that you have created an Ethereum account. The deposit interaction is between a user and the DerivaDEX smart contracts. To be more explicit, you will not be utilizing the WebSocket API to facilitate a deposit. The DerivaDEX Solidity smart contracts adhere to the [Diamond Standard](https://medium.com/derivadex/the-diamond-standard-a-new-paradigm-for-upgradeability-569121a08954). The `deposit` smart contract function you will need to use is located in the `Trader` facet, at the address of the main `DerivaDEX` proxy contract.
+
+Note: Valid deposit collateral is curated by the smart contract and is managed by governance.
 
 ```plaintext
 // solidity
@@ -72,7 +74,7 @@ def get_url(self) -> str:
     return f"wss://alpha.derivadex.io/trader/v1?nonce={nonce}&signature={signature.signature.hex()}"
 ```
 
-Addresses used to connect to the websocket API must _already_ have funds deposited. If you haven't, [do that first](#Making a deposit).
+Addresses used to connect to the websocket API must _already_ have funds deposited. If you haven't, [do that first](#Making-a-deposit).
 
 The steps to connect are:
 
@@ -84,6 +86,7 @@ The steps to connect are:
 4. Connect to the websocket with the url: `wss://api.derivadex.com?nonce=[nonce]&signature=[signature]`
 
 An example Python implementation is displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.
+
 
 # Commands
 The websocket API offers commands for placing and canceling orders, as well as withdrawals. Since commands modify system state, these requests must include an [EIP-712 signature](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md). Examples are included in the [sample code](samples.md).
@@ -194,7 +197,7 @@ Each command returns a receipt, which confirms that an Operator has received the
 
 ### Received (successful) receipts
 
-A successful command returns a `Received` receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the guaranteed associated with Intel SGX TEEs.
+A successful command returns a `Received` receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the security guarantees associated with Intel SGX TEEs.
 
 ```json
 {

@@ -36,10 +36,9 @@
          <div class=content>
             <h1 id="derivadex-api">DerivaDEX API</h1>
             <p>DerivaDEX is a decentralized derivatives exchange that combines the performance of centralized exchanges with the security of decentralized exchanges.</p>
-            <p>DerivaDEX currently offers a public WebSocket API for traders and developers. You must first make a deposit to the DerivaDEX Ethereum contracts. The API will then enable you to open and manage your positions via commands, and subscribe to market data via subscriptions. </p>
+            <p>DerivaDEX currently offers a public WebSocket API for traders and developers. In order to use this API, you must must first make a deposit to the DerivaDEX Ethereum contracts. The API will then enable you to open and manage your positions via commands, and subscribe to market data via subscriptions. </p>
             <p>Find us online <a href="https://discord.gg/a54BWuG">Discord</a> | <a href="https://t.me/DerivaDEX">Telegram</a> | <a href="https://medium.com/derivadex">Medium</a></p>
             <h1 id="getting-started">Getting Started</h1>
-            <p>DerivaDEX is a decentralized exchange. As such, trading is non-custodial. Users are responsible for their own funds, which are deposited to the DerivaDEX smart contracts on Ethereum for trading. </p>
             <p>To begin interacting with the DerivaDEX ecosystem programmatically, you generally will want to follow these steps:</p>
             <ol>
                <li>Deposit funds via Ethereum via an Ethereum client</li>
@@ -49,7 +48,9 @@
             </ol>
             <p>Additionally, you should familiarize yourself with <a href="https://eips.ethereum.org/EIPS/eip-712">EIP-712 signatures</a>, which is how you will sign <code>command</code> data prior to submission. </p>
             <h2 id="making-a-deposit">Making a deposit</h2>
+            <p>DerivaDEX is a decentralized exchange. As such, trading is non-custodial. Users are responsible for their own funds, which are deposited to the DerivaDEX smart contracts on Ethereum for trading. </p>
             <p>To deposit funds on DerivaDEX, first ensure that you have created an Ethereum account. The deposit interaction is between a user and the DerivaDEX smart contracts. To be more explicit, you will not be utilizing the WebSocket API to facilitate a deposit. The DerivaDEX Solidity smart contracts adhere to the <a href="https://medium.com/derivadex/the-diamond-standard-a-new-paradigm-for-upgradeability-569121a08954">Diamond Standard</a>. The <code>deposit</code> smart contract function you will need to use is located in the <code>Trader</code> facet, at the address of the main <code>DerivaDEX</code> proxy contract.</p>
+            <p>Note: Valid deposit collateral is curated by the smart contract and is managed by governance.</p>
             <pre class="highlight plaintext"><code>// solidity
 function deposit(
     address _collateralAddress,
@@ -88,29 +89,29 @@ function deposit(
 <span class="hljs-keyword">import</span> time
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">get_url</span>(<span class="hljs-params">self</span>) -&gt; str:</span>
-        <span class="hljs-comment"># A Web3 instance</span>
-        w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura.io/v3/&lt;your_key&gt;&quot;</span>))
-        
-        <span class="hljs-comment"># Initialize a Web3 account from a private key</span>
-        web3_account = self.w3.eth.account.from_key(<span class="hljs-string">&quot;&lt;private_key&gt;&quot;</span>)
+    <span class="hljs-comment"># A Web3 instance</span>
+    w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura.io/v3/&lt;your_api_key&gt;&quot;</span>))
+    
+    <span class="hljs-comment"># Initialize a Web3 account from a private key</span>
+    web3_account = self.w3.eth.account.from_key(<span class="hljs-string">&quot;&lt;private_key&gt;&quot;</span>)
 
-        <span class="hljs-comment"># Retrieve current UNIX time in nanoseconds to derive a unique, monotonically-increasing nonce</span>
-        nonce = time.time_ns()
+    <span class="hljs-comment"># Retrieve current UNIX time in nanoseconds to derive a unique, monotonically-increasing nonce</span>
+    nonce = time.time_ns()
 
-        <span class="hljs-comment"># keccak256(abi.encode([&#x27;bytes32&#x27;, &#x27;uint256&#x27;], [&#x27;DerivaDEX API&#x27;, nonce]))</span>
-        connect_message = w3.keccak(
-            encode_abi([<span class="hljs-string">&quot;bytes32&quot;</span>, <span class="hljs-string">&quot;uint256&quot;</span>], [<span class="hljs-string">&quot;DerivaDEX API&quot;</span>.encode(<span class="hljs-string">&quot;utf8&quot;</span>), nonce])
-        )
+    <span class="hljs-comment"># keccak256(abi.encode([&#x27;bytes32&#x27;, &#x27;uint256&#x27;], [&#x27;DerivaDEX API&#x27;, nonce]))</span>
+    connect_message = w3.keccak(
+        encode_abi([<span class="hljs-string">&quot;bytes32&quot;</span>, <span class="hljs-string">&quot;uint256&quot;</span>], [<span class="hljs-string">&quot;DerivaDEX API&quot;</span>.encode(<span class="hljs-string">&quot;utf8&quot;</span>), nonce])
+    )
 
-        <span class="hljs-comment"># Obtain signable message</span>
-        encoded_message = encode_defunct(text=connect_message.<span class="hljs-built_in">hex</span>())
+    <span class="hljs-comment"># Obtain signable message</span>
+    encoded_message = encode_defunct(text=connect_message.<span class="hljs-built_in">hex</span>())
 
-        <span class="hljs-comment"># Obtain signature</span>
-        signature = web3_account.sign_message(encoded_message)
+    <span class="hljs-comment"># Obtain signature</span>
+    signature = web3_account.sign_message(encoded_message)
 
-        <span class="hljs-comment"># Construct WS connection url with format</span>
-        <span class="hljs-keyword">return</span> <span class="hljs-string">f&quot;wss://alpha.derivadex.io/trader/v1?nonce=<span class="hljs-subst">{nonce}</span>&amp;signature=<span class="hljs-subst">{signature.signature.<span class="hljs-built_in">hex</span>()}</span>&quot;</span></code></pre>
-            <p>Addresses used to connect to the websocket API must <em>already</em> have funds deposited. If you haven&#39;t, [do that first](#Making a deposit).</p>
+    <span class="hljs-comment"># Construct WS connection url with format</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-string">f&quot;wss://alpha.derivadex.io/trader/v1?nonce=<span class="hljs-subst">{nonce}</span>&amp;signature=<span class="hljs-subst">{signature.signature.<span class="hljs-built_in">hex</span>()}</span>&quot;</span></code></pre>
+            <p>Addresses used to connect to the websocket API must <em>already</em> have funds deposited. If you haven&#39;t, <a href="#Making-a-deposit">do that first</a>.</p>
             <p>The steps to connect are:</p>
             <ol>
                <li>Generate a numeric value (<code>nonce</code>) that is greater than the last value used for this address. Typically, <a href="https://en.wikipedia.org/wiki/Unix_time">Unix time</a> (either milliseconds or nanoseconds) is used, but users may opt to maintain their own sequence counter. Requests with a nonce that are less than or equal to the previous value will be rejected.</li>
@@ -317,7 +318,7 @@ function deposit(
             <h2 id="receipts">Receipts</h2>
             <p>Each command returns a receipt, which confirms that an Operator has received the request and has sequenced it for processing. The receipt <code>type</code> will be either <code>Received</code> or <code>Error</code>.</p>
             <h3 id="received-successful-receipts">Received (successful) receipts</h3>
-            <p>A successful command returns a <code>Received</code> receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the guaranteed associated with Intel SGX TEEs.</p>
+            <p>A successful command returns a <code>Received</code> receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the security guarantees associated with Intel SGX TEEs.</p>
             <pre class="highlight json"><code>{
   <span class="hljs-attr">&quot;receipt&quot;</span>: {
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Received&quot;</span>,
