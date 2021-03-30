@@ -124,13 +124,14 @@ bytes2 eip191_header = 0x1901;</code></pre><pre class="highlight python"><code>e
                <p>Sample computation of domain struct hash</p>
             </blockquote>
             <pre class="highlight plaintext"><code>// solidity
-function compute_eip712_domain_struct_hash(string memory _name, string memory _version, uint256 _chainId) public view returns (bytes32) {
+function compute_eip712_domain_struct_hash(string memory _name, string memory _version, uint256 _chainId, address _verifyingContract) public view returns (bytes32) {
     // keccak-256 hash of the encoded schema for the domain separator
     bytes32 domainSchemaHash = keccak256(abi.encodePacked(
         &quot;EIP712Domain(&quot;,
         &quot;string name,&quot;,
         &quot;string version,&quot;,
-        &quot;uint256 chainId&quot;,
+        &quot;uint256 chainId,&quot;,
+        &quot;address verifyingContract&quot;,
         &quot;)&quot;
     ));
     
@@ -138,7 +139,8 @@ function compute_eip712_domain_struct_hash(string memory _name, string memory _v
         domainSchemaHash,
         keccak256(bytes(_name)),
         keccak256(bytes(_version)),
-        _chainId
+        _chainId,
+        uint256(_verifyingContract)
     ));
     
     return domainStructHash;
@@ -151,7 +153,8 @@ function compute_eip712_domain_struct_hash(string memory _name, string memory _v
         <span class="hljs-string">b&quot;EIP712Domain(&quot;</span>
         + <span class="hljs-string">b&quot;string name,&quot;</span>
         + <span class="hljs-string">b&quot;string version,&quot;</span>
-        + <span class="hljs-string">b&quot;uint256 chainId&quot;</span>
+        + <span class="hljs-string">b&quot;uint256 chainId,&quot;</span>
+        + <span class="hljs-string">b&quot;address verifyingContract&quot;</span>
         + <span class="hljs-string">b&quot;)&quot;</span>
     )
     
@@ -160,6 +163,7 @@ function compute_eip712_domain_struct_hash(string memory _name, string memory _v
         + keccak(<span class="hljs-string">b&quot;DerivaDEX&quot;</span>)
         + keccak(<span class="hljs-string">b&quot;1&quot;</span>)
         + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, chain_id)
+        + encode_single(<span class="hljs-string">&#x27;address&#x27;</span>, <span class="hljs-string">&quot;0x&quot;</span>)
     )</code></pre>
             <p>The <code>domain</code> is a mandatory field that allows for signature/hashing schemes on one dApp to be unique to itself from other dApps. All <code>commands</code> use the same <code>domain</code> specification. The parameters that comprise the domain are as follows:</p>
             <table>
@@ -359,14 +363,8 @@ function compute_eip712_order_struct_hash(address _makerAddress, bytes32 _symbol
     ).<span class="hljs-built_in">hex</span>()</code></pre>
             <p>To derive the final EIP-712 hash of the typed data you will sign, you will need to <code>keccak256</code> hash the <code>header</code>, <code>eip712_domain_struct_hash</code>, and <code>eip712_message_struct_hash</code> (will vary depending on which <code>command</code> specifically you are sending). You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. Example Solidity and Python reference implementations are displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.</p>
             <h2 id="making-a-deposit">Making a deposit</h2>
-            <pre class="highlight plaintext"><code>// solidity
-function deposit(
-    address _collateralAddress,
-    bytes32 _strategyId,
-    uint128 _amount
-) external;</code></pre>
             <blockquote>
-               <p>Deposit ABI</p>
+               <p>Deposit ABI (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
     <span class="hljs-attr">&quot;inputs&quot;</span>: [
@@ -391,6 +389,33 @@ function deposit(
     <span class="hljs-attr">&quot;stateMutability&quot;</span>: <span class="hljs-string">&quot;nonpayable&quot;</span>,
     <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;function&quot;</span>
 }</code></pre>
+            <blockquote>
+               <p>Smart contract deposit function (Solidity)</p>
+            </blockquote>
+            <pre class="highlight plaintext"><code>function deposit(
+    address _collateralAddress,
+    bytes32 _strategyId,
+    uint128 _amount
+) external;</code></pre>
+            <blockquote>
+               <p>Sample API URL connection generation (Python)</p>
+            </blockquote>
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> web3 <span class="hljs-keyword">import</span> Web3
+<span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single
+<span class="hljs-keyword">import</span> simplejson <span class="hljs-keyword">as</span> json
+
+<span class="hljs-comment"># A Web3 instance</span>
+w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura.io/v3/&lt;your_api_key&gt;&quot;</span>))
+
+<span class="hljs-comment"># Open up the ABI shown above saved at a file location, in this case `trader_abi.json` is the filename</span>
+<span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">&#x27;trader_abi.json&#x27;</span>) <span class="hljs-keyword">as</span> f:
+    trader_abi = json.load(f)
+    
+    <span class="hljs-comment"># Create an trader_abi contract wrapper</span>
+    trader_contract = w3.eth.contract(address=Web3.toChecksumAddress(<span class="hljs-string">&#x27;&lt;derivadex_contract_address&gt;&#x27;</span>), abi=trader_abi)
+    
+    <span class="hljs-comment"># Deposit 1000 USDC</span>
+    trader_contract.functions.deposit(<span class="hljs-string">&#x27;&lt;usdc_address&gt;&#x27;</span>, encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, <span class="hljs-string">&#x27;main&#x27;</span>.encode(<span class="hljs-string">&quot;utf8&quot;</span>)), <span class="hljs-number">1000000000</span>).transact()</code></pre>
             <p>DerivaDEX is a decentralized exchange. As such, trading is non-custodial. Users are responsible for their own funds, which are deposited to the DerivaDEX smart contracts on Ethereum for trading. </p>
             <p>To deposit funds on DerivaDEX, first ensure that you have created an Ethereum account. The deposit interaction is between a user and the DerivaDEX smart contracts. To be more explicit, you will not be utilizing the WebSocket API to facilitate a deposit. The DerivaDEX Solidity smart contracts adhere to the <a href="https://medium.com/derivadex/the-diamond-standard-a-new-paradigm-for-upgradeability-569121a08954">Diamond Standard</a>. The <code>deposit</code> smart contract function you will need to use is located in the <code>Trader</code> facet, at the address of the main <code>DerivaDEX</code> proxy contract (insert address here).</p>
             <p>Note: Valid deposit collateral is curated by the smart contract and is managed by governance.</p>
@@ -416,9 +441,10 @@ function deposit(
                   </tr>
                </tbody>
             </table>
-            <h1 id="connecting-to-the-websocket-api">Connecting to the Websocket API</h1>
+            <p>An example Python implementation is displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.</p>
+            <h2 id="connecting-to-the-websocket-api">Connecting to the Websocket API</h2>
             <blockquote>
-               <p>Sample API URL connection generation</p>
+               <p>Sample API URL connection generation (Python)</p>
             </blockquote>
             <pre class="highlight python"><code><span class="hljs-keyword">from</span> web3 <span class="hljs-keyword">import</span> Web3
 <span class="hljs-keyword">from</span> eth_account.messages <span class="hljs-keyword">import</span> encode_defunct
@@ -435,7 +461,7 @@ function deposit(
     <span class="hljs-comment"># Retrieve current UNIX time in nanoseconds to derive a unique, monotonically-increasing nonce</span>
     nonce = time.time_ns()
 
-    <span class="hljs-comment"># keccak256(abi.encode([&#x27;bytes32&#x27;, &#x27;uint256&#x27;], [&#x27;DerivaDEX API&#x27;, nonce]))</span>
+    <span class="hljs-comment"># keccak256(abi.encode([&#x27;bytes32&#x27;, &#x27;uint256&#x27;], [bytes_encoded(&#x27;DerivaDEX API&#x27;), nonce]))</span>
     connect_message = w3.keccak(
         encode_abi([<span class="hljs-string">&quot;bytes32&quot;</span>, <span class="hljs-string">&quot;uint256&quot;</span>], [<span class="hljs-string">&quot;DerivaDEX API&quot;</span>.encode(<span class="hljs-string">&quot;utf8&quot;</span>), nonce])
     )
@@ -453,7 +479,7 @@ function deposit(
             <ol>
                <li>Generate a numeric value (<code>nonce</code>) that is greater than the last value used for this address. Typically, <a href="https://en.wikipedia.org/wiki/Unix_time">Unix time</a> (either milliseconds or nanoseconds) is used, but users may opt to maintain their own sequence counter. Requests with a nonce that are less than or equal to the previous value will be rejected.</li>
                <li><code>Keccak-256</code> hash the following ABI-encoded values with the specified types:<ul>
-                     <li>&quot;DerivaDEX API&quot; (<code>bytes32</code>) </li>
+                     <li>&quot;DerivaDEX API&quot; encoded as bytes (<code>bytes32</code>) </li>
                      <li><code>nonce</code> (<code>uint256</code>)</li>
                   </ul>
                </li>
@@ -466,7 +492,7 @@ function deposit(
             <h2 id="place-order">Place order</h2>
             <p>You can place new orders by specifying specific attributes in the <code>Order</code> command&#39;s request payload. These requests are subject to a set of validations.</p>
             <blockquote>
-               <p>Request format:</p>
+               <p>Request format (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
     <span class="hljs-attr">&quot;request&quot;</span>: {
@@ -549,7 +575,7 @@ function deposit(
             <h2 id="cancel-order">Cancel order</h2>
             <p>You can cancel existing orders by specifying specific attributes in the <code>CancelOrder</code> command&#39;s request payload.</p>
             <blockquote>
-               <p>Request format:</p>
+               <p>Request format (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
   <span class="hljs-attr">&quot;request&quot;</span>: {
@@ -596,7 +622,7 @@ function deposit(
             <h2 id="withdraw">Withdraw</h2>
             <p>You can signal withdrawal intents to the Operators by specifying specific attributes in the <code>Withdraw</code> command&#39;s request payload. While you won&#39;t be able to trade with this collateral you are attempting to withdraw, you will only be able to formally initiate a smart contract withdrawal/token transfer once the epoch in which you signal your withdrawal desire has concluded. </p>
             <blockquote>
-               <p>Request format:</p>
+               <p>Request format (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
   <span class="hljs-attr">&quot;request&quot;</span>: {
@@ -656,6 +682,9 @@ function deposit(
             <p>Each command returns a receipt, which confirms that an Operator has received the request and has sequenced it for processing. The receipt <code>type</code> will be either <code>Received</code> or <code>Error</code>.</p>
             <h3 id="received-successful-receipts">Received (successful) receipts</h3>
             <p>A successful command returns a <code>Received</code> receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the security guarantees associated with Intel SGX TEEs.</p>
+            <blockquote>
+               <p>Receipt (success) format (JSON)</p>
+            </blockquote>
             <pre class="highlight json"><code>{
   <span class="hljs-attr">&quot;receipt&quot;</span>: {
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Received&quot;</span>,
@@ -694,6 +723,9 @@ function deposit(
             </table>
             <h3 id="error-failed-receipts">Error (failed) receipts</h3>
             <p>An erroneous command returns an <code>Error</code> receipt from the Operator.</p>
+            <blockquote>
+               <p>Receipt (error) format (JSON)</p>
+            </blockquote>
             <pre class="highlight json"><code>{
   <span class="hljs-attr">&quot;receipt&quot;</span>: {
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Error&quot;</span>,
@@ -726,7 +758,7 @@ function deposit(
             <p>You can subscribe to updates to their strategy with the <code>StrategyUpdate</code> event. A strategy is a cross-margined account in which you can deposit/withdraw collateral and make trades. Strategies are siloed off from one another. Any updates to the free or frozen collaterals you have (whether it&#39;s from deposits, withdrawals, or realized PNL) will be registered in this feed.</p>
             <p>Upon subscription, you will receive a <code>Partial</code> back, containing a snapshot of your strategy at that moment in time. From then on, you will receive streaming <code>Update</code> messages as appropriate. </p>
             <blockquote>
-               <p>Request</p>
+               <p>Request format (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
   <span class="hljs-attr">&quot;request&quot;</span>: {
@@ -739,7 +771,7 @@ function deposit(
   }
 }</code></pre>
             <blockquote>
-               <p>Partial response</p>
+               <p>Partial response (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;StrategyUpdate&quot;</span>,
@@ -758,7 +790,7 @@ function deposit(
     }]
 }</code></pre>
             <blockquote>
-               <p>Update response</p>
+               <p>Update response (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;StrategyUpdate&quot;</span>,
@@ -848,6 +880,9 @@ function deposit(
             </table>
             <h2 id="orders-update-account">Orders update (account)</h2>
             <p>You can subscribe to updates to your open orders with the <code>OrdersUpdate</code> event. Upon subscription, you will receive a <code>Partial</code> back, containing a snapshot of all of your open orders at that moment in time. From then on, you will receive streaming/incremental <code>Update</code> messages with any changes to these orders (due to posting new orders, canceling existing orders, or orders that have been matched in partial or in full).</p>
+            <blockquote>
+               <p>Request format (JSON)</p>
+            </blockquote>
             <pre class="highlight json"><code>{
   <span class="hljs-attr">&quot;request&quot;</span>: {
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;SubscribeAccount&quot;</span>,
@@ -859,7 +894,7 @@ function deposit(
   }
 }</code></pre>
             <blockquote>
-               <p>Partial response</p>
+               <p>Partial response (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;OrdersUpdate&quot;</span>,
@@ -880,7 +915,7 @@ function deposit(
     }]
 }</code></pre>
             <blockquote>
-               <p>Update response</p>
+               <p>Update response (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;OrdersUpdate&quot;</span>,
@@ -1012,7 +1047,7 @@ function deposit(
             <p>You can subscribe to updates to an L2-order book for any given market with the <code>OrderBookUpdate</code> event. As is typically seen, an order book is a price-time FIFO priority queue market place for you to interact with. Since this is an L2-aggregation, the response will collapse any given price level to the aggregate quantity at that level irrespective of the number of participants or the individual order details that comprise that price level.</p>
             <p>Upon subscription, you will receive a <code>Partial</code> back, containing an L2-aggregate snapshot of the order book at that moment in time. From then on, you will receive streaming/incremental <code>Update</code> messages as appropriate containing only the aggregated price levels that are different (due to the placement of new orders, order cancellation, or liquidations/matches that have taken place). Updates will come in with a reference to the side of the order book and in the form of 2-item lists with the format <code>[price, new aggregate quantity]</code>. A new aggregate quantity of <code>0</code> indicates that the price level is now gone. </p>
             <blockquote>
-               <p>Request</p>
+               <p>Request format (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
   <span class="hljs-attr">&quot;request&quot;</span>: {
@@ -1024,7 +1059,7 @@ function deposit(
   }
 }</code></pre>
             <blockquote>
-               <p>Partial response</p>
+               <p>Partial response (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;OrderBookUpdate&quot;</span>,
@@ -1041,7 +1076,7 @@ function deposit(
     }]
 }</code></pre>
             <blockquote>
-               <p>Update response</p>
+               <p>Update response (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;OrderBookUpdate&quot;</span>,
@@ -1121,7 +1156,7 @@ function deposit(
             <p>You can subscribe to updates to the mark price for any given market with the <code>MarkPriceUpdate</code> event. The mark price is an important concept on DerivaDEX as it is the price at which positions are marked when displaying unrealized PNL. Consequently, the mark price helps determine a strategy&#39;s margin fraction, thereby triggering liquidations when appropriate. The mark price is computed based on a 30s exponential moving average (often referred to as a 30s EMA) of the spread between the underlying price (a composite of several spot price feeds for the underlying asset) and the DerivaDEX order book itself. </p>
             <p>Upon subscription, you will receive a <code>Partial</code> back, containing a mark price snapshot at that moment in time. From then on, you will receive streaming/incremental <code>Update</code> messages as appropriate. </p>
             <blockquote>
-               <p>Request</p>
+               <p>Request format (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
   <span class="hljs-attr">&quot;request&quot;</span>: {
@@ -1133,7 +1168,7 @@ function deposit(
   }
 }</code></pre>
             <blockquote>
-               <p>Partial response</p>
+               <p>Partial response (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;MarkPriceUpdate&quot;</span>,
@@ -1146,7 +1181,7 @@ function deposit(
     }]
 }</code></pre>
             <blockquote>
-               <p>Update response</p>
+               <p>Update response (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;MarkPriceUpdate&quot;</span>,
@@ -1216,6 +1251,9 @@ function deposit(
             <p>Each subscription returns a receipt, which confirms that an Operator has received the subscription request. The receipt <code>type</code> will be either <code>Subscribed</code> or <code>Error</code>.</p>
             <h3 id="subscribed-successful-receipts">Subscribed (successful) receipts</h3>
             <p>A successful subscription returns a <code>Subscribed</code> receipt from the Operator.</p>
+            <blockquote>
+               <p>Receipt (success) format (JSON)</p>
+            </blockquote>
             <pre class="highlight json"><code>{
   <span class="hljs-attr">&quot;receipt&quot;</span>: {
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Subscribed&quot;</span>,
@@ -1242,6 +1280,9 @@ function deposit(
             </table>
             <h3 id="error-failed-receipts-1">Error (failed) receipts</h3>
             <p>An erroneous subscription returns an <code>Error</code> receipt from the Operator.</p>
+            <blockquote>
+               <p>Receipt (error) format (JSON)</p>
+            </blockquote>
             <pre class="highlight json"><code>{
   <span class="hljs-attr">&quot;receipt&quot;</span>: {
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Error&quot;</span>,
