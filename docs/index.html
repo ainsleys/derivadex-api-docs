@@ -36,7 +36,7 @@
          <div class=content>
             <h1 id="derivadex-api">DerivaDEX API</h1>
             <p>DerivaDEX is a decentralized derivatives exchange that combines the performance of centralized exchanges with the security of decentralized exchanges.</p>
-            <p>DerivaDEX currently offers a public WebSocket API for traders and developers. In order to use this API, you must must first make a deposit to the DerivaDEX Ethereum contracts. The API will then enable you to open and manage your positions via commands, and subscribe to market data via subscriptions. </p>
+            <p>DerivaDEX currently offers a public WebSocket API for traders and developers. In order to use this API, you must must first make a deposit to the DerivaDEX Ethereum contracts. The API will then enable you to open and manage your positions via commands, and subscribe to market data via <code>subscriptions</code>. </p>
             <p>Find us online <a href="https://discord.gg/a54BWuG">Discord</a> | <a href="https://t.me/DerivaDEX">Telegram</a> | <a href="https://medium.com/derivadex">Medium</a></p>
             <h1 id="getting-started">Getting started</h1>
             <p>To begin interacting with the DerivaDEX ecosystem programmatically, you generally will want to follow these steps:</p>
@@ -322,7 +322,7 @@ function compute_eip712_order_struct_hash(address _traderAddress, bytes32 _symbo
                   <tr>
                      <td>requestId</td>
                      <td>bytes32</td>
-                     <td>32-byte nonce (an incrementing numeric identifier) resulting in uniqueness of order</td>
+                     <td>32-byte nonce (an incrementing numeric identifier that is unique per user for all time) resulting in uniqueness of order</td>
                   </tr>
                   <tr>
                      <td>amount</td>
@@ -490,7 +490,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             <h1 id="commands">Commands</h1>
             <p>The websocket API offers commands for placing and canceling orders, as well as withdrawals. Since commands modify system state, these requests must include an <a href="https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md">EIP-712 signature</a>. Examples are included in the <a href="samples.md">sample code</a>.</p>
             <h2 id="place-order">Place order</h2>
-            <p>You can place new orders by specifying specific attributes in the <code>Order</code> command&#39;s request payload. These requests are subject to a set of validations.</p>
+            <h3 id="request">Request</h3>
             <blockquote>
                <p>Request format (JSON)</p>
             </blockquote>
@@ -511,6 +511,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         }
     }
 }</code></pre>
+            <p>You can place new orders by specifying specific attributes in the <code>Order</code> command&#39;s request payload. These requests are subject to a set of validations.</p>
             <table>
                <thead>
                   <tr>
@@ -548,7 +549,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>bytes32_s</td>
                      <td>requestId</td>
-                     <td>An incrementing numeric identifier for this request</td>
+                     <td>An incrementing numeric identifier for this request that is unique per user for all time</td>
                   </tr>
                   <tr>
                      <td>decimal</td>
@@ -572,8 +573,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
-            <p>A place order <code>command</code> returns a response receipt, which confirms that an Operator has received the request and has sequenced it for processing. The receipt <code>type</code> will be either <code>Received</code> or <code>Error</code>.</p>
-            <p>A successful <code>command</code> returns a <code>Received</code> receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the security guarantees associated with Intel SGX TEEs.</p>
+            <h3 id="response">Response</h3>
             <blockquote>
                <p>Receipt (success) format (JSON)</p>
             </blockquote>
@@ -587,6 +587,8 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     }
   }
 }</code></pre>
+            <p>A place order <code>command</code> returns a response receipt, which confirms that an Operator has received the request and has sequenced it for processing. The receipt <code>type</code> will be either <code>Received</code> or <code>Error</code>.</p>
+            <p>A successful <code>command</code> returns a <code>Received</code> receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the security guarantees associated with Intel SGX TEEs.</p>
             <table>
                <thead>
                   <tr>
@@ -613,7 +615,6 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
-            <p>An erroneous command returns an <code>Error</code> receipt from the Operator.</p>
             <blockquote>
                <p>Receipt (error) format (JSON)</p>
             </blockquote>
@@ -625,6 +626,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     }
   }
 }</code></pre>
+            <p>An erroneous command returns an <code>Error</code> receipt from the Operator.</p>
             <table>
                <thead>
                   <tr>
@@ -642,7 +644,6 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                </tbody>
             </table>
             <h2 id="cancel-order">Cancel order</h2>
-            <p>You can cancel existing orders by specifying specific attributes in the <code>CancelOrder</code> command&#39;s request payload.</p>
             <blockquote>
                <p>Request format (JSON)</p>
             </blockquote>
@@ -657,6 +658,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     }
   }
 }</code></pre>
+            <p>You can cancel existing orders by specifying specific attributes in the <code>CancelOrder</code> command&#39;s request payload.</p>
             <table>
                <thead>
                   <tr>
@@ -674,12 +676,12 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>bytes32_s</td>
                      <td>orderHash</td>
-                     <td>The hash of the order being canceled</td>
+                     <td>The hash of the order being canceled.</td>
                   </tr>
                   <tr>
                      <td>bytes32_s</td>
                      <td>requestId</td>
-                     <td>An incrementing numeric identifier for this request</td>
+                     <td>An incrementing numeric identifier for this request that is unique per user for all time</td>
                   </tr>
                   <tr>
                      <td>bytes_s</td>
@@ -688,8 +690,78 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
+            <p>As described in the <code>Signatures &amp; hashing</code> section, the <code>orderHash</code> is something that you construct client-side prior to submitting the order to the exchange. In this regard, you have the <code>orderHash</code> for each order you submit irrespective of acknowledgement from the exchange. You can determine which ones have actually been received by the exchange by filtering all the ones you have sent by using the <code>requestId</code> field in the successful/received responses from the place order <code>command</code>. As an alternate/additional reference, the <code>OrdersUpdate</code> <code>subscription</code> (see below for further information) includes the <code>orderHash</code> field for any open orders you have.</p>
+            <h3 id="response-1">Response</h3>
+            <blockquote>
+               <p>Receipt (success) format (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+  <span class="hljs-attr">&quot;receipt&quot;</span>: {
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Received&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: {
+      <span class="hljs-attr">&quot;requestId&quot;</span>: <span class="hljs-string">&quot;0x0000000000000000000000000000000000000000000000000000000000000003&quot;</span>,
+      <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-string">&quot;0x5&quot;</span>,
+      <span class="hljs-attr">&quot;enclaveSignature&quot;</span>: <span class="hljs-string">&quot;0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&quot;</span>
+    }
+  }
+}</code></pre>
+            <p>A cancel order <code>command</code> returns a response receipt, which confirms that an Operator has received the request and has sequenced it for processing. The receipt <code>type</code> will be either <code>Received</code> or <code>Error</code>.</p>
+            <p>A successful <code>command</code> returns a <code>Received</code> receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the security guarantees associated with Intel SGX TEEs.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>bytes32_s</td>
+                     <td>requestId</td>
+                     <td>The requestId supplied in the initial request - can be used to correlate requests with receipts</td>
+                  </tr>
+                  <tr>
+                     <td>??</td>
+                     <td>requestIndex</td>
+                     <td>A ticket number which guarantees fair sequencing</td>
+                  </tr>
+                  <tr>
+                     <td>bytes_s</td>
+                     <td>enclaveSignature</td>
+                     <td>An Operator&#39;s signature which proves secure handling of the request</td>
+                  </tr>
+               </tbody>
+            </table>
+            <blockquote>
+               <p>Receipt (error) format (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+  <span class="hljs-attr">&quot;receipt&quot;</span>: {
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Error&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: {
+      <span class="hljs-attr">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Nonces cannot go backwards&quot;</span>
+    }
+  }
+}</code></pre>
+            <p>An erroneous command returns an <code>Error</code> receipt from the Operator.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>string</td>
+                     <td>msg</td>
+                     <td>Error message</td>
+                  </tr>
+               </tbody>
+            </table>
             <h2 id="withdraw">Withdraw</h2>
-            <p>You can signal withdrawal intents to the Operators by specifying specific attributes in the <code>Withdraw</code> command&#39;s request payload. Withdrawal is a 2-step process: submitting a withdrawal intent, and performing a smart contract withdrawal. Once a withdrawal intent is initiated, you won&#39;t be able to trade with the collateral you are attempting to withdraw. You will only be able to formally initiate a smart contract withdrawal/token transfer once the epoch in which you signal your withdrawal desire has concluded. </p>
             <blockquote>
                <p>Request format (JSON)</p>
             </blockquote>
@@ -706,6 +778,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     }
   }
 }</code></pre>
+            <p>You can signal withdrawal intents to the Operators by specifying specific attributes in the <code>Withdraw</code> command&#39;s request payload. Withdrawal is a 2-step process: submitting a withdrawal intent, and performing a smart contract withdrawal. Once a withdrawal intent is initiated, you won&#39;t be able to trade with the collateral you are attempting to withdraw. You will only be able to formally initiate a smart contract withdrawal/token transfer once the epoch in which you signal your withdrawal desire has concluded. </p>
             <table>
                <thead>
                   <tr>
@@ -738,7 +811,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>bytes32_s</td>
                      <td>requestId</td>
-                     <td>An incrementing numeric identifier for this request.</td>
+                     <td>An incrementing numeric identifier for this request that is unique per user for all time</td>
                   </tr>
                   <tr>
                      <td>bytes_s</td>
@@ -747,13 +820,80 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
+            <h3 id="response-2">Response</h3>
+            <blockquote>
+               <p>Receipt (success) format (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+  <span class="hljs-attr">&quot;receipt&quot;</span>: {
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Received&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: {
+      <span class="hljs-attr">&quot;requestId&quot;</span>: <span class="hljs-string">&quot;0x0000000000000000000000000000000000000000000000000000000000000003&quot;</span>,
+      <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-string">&quot;0x5&quot;</span>,
+      <span class="hljs-attr">&quot;enclaveSignature&quot;</span>: <span class="hljs-string">&quot;0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&quot;</span>
+    }
+  }
+}</code></pre>
+            <p>A withdraw <code>command</code> returns a response receipt, which confirms that an Operator has received the request and has sequenced it for processing. The receipt <code>type</code> will be either <code>Received</code> or <code>Error</code>.</p>
+            <p>A successful <code>command</code> returns a <code>Received</code> receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the security guarantees associated with Intel SGX TEEs.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>bytes32_s</td>
+                     <td>requestId</td>
+                     <td>The requestId supplied in the initial request - can be used to correlate requests with receipts</td>
+                  </tr>
+                  <tr>
+                     <td>??</td>
+                     <td>requestIndex</td>
+                     <td>A ticket number which guarantees fair sequencing</td>
+                  </tr>
+                  <tr>
+                     <td>bytes_s</td>
+                     <td>enclaveSignature</td>
+                     <td>An Operator&#39;s signature which proves secure handling of the request</td>
+                  </tr>
+               </tbody>
+            </table>
+            <blockquote>
+               <p>Receipt (error) format (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+  <span class="hljs-attr">&quot;receipt&quot;</span>: {
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Error&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: {
+      <span class="hljs-attr">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Nonces cannot go backwards&quot;</span>
+    }
+  }
+}</code></pre>
+            <p>An erroneous command returns an <code>Error</code> receipt from the Operator.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>string</td>
+                     <td>msg</td>
+                     <td>Error message</td>
+                  </tr>
+               </tbody>
+            </table>
             <h1 id="subscriptions">Subscriptions</h1>
             <p>You can subscribe to two different kinds of feeds corresponding to a specific trader&#39;s account or market data with <code>SubscribeAccount</code> or <code>SubscribeMarket</code> requests, respectively.</p>
             <h2 id="account">Account</h2>
-            <p>You can subscribe to data feeds corresponding to events for a particular trader&#39;s Ethereum address. The possible account events you can subscribe to are <code>StrategyUpdate</code>, <code>OrdersUpdate</code>, and <code>PositionUpdate</code>. These will be discussed below individually. </p>
-            <h2 id="strategy-update-account">Strategy update (account)</h2>
-            <p>You can subscribe to updates to their strategy with the <code>StrategyUpdate</code> event. A strategy is a cross-margined account in which you can deposit/withdraw collateral and make trades. Strategies are siloed off from one another. Any updates to the free or frozen collaterals you have (whether it&#39;s from deposits, withdrawals, or realized PNL) will be registered in this feed.</p>
-            <p>Upon subscription, you will receive a <code>Partial</code> back, containing a snapshot of your strategy at that moment in time. From then on, you will receive streaming <code>Update</code> messages as appropriate. </p>
+            <h3 id="request-1">Request</h3>
             <blockquote>
                <p>Request format (JSON)</p>
             </blockquote>
@@ -763,10 +903,98 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     <span class="hljs-attr">&quot;c&quot;</span>: {
       <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>,
       <span class="hljs-attr">&quot;strategies&quot;</span>: [<span class="hljs-string">&quot;main&quot;</span>],
-      <span class="hljs-attr">&quot;events&quot;</span>: [<span class="hljs-string">&quot;StrategyUpdate&quot;</span>]
+      <span class="hljs-attr">&quot;events&quot;</span>: [<span class="hljs-string">&quot;StrategyUpdate&quot;</span>, <span class="hljs-string">&quot;OrdersUpdate&quot;</span>, <span class="hljs-string">&quot;PositionUpdate&quot;</span>]
     }
   }
 }</code></pre>
+            <p>You can subscribe to data feeds corresponding to events for a particular trader&#39;s Ethereum address. The possible account events you can subscribe to are <code>StrategyUpdate</code>, <code>OrdersUpdate</code>, and <code>PositionUpdate</code>.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>address_s</td>
+                     <td>trader</td>
+                     <td>Trader&#39;s Ethereum address (same as the one that facilitated the deposit)</td>
+                  </tr>
+                  <tr>
+                     <td>string[]</td>
+                     <td>strategies</td>
+                     <td>Strategies being subscribed to. Currently, the only supported strategy is <code>main</code>, but support for multiple strategies is coming soon!</td>
+                  </tr>
+                  <tr>
+                     <td>string[]</td>
+                     <td>events</td>
+                     <td>Events being subscribed to. This can be one or more of <code>StrategyUpdate</code>, <code>OrdersUpdate</code>, and <code>PositionUpdate</code></td>
+                  </tr>
+               </tbody>
+            </table>
+            <h3 id="response-3">Response</h3>
+            <blockquote>
+               <p>Receipt (success) format (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+  <span class="hljs-attr">&quot;receipt&quot;</span>: {
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Subscribed&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: {
+      <span class="hljs-attr">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Subscribed to [StrategyUpdate | OrdersUpdate | PositionUpdate] for ETHPERP&quot;</span>
+    }
+  }
+}</code></pre>
+            <p>Each <code>subscription</code> returns a receipt, which confirms that an Operator has received the <code>subscription</code> request. The receipt <code>type</code> will be either <code>Subscribed</code> or <code>Error</code>.</p>
+            <p>A successful <code>subscription</code> returns a <code>Subscribed</code> receipt from the Operator.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>string</td>
+                     <td>msg</td>
+                     <td>Success message</td>
+                  </tr>
+               </tbody>
+            </table>
+            <blockquote>
+               <p>Receipt (error) format (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+  <span class="hljs-attr">&quot;receipt&quot;</span>: {
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Error&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: {
+      <span class="hljs-attr">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Invalid subscription&quot;</span>
+    }
+  }
+}</code></pre>
+            <p>An erroneous <code>subscription</code> returns an <code>Error</code> receipt from the Operator.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>string</td>
+                     <td>msg</td>
+                     <td>Error message</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>Each of the market <code>subscription</code> events will be discussed below individually. </p>
+            <p>Each subscription event will be discussed below individually. </p>
+            <h2 id="strategy-update-account">Strategy update (account)</h2>
             <blockquote>
                <p>Partial response (JSON)</p>
             </blockquote>
@@ -806,34 +1034,9 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-03-23T20:03:45.850Z&quot;</span>
     }]
 }</code></pre>
-            <p><strong>Request parameters</strong></p>
-            <table>
-               <thead>
-                  <tr>
-                     <th>type</th>
-                     <th>field</th>
-                     <th>description</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>address_s</td>
-                     <td>trader</td>
-                     <td>Trader&#39;s Ethereum address (same as the one that facilitated the deposit)</td>
-                  </tr>
-                  <tr>
-                     <td>string[]</td>
-                     <td>strategies</td>
-                     <td>Strategies being subscribed to. Currently, the only supported strategy is <code>main</code>, but support for multiple strategies is coming soon!</td>
-                  </tr>
-                  <tr>
-                     <td>string[]</td>
-                     <td>events</td>
-                     <td>Events being subscribed to. This can be one or more of <code>OrdersUpdate</code>, <code>PositionUpdate</code>, and <code>StrategyUpdate</code></td>
-                  </tr>
-               </tbody>
-            </table>
-            <p><strong>Response parameters</strong> - an array of updates per strategy is emitted, with each update defined as follows:</p>
+            <p>You can subscribe to updates to their strategy with the <code>StrategyUpdate</code> event. A strategy is a cross-margined account in which you can deposit/withdraw collateral and make trades. Strategies are siloed off from one another. Any updates to the free or frozen collaterals you have (whether it&#39;s from deposits, withdrawals, or realized PNL) will be registered in this feed.</p>
+            <p>Upon subscription, you will receive a <code>Partial</code> back, containing a snapshot of your strategy at that moment in time. From then on, you will receive streaming <code>Update</code> messages as appropriate. </p>
+            <p>For the response, an array of updates per strategy you have subscribed to is emitted, with each update defined as follows:</p>
             <table>
                <thead>
                   <tr>
@@ -876,20 +1079,6 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                </tbody>
             </table>
             <h2 id="orders-update-account">Orders update (account)</h2>
-            <p>You can subscribe to updates to your open orders with the <code>OrdersUpdate</code> event. Upon subscription, you will receive a <code>Partial</code> back, containing a snapshot of all of your open orders at that moment in time. From then on, you will receive streaming/incremental <code>Update</code> messages with any changes to these orders (due to posting new orders, canceling existing orders, or orders that have been matched in partial or in full).</p>
-            <blockquote>
-               <p>Request format (JSON)</p>
-            </blockquote>
-            <pre class="highlight json"><code>{
-  <span class="hljs-attr">&quot;request&quot;</span>: {
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;SubscribeAccount&quot;</span>,
-    <span class="hljs-attr">&quot;c&quot;</span>: {
-      <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>,
-      <span class="hljs-attr">&quot;strategies&quot;</span>: [<span class="hljs-string">&quot;main&quot;</span>],
-      <span class="hljs-attr">&quot;events&quot;</span>: [<span class="hljs-string">&quot;OrdersUpdate&quot;</span>]
-    }
-  }
-}</code></pre>
             <blockquote>
                <p>Partial response (JSON)</p>
             </blockquote>
@@ -932,34 +1121,9 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-03-24T23:25:41.467Z&quot;</span>
     }]
 }</code></pre>
-            <p><strong>Request parameters</strong></p>
-            <table>
-               <thead>
-                  <tr>
-                     <th>type</th>
-                     <th>field</th>
-                     <th>description</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>address_s</td>
-                     <td>trader</td>
-                     <td>Trader&#39;s Ethereum address (same as the one that facilitated the deposit)</td>
-                  </tr>
-                  <tr>
-                     <td>string[]</td>
-                     <td>strategies</td>
-                     <td>Strategies being subscribed to. Currently, the only supported strategy is <code>main</code>, but support for multiple strategies is coming soon!</td>
-                  </tr>
-                  <tr>
-                     <td>string[]</td>
-                     <td>events</td>
-                     <td>Events being subscribed to. This can be one or more of <code>OrdersUpdate</code>, <code>PositionUpdate</code>, and <code>StrategyUpdate</code></td>
-                  </tr>
-               </tbody>
-            </table>
-            <p><strong>Response parameters</strong> - an array of updates per order is emitted, with each update defined as follows:</p>
+            <p>You can subscribe to updates to your open orders with the <code>OrdersUpdate</code> event. </p>
+            <p>Upon subscription, you will receive a <code>Partial</code> back, containing a snapshot of all of your open orders at that moment in time. From then on, you will receive streaming/incremental <code>Update</code> messages with any changes to these orders (due to posting new orders, canceling existing orders, or orders that have been matched in partial or in full).</p>
+            <p>For the response, an array of updates per order is emitted, with each update defined as follows:</p>
             <table>
                <thead>
                   <tr>
@@ -1002,7 +1166,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>bytes32_s</td>
                      <td>requestId</td>
-                     <td>Numeric identifier for the order</td>
+                     <td>Numeric identifier for the order. To clarify, this is NOT an identifier relating to this particular subscription/response, but rather the <code>requestId</code> field associated with this order at the time of placement.</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
@@ -1039,10 +1203,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             <h2 id="positions-update-account">Positions update (account)</h2>
             <p>TBD</p>
             <h2 id="market">Market</h2>
-            <p>You can subscribe to data feeds corresponding to events for the broader market. The possible market events you can subscribe to at this time are <code>OrderBookUpdate</code> and <code>MarkPriceUpdate</code>. These will be discussed below individually. </p>
-            <h2 id="order-book-update-market">Order book update (market)</h2>
-            <p>You can subscribe to updates to an L2-order book for any given market with the <code>OrderBookUpdate</code> event. As is typically seen, an order book is a price-time FIFO priority queue market place for you to interact with. Since this is an L2-aggregation, the response will collapse any given price level to the aggregate quantity at that level irrespective of the number of participants or the individual order details that comprise that price level.</p>
-            <p>Upon subscription, you will receive a <code>Partial</code> back, containing an L2-aggregate snapshot of the order book at that moment in time. From then on, you will receive streaming/incremental <code>Update</code> messages as appropriate containing only the aggregated price levels that are different (due to the placement of new orders, order cancellation, or liquidations/matches that have taken place). Updates will come in with a reference to the side of the order book and in the form of 2-item lists with the format <code>[price, new aggregate quantity]</code>. A new aggregate quantity of <code>0</code> indicates that the price level is now gone. </p>
+            <h3 id="request-2">Request</h3>
             <blockquote>
                <p>Request format (JSON)</p>
             </blockquote>
@@ -1051,10 +1212,92 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;SubscribeMarket&quot;</span>,
     <span class="hljs-attr">&quot;c&quot;</span>: {
       <span class="hljs-attr">&quot;symbols&quot;</span>: [<span class="hljs-string">&quot;ETHPERP&quot;</span>],
-      <span class="hljs-attr">&quot;events&quot;</span>: [<span class="hljs-string">&quot;OrderBookUpdate&quot;</span>]
+      <span class="hljs-attr">&quot;events&quot;</span>: [<span class="hljs-string">&quot;OrderBookUpdate&quot;</span>, <span class="hljs-string">&quot;MarkPriceUpdate&quot;</span>]
     }
   }
 }</code></pre>
+            <p>You can subscribe to data feeds corresponding to events for the broader market. The possible market events you can subscribe to at this time are <code>OrderBookUpdate</code> and <code>MarkPriceUpdate</code>. </p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>string[]</td>
+                     <td>symbols</td>
+                     <td>Symbols being subscribed to. Currently, the only supported symbol is <code>ETHPERP</code>, but support for more symbols is coming soon!</td>
+                  </tr>
+                  <tr>
+                     <td>string[]</td>
+                     <td>events</td>
+                     <td>Events being subscribed to. This can be one or more of <code>OrderBookUpdate</code> and <code>MarkPriceUpdate</code></td>
+                  </tr>
+               </tbody>
+            </table>
+            <h3 id="response-4">Response</h3>
+            <blockquote>
+               <p>Receipt (success) format (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+  <span class="hljs-attr">&quot;receipt&quot;</span>: {
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Subscribed&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: {
+      <span class="hljs-attr">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Subscribed to [OrderBookUpdate | MarkPriceUpdate] for ETHPERP&quot;</span>
+    }
+  }
+}</code></pre>
+            <p>Each <code>subscription</code> returns a receipt, which confirms that an Operator has received the <code>subscription</code> request. The receipt <code>type</code> will be either <code>Subscribed</code> or <code>Error</code>.</p>
+            <p>A successful <code>subscription</code> returns a <code>Subscribed</code> receipt from the Operator.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>string</td>
+                     <td>msg</td>
+                     <td>Success message</td>
+                  </tr>
+               </tbody>
+            </table>
+            <blockquote>
+               <p>Receipt (error) format (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+  <span class="hljs-attr">&quot;receipt&quot;</span>: {
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Error&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: {
+      <span class="hljs-attr">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Invalid subscription&quot;</span>
+    }
+  }
+}</code></pre>
+            <p>An erroneous <code>subscription</code> returns an <code>Error</code> receipt from the Operator.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>string</td>
+                     <td>msg</td>
+                     <td>Error message</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>Each of the market <code>subscription</code> events will be discussed below individually. </p>
+            <h2 id="order-book-update-market">Order book update (market)</h2>
             <blockquote>
                <p>Partial response (JSON)</p>
             </blockquote>
@@ -1090,29 +1333,9 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-attr">&quot;aggregationType&quot;</span>: <span class="hljs-string">&quot;0.0001&quot;</span>
     }]
 }</code></pre>
-            <p><strong>Request parameters</strong></p>
-            <table>
-               <thead>
-                  <tr>
-                     <th>type</th>
-                     <th>field</th>
-                     <th>description</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>string[]</td>
-                     <td>symbols</td>
-                     <td>Symbols being subscribed to. Currently, the only supported symbol is <code>ETHPERP</code>, but support for more symbols is coming soon!</td>
-                  </tr>
-                  <tr>
-                     <td>string[]</td>
-                     <td>events</td>
-                     <td>Events being subscribed to. This can be one or more of <code>OrderBookUpdate</code> and <code>MarkPriceUpdate</code></td>
-                  </tr>
-               </tbody>
-            </table>
-            <p><strong>Response parameters</strong> - an array of updates per order book is emitted, with each update defined as follows:</p>
+            <p>You can subscribe to updates to an L2-order book for any given market with the <code>OrderBookUpdate</code> event. As is typically seen, an order book is a price-time FIFO priority queue market place for you to interact with. Since this is an L2-aggregation, the response will collapse any given price level to the aggregate quantity at that level irrespective of the number of participants or the individual order details that comprise that price level.</p>
+            <p>Upon subscription, you will receive a <code>Partial</code> back, containing an L2-aggregate snapshot of the order book at that moment in time. From then on, you will receive streaming/incremental <code>Update</code> messages as appropriate containing only the aggregated price levels that are different (due to the placement of new orders, order cancellation, or liquidations/matches that have taken place). Updates will come in with a reference to the side of the order book and in the form of 2-item lists with the format <code>[price, new aggregate quantity]</code>. A new aggregate quantity of <code>0</code> indicates that the price level is now gone. </p>
+            <p>For the response, an array of updates per order book is emitted, with each update defined as follows:</p>
             <table>
                <thead>
                   <tr>
@@ -1149,21 +1372,14 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
+            <h3 id="maintaining-local-order-book">Maintaining local order book</h3>
+            <p>To maintain a local order book, you can use a combination of the <code>Partial</code> snapshot and <code>Update</code> streaming messages. A sample algorithm is as follows:</p>
+            <ol>
+               <li>Receive a <code>Partial</code> snapshot and use that as the starting point for the order book. Keep in mind that the response outputs the aggregated quantities at each price level for both the <code>bids</code> and <code>asks</code> sides of the order book.</li>
+               <li>For every <code>Update</code> streaming message, you will receive information for both sides of the order book regarding any price level that has changed. There will be no explicit indication if a level has been newly-formed, modified, or deleted. For any <code>[price, updated_aggregated_quantity]</code> you receive, update your local order book. If your local order book does not currently have an entry for this <code>price</code>, you know it is a new level and can set the quantity to <code>updated_aggregated_quantity</code>. If your local order book has the price level corresponding to <code>price</code>, adjust its quantity to <code>updated_aggregated_quantity</code> except in the scenario where <code>updated_aggregated_quantity</code> is <code>&quot;0&quot;</code>, in which case you can delete the level entirely.</li>
+               <li>If your connection drops or you believe you may have missed/mishandled an update, simply refetch the <code>Partial</code> as per Step 1, and proceed from there with Step 2.</li>
+            </ol>
             <h2 id="mark-price-update-market">Mark price update (market)</h2>
-            <p>You can subscribe to updates to the mark price for any given market with the <code>MarkPriceUpdate</code> event. The mark price is an important concept on DerivaDEX as it is the price at which positions are marked when displaying unrealized PNL. Consequently, the mark price helps determine a strategy&#39;s margin fraction, thereby triggering liquidations when appropriate. The mark price is computed based on a 30s exponential moving average (often referred to as a 30s EMA) of the spread between the underlying price (a composite of several spot price feeds for the underlying asset) and the DerivaDEX order book itself. </p>
-            <p>Upon subscription, you will receive a <code>Partial</code> back, containing a mark price snapshot at that moment in time. From then on, you will receive streaming/incremental <code>Update</code> messages as appropriate. </p>
-            <blockquote>
-               <p>Request format (JSON)</p>
-            </blockquote>
-            <pre class="highlight json"><code>{
-  <span class="hljs-attr">&quot;request&quot;</span>: {
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;SubscribeMarket&quot;</span>,
-    <span class="hljs-attr">&quot;c&quot;</span>: {
-      <span class="hljs-attr">&quot;symbols&quot;</span>: [<span class="hljs-string">&quot;ETHPERP&quot;</span>],
-      <span class="hljs-attr">&quot;events&quot;</span>: [<span class="hljs-string">&quot;MarkPriceUpdate&quot;</span>]
-    }
-  }
-}</code></pre>
             <blockquote>
                <p>Partial response (JSON)</p>
             </blockquote>
@@ -1190,29 +1406,9 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>
     }]
 }</code></pre>
-            <p><strong>Request parameters</strong></p>
-            <table>
-               <thead>
-                  <tr>
-                     <th>type</th>
-                     <th>field</th>
-                     <th>description</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>string[]</td>
-                     <td>symbols</td>
-                     <td>Symbols being subscribed to. Currently, the only supported symbol is <code>ETHPERP</code>, but support for more symbols is coming soon!</td>
-                  </tr>
-                  <tr>
-                     <td>string[]</td>
-                     <td>events</td>
-                     <td>Events being subscribed to. This can be one or more of <code>OrderBookUpdate</code> and <code>MarkPriceUpdate</code></td>
-                  </tr>
-               </tbody>
-            </table>
-            <p><strong>Response parameters</strong> - an array of updates per order book is emitted, with each update defined as follows:</p>
+            <p>You can subscribe to updates to the mark price for any given market with the <code>MarkPriceUpdate</code> event. The mark price is an important concept on DerivaDEX as it is the price at which positions are marked when displaying unrealized PNL. Consequently, the mark price helps determine a strategy&#39;s margin fraction, thereby triggering liquidations when appropriate. The mark price is computed based on a 30s exponential moving average (often referred to as a 30s EMA) of the spread between the underlying price (a composite of several spot price feeds for the underlying asset) and the DerivaDEX order book itself. </p>
+            <p>Upon subscription, you will receive a <code>Partial</code> back, containing a mark price snapshot at that moment in time. From then on, you will receive streaming/incremental <code>Update</code> messages as appropriate. </p>
+            <p>For the response, an array of updates per symbol is emitted, with each update defined as follows:</p>
             <table>
                <thead>
                   <tr>
@@ -1241,66 +1437,6 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                      <td>string</td>
                      <td>symbol</td>
                      <td>Market subscribed to</td>
-                  </tr>
-               </tbody>
-            </table>
-            <h2 id="receipts">Receipts</h2>
-            <p>Each subscription returns a receipt, which confirms that an Operator has received the subscription request. The receipt <code>type</code> will be either <code>Subscribed</code> or <code>Error</code>.</p>
-            <h3 id="subscribed-successful-receipts">Subscribed (successful) receipts</h3>
-            <p>A successful subscription returns a <code>Subscribed</code> receipt from the Operator.</p>
-            <blockquote>
-               <p>Receipt (success) format (JSON)</p>
-            </blockquote>
-            <pre class="highlight json"><code>{
-  <span class="hljs-attr">&quot;receipt&quot;</span>: {
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Subscribed&quot;</span>,
-    <span class="hljs-attr">&quot;c&quot;</span>: {
-      <span class="hljs-attr">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Subscribed to OrderBookUpdate for ETHPERP&quot;</span>
-    }
-  }
-}</code></pre>
-            <table>
-               <thead>
-                  <tr>
-                     <th>type</th>
-                     <th>field</th>
-                     <th>description</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>string</td>
-                     <td>msg</td>
-                     <td>Success message</td>
-                  </tr>
-               </tbody>
-            </table>
-            <h3 id="error-failed-receipts">Error (failed) receipts</h3>
-            <p>An erroneous subscription returns an <code>Error</code> receipt from the Operator.</p>
-            <blockquote>
-               <p>Receipt (error) format (JSON)</p>
-            </blockquote>
-            <pre class="highlight json"><code>{
-  <span class="hljs-attr">&quot;receipt&quot;</span>: {
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Error&quot;</span>,
-    <span class="hljs-attr">&quot;c&quot;</span>: {
-      <span class="hljs-attr">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Invalid subscription&quot;</span>
-    }
-  }
-}</code></pre>
-            <table>
-               <thead>
-                  <tr>
-                     <th>type</th>
-                     <th>field</th>
-                     <th>description</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>string</td>
-                     <td>msg</td>
-                     <td>Error message</td>
                   </tr>
                </tbody>
             </table>
