@@ -200,17 +200,17 @@ function compute_eip712_domain_struct_hash(string memory _name, string memory _v
                <p>Sample computation of order struct hash</p>
             </blockquote>
             <pre class="highlight plaintext"><code>// solidity
-function compute_eip712_order_struct_hash(address _makerAddress, bytes32 _symbol, bytes32 _strategy, uint256 _side, uint256 _orderType, bytes32 _requestId, uint256 _amount, uint256 _price, uint256 _stopPrice) public view returns (bytes32) {
+function compute_eip712_order_struct_hash(address _traderAddress, bytes32 _symbol, bytes32 _strategy, uint256 _side, uint256 _orderType, bytes32 _requestId, uint256 _amount, uint256 _price, uint256 _stopPrice) public view returns (bytes32) {
     // keccak-256 hash of the encoded schema for the order params struct
     bytes32 orderSchemaHash = keccak256(abi.encodePacked(
         &quot;OrderParams(&quot;,
-        &quot;address makerAddress,&quot;,
+        &quot;address traderAddress,&quot;,
         &quot;bytes32 symbol,&quot;,
         &quot;bytes32 strategy,&quot;,
         &quot;uint256 side,&quot;,
         &quot;uint256 orderType,&quot;,
-        &quot;bytes32 clientId,&quot;,
-        &quot;uint256 assetAmount,&quot;,
+        &quot;bytes32 requestId,&quot;,
+        &quot;uint256 amount,&quot;,
         &quot;uint256 price,&quot;,
         &quot;uint256 stopPrice&quot;,
         &quot;)&quot;
@@ -218,7 +218,7 @@ function compute_eip712_order_struct_hash(address _makerAddress, bytes32 _symbol
     
     bytes32 orderStructHash = keccak256(abi.encodePacked(
         orderSchemaHash,
-        uint256(_makerAddress),
+        uint256(_traderAddress),
         _symbol,
         _strategy,
         _side,
@@ -234,17 +234,17 @@ function compute_eip712_order_struct_hash(address _makerAddress, bytes32 _symbol
 <span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
 <span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
 
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">compute_eip712_order_struct_hash</span>(<span class="hljs-params">maker_address: <span class="hljs-built_in">str</span>, symbol: <span class="hljs-built_in">str</span>, strategy: <span class="hljs-built_in">str</span>, side: <span class="hljs-built_in">str</span>, order_type: <span class="hljs-built_in">str</span>, client_id: <span class="hljs-built_in">str</span>, amount: Decimal, price: Decimal, stop_price: Decimal</span>) -&gt; bytes:</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">compute_eip712_order_struct_hash</span>(<span class="hljs-params">trader_address: <span class="hljs-built_in">str</span>, symbol: <span class="hljs-built_in">str</span>, strategy: <span class="hljs-built_in">str</span>, side: <span class="hljs-built_in">str</span>, order_type: <span class="hljs-built_in">str</span>, request_id: <span class="hljs-built_in">str</span>, amount: Decimal, price: Decimal, stop_price: Decimal</span>) -&gt; bytes:</span>
     <span class="hljs-comment"># keccak-256 hash of the encoded schema for the place order command</span>
     eip712_order_params_schema_hash = keccak(
         <span class="hljs-string">b&quot;OrderParams(&quot;</span>
-        + <span class="hljs-string">b&quot;address makerAddress,&quot;</span>
+        + <span class="hljs-string">b&quot;address traderAddress,&quot;</span>
         + <span class="hljs-string">b&quot;bytes32 symbol,&quot;</span>
         + <span class="hljs-string">b&quot;bytes32 strategy,&quot;</span>
         + <span class="hljs-string">b&quot;uint256 side,&quot;</span>
         + <span class="hljs-string">b&quot;uint256 orderType,&quot;</span>
-        + <span class="hljs-string">b&quot;bytes32 clientId,&quot;</span>
-        + <span class="hljs-string">b&quot;uint256 assetAmount,&quot;</span>
+        + <span class="hljs-string">b&quot;bytes32 requestId,&quot;</span>
+        + <span class="hljs-string">b&quot;uint256 amount,&quot;</span>
         + <span class="hljs-string">b&quot;uint256 price,&quot;</span>
         + <span class="hljs-string">b&quot;uint256 stopPrice&quot;</span>
         + <span class="hljs-string">b&quot;)&quot;</span>
@@ -274,7 +274,7 @@ function compute_eip712_order_struct_hash(address _makerAddress, bytes32 _symbol
 
     <span class="hljs-keyword">return</span> keccak(
         eip712_order_params_schema_hash
-        + encode_single(<span class="hljs-string">&#x27;address&#x27;</span>, maker_address)
+        + encode_single(<span class="hljs-string">&#x27;address&#x27;</span>, trader_address)
         + encode_single(<span class="hljs-string">&#x27;bytes32&#x27;</span>, symbol.encode(<span class="hljs-string">&#x27;utf8&#x27;</span>))
         + encode_single(<span class="hljs-string">&#x27;bytes32&#x27;</span>, strategy.encode(<span class="hljs-string">&#x27;utf8&#x27;</span>))
         + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, order_side_to_int(side))
@@ -295,7 +295,7 @@ function compute_eip712_order_struct_hash(address _makerAddress, bytes32 _symbol
                </thead>
                <tbody>
                   <tr>
-                     <td>makerAddress</td>
+                     <td>traderAddress</td>
                      <td>address</td>
                      <td>Trader&#39;s ETH address used to sign order intent</td>
                   </tr>
@@ -307,7 +307,7 @@ function compute_eip712_order_struct_hash(address _makerAddress, bytes32 _symbol
                   <tr>
                      <td>strategy</td>
                      <td>bytes32</td>
-                     <td>32-byte encoding of the strategy this order belongs to. The <code>strategy</code> of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly.</td>
+                     <td>32-byte encoding of the strategy this order belongs to. The <code>strategy</code> of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly. The <code>strategy</code> refers to the cross-margined bucket this trade belongs to. Currently, there is only the default <code>main</code> strategy, but support for multiple strategies is coming soon!</td>
                   </tr>
                   <tr>
                      <td>side</td>
@@ -320,19 +320,19 @@ function compute_eip712_order_struct_hash(address _makerAddress, bytes32 _symbol
                      <td>An integer value either <code>0</code> (Limit) or <code>1</code> (Market)</td>
                   </tr>
                   <tr>
-                     <td>clientId</td>
+                     <td>requestId</td>
                      <td>bytes32</td>
-                     <td>32-byte nonce resulting in uniqueness</td>
+                     <td>32-byte nonce (an incrementing numeric identifier) resulting in uniqueness of order</td>
                   </tr>
                   <tr>
-                     <td>assetAmount</td>
+                     <td>amount</td>
                      <td>uint256</td>
-                     <td>Order amount (scaled up by 18 decimals). The <code>amount</code> of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.</td>
+                     <td>Order amount (scaled up by 18 decimals; e.g. 2.5 =&gt; 2500000000000000000). The <code>amount</code> of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.</td>
                   </tr>
                   <tr>
                      <td>price</td>
                      <td>uint256</td>
-                     <td>Order price (scaled up by 18 decimals). The <code>price</code> of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.</td>
+                     <td>Order price (scaled up by 18 decimals; e.g. 2001.37 =&gt; 2001370000000000000000). The <code>price</code> of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.</td>
                   </tr>
                   <tr>
                      <td>stopPrice</td>
@@ -433,7 +433,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                   <tr>
                      <td>_strategyId</td>
-                     <td>Strategy ID (encoded as a 32-byte value) being funded</td>
+                     <td>Strategy ID (encoded as a 32-byte value) being funded. The <code>strategy</code> refers to the cross-margined bucket this trade belongs to. Currently, there is only the default <code>main</code> strategy, but support for multiple strategies is coming soon!</td>
                   </tr>
                   <tr>
                      <td>_amount</td>
@@ -498,7 +498,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     <span class="hljs-attr">&quot;request&quot;</span>: {
         <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Order&quot;</span>,
         <span class="hljs-attr">&quot;c&quot;</span>: {
-            <span class="hljs-attr">&quot;makerAddress&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>,
+            <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>,
             <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
             <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
             <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Bid&quot;</span>,
@@ -522,7 +522,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                <tbody>
                   <tr>
                      <td>address_s</td>
-                     <td>makerAddress</td>
+                     <td>traderAddress</td>
                      <td>Trader&#39;s Ethereum address (same as the one that facilitated the deposit)</td>
                   </tr>
                   <tr>
@@ -569,6 +569,75 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                      <td>bytes_s</td>
                      <td>signature</td>
                      <td>EIP-712 signature of the order placement intent</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>A place order <code>command</code> returns a response receipt, which confirms that an Operator has received the request and has sequenced it for processing. The receipt <code>type</code> will be either <code>Received</code> or <code>Error</code>.</p>
+            <p>A successful <code>command</code> returns a <code>Received</code> receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the security guarantees associated with Intel SGX TEEs.</p>
+            <blockquote>
+               <p>Receipt (success) format (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+  <span class="hljs-attr">&quot;receipt&quot;</span>: {
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Received&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: {
+      <span class="hljs-attr">&quot;requestId&quot;</span>: <span class="hljs-string">&quot;0x0000000000000000000000000000000000000000000000000000000000000003&quot;</span>,
+      <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-string">&quot;0x5&quot;</span>,
+      <span class="hljs-attr">&quot;enclaveSignature&quot;</span>: <span class="hljs-string">&quot;0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&quot;</span>
+    }
+  }
+}</code></pre>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>bytes32_s</td>
+                     <td>requestId</td>
+                     <td>The requestId supplied in the initial request - can be used to correlate requests with receipts</td>
+                  </tr>
+                  <tr>
+                     <td>??</td>
+                     <td>requestIndex</td>
+                     <td>A ticket number which guarantees fair sequencing</td>
+                  </tr>
+                  <tr>
+                     <td>bytes_s</td>
+                     <td>enclaveSignature</td>
+                     <td>An Operator&#39;s signature which proves secure handling of the request</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>An erroneous command returns an <code>Error</code> receipt from the Operator.</p>
+            <blockquote>
+               <p>Receipt (error) format (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+  <span class="hljs-attr">&quot;receipt&quot;</span>: {
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Error&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: {
+      <span class="hljs-attr">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Nonces cannot go backwards&quot;</span>
+    }
+  }
+}</code></pre>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>string</td>
+                     <td>msg</td>
+                     <td>Error message</td>
                   </tr>
                </tbody>
             </table>
@@ -620,7 +689,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                </tbody>
             </table>
             <h2 id="withdraw">Withdraw</h2>
-            <p>You can signal withdrawal intents to the Operators by specifying specific attributes in the <code>Withdraw</code> command&#39;s request payload. While you won&#39;t be able to trade with this collateral you are attempting to withdraw, you will only be able to formally initiate a smart contract withdrawal/token transfer once the epoch in which you signal your withdrawal desire has concluded. </p>
+            <p>You can signal withdrawal intents to the Operators by specifying specific attributes in the <code>Withdraw</code> command&#39;s request payload. Withdrawal is a 2-step process: submitting a withdrawal intent, and performing a smart contract withdrawal. Once a withdrawal intent is initiated, you won&#39;t be able to trade with the collateral you are attempting to withdraw. You will only be able to formally initiate a smart contract withdrawal/token transfer once the epoch in which you signal your withdrawal desire has concluded. </p>
             <blockquote>
                <p>Request format (JSON)</p>
             </blockquote>
@@ -675,78 +744,6 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                      <td>bytes_s</td>
                      <td>signature</td>
                      <td>EIP-712 signature</td>
-                  </tr>
-               </tbody>
-            </table>
-            <h2 id="receipts">Receipts</h2>
-            <p>Each command returns a receipt, which confirms that an Operator has received the request and has sequenced it for processing. The receipt <code>type</code> will be either <code>Received</code> or <code>Error</code>.</p>
-            <h3 id="received-successful-receipts">Received (successful) receipts</h3>
-            <p>A successful command returns a <code>Received</code> receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the security guarantees associated with Intel SGX TEEs.</p>
-            <blockquote>
-               <p>Receipt (success) format (JSON)</p>
-            </blockquote>
-            <pre class="highlight json"><code>{
-  <span class="hljs-attr">&quot;receipt&quot;</span>: {
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Received&quot;</span>,
-    <span class="hljs-attr">&quot;c&quot;</span>: {
-      <span class="hljs-attr">&quot;requestId&quot;</span>: <span class="hljs-string">&quot;0x0000000000000000000000000000000000000000000000000000000000000003&quot;</span>,
-      <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-string">&quot;0x5&quot;</span>,
-      <span class="hljs-attr">&quot;enclaveSignature&quot;</span>: <span class="hljs-string">&quot;0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&quot;</span>
-    }
-  }
-}</code></pre>
-            <table>
-               <thead>
-                  <tr>
-                     <th>type</th>
-                     <th>field</th>
-                     <th>description</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>bytes32_s</td>
-                     <td>requestId</td>
-                     <td>The requestId supplied in the initial request - can be used to correlate requests with receipts</td>
-                  </tr>
-                  <tr>
-                     <td>??</td>
-                     <td>requestIndex</td>
-                     <td>A ticket number which guarantees fair sequencing</td>
-                  </tr>
-                  <tr>
-                     <td>bytes_s</td>
-                     <td>enclaveSignature</td>
-                     <td>An Operator&#39;s signature which proves secure handling of the request</td>
-                  </tr>
-               </tbody>
-            </table>
-            <h3 id="error-failed-receipts">Error (failed) receipts</h3>
-            <p>An erroneous command returns an <code>Error</code> receipt from the Operator.</p>
-            <blockquote>
-               <p>Receipt (error) format (JSON)</p>
-            </blockquote>
-            <pre class="highlight json"><code>{
-  <span class="hljs-attr">&quot;receipt&quot;</span>: {
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Error&quot;</span>,
-    <span class="hljs-attr">&quot;c&quot;</span>: {
-      <span class="hljs-attr">&quot;msg&quot;</span>: <span class="hljs-string">&quot;Nonces cannot go backwards&quot;</span>
-    }
-  }
-}</code></pre>
-            <table>
-               <thead>
-                  <tr>
-                     <th>type</th>
-                     <th>field</th>
-                     <th>description</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>string</td>
-                     <td>msg</td>
-                     <td>Error message</td>
                   </tr>
                </tbody>
             </table>
@@ -901,7 +898,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Partial&quot;</span>,
     <span class="hljs-attr">&quot;c&quot;</span>: [{
         <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x946e4bedf2dd87e5380f32a18d1af19adb4d7ecec3a8a346cb641adc5201e53e&quot;</span>,
-        <span class="hljs-attr">&quot;makerAddress&quot;</span>: <span class="hljs-string">&quot;0xe36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
+        <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0xe36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
         <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
         <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
         <span class="hljs-attr">&quot;orderType&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
@@ -922,7 +919,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Update&quot;</span>,
     <span class="hljs-attr">&quot;c&quot;</span>: [{
         <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x946e4bedf2dd87e5380f32a18d1af19adb4d7ecec3a8a346cb641adc5201e53e&quot;</span>,
-        <span class="hljs-attr">&quot;makerAddress&quot;</span>: <span class="hljs-string">&quot;0xe36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
+        <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0xe36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
         <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
         <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
         <span class="hljs-attr">&quot;orderType&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
@@ -979,7 +976,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                   <tr>
                      <td>address_s</td>
-                     <td>makerAddress</td>
+                     <td>traderAddress</td>
                      <td>Trader&#39;s Ethereum address associated with this order</td>
                   </tr>
                   <tr>
@@ -1247,7 +1244,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
-            <h2 id="receipts-1">Receipts</h2>
+            <h2 id="receipts">Receipts</h2>
             <p>Each subscription returns a receipt, which confirms that an Operator has received the subscription request. The receipt <code>type</code> will be either <code>Subscribed</code> or <code>Error</code>.</p>
             <h3 id="subscribed-successful-receipts">Subscribed (successful) receipts</h3>
             <p>A successful subscription returns a <code>Subscribed</code> receipt from the Operator.</p>
@@ -1278,7 +1275,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
-            <h3 id="error-failed-receipts-1">Error (failed) receipts</h3>
+            <h3 id="error-failed-receipts">Error (failed) receipts</h3>
             <p>An erroneous subscription returns an <code>Error</code> receipt from the Operator.</p>
             <blockquote>
                <p>Receipt (error) format (JSON)</p>

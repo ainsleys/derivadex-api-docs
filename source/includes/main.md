@@ -3,7 +3,7 @@
 
 DerivaDEX is a decentralized derivatives exchange that combines the performance of centralized exchanges with the security of decentralized exchanges.
 
-DerivaDEX currently offers a public WebSocket API for traders and developers. In order to use this API, you must must first make a deposit to the DerivaDEX Ethereum contracts. The API will then enable you to open and manage your positions via commands, and subscribe to market data via subscriptions. 
+DerivaDEX currently offers a public WebSocket API for traders and developers. In order to use this API, you must must first make a deposit to the DerivaDEX Ethereum contracts. The API will then enable you to open and manage your positions via commands, and subscribe to market data via `subscriptions`. 
 
 Find us online [Discord](https://discord.gg/a54BWuG) | [Telegram](https://t.me/DerivaDEX) | [Medium](https://medium.com/derivadex)
 
@@ -147,8 +147,8 @@ function compute_eip712_order_struct_hash(address _traderAddress, bytes32 _symbo
         "bytes32 strategy,",
         "uint256 side,",
         "uint256 orderType,",
-        "bytes32 clientId,",
-        "uint256 assetAmount,",
+        "bytes32 requestId,",
+        "uint256 amount,",
         "uint256 price,",
         "uint256 stopPrice",
         ")"
@@ -176,7 +176,7 @@ from eth_abi import encode_single
 from eth_utils.crypto import keccak
 from decimal import Decimal, ROUND_DOWN
 
-def compute_eip712_order_struct_hash(maker_address: str, symbol: str, strategy: str, side: str, order_type: str, client_id: str, amount: Decimal, price: Decimal, stop_price: Decimal) -> bytes:
+def compute_eip712_order_struct_hash(trader_address: str, symbol: str, strategy: str, side: str, order_type: str, request_id: str, amount: Decimal, price: Decimal, stop_price: Decimal) -> bytes:
     # keccak-256 hash of the encoded schema for the place order command
     eip712_order_params_schema_hash = keccak(
         b"OrderParams("
@@ -185,8 +185,8 @@ def compute_eip712_order_struct_hash(maker_address: str, symbol: str, strategy: 
         + b"bytes32 strategy,"
         + b"uint256 side,"
         + b"uint256 orderType,"
-        + b"bytes32 clientId,"
-        + b"uint256 assetAmount,"
+        + b"bytes32 requestId,"
+        + b"uint256 amount,"
         + b"uint256 price,"
         + b"uint256 stopPrice"
         + b")"
@@ -216,7 +216,7 @@ def compute_eip712_order_struct_hash(maker_address: str, symbol: str, strategy: 
 
     return keccak(
         eip712_order_params_schema_hash
-        + encode_single('address', maker_address)
+        + encode_single('address', trader_address)
         + encode_single('bytes32', symbol.encode('utf8'))
         + encode_single('bytes32', strategy.encode('utf8'))
         + encode_single('uint256', order_side_to_int(side))
@@ -234,12 +234,12 @@ type | field | description
 -----|----- | ---------------------
 traderAddress  | address | Trader's ETH address used to sign order intent
 symbol  | bytes32 | 32-byte encoding of the symbol this order is for. The `symbol` of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly.
-strategy | bytes32 | 32-byte encoding of the strategy this order belongs to. The `strategy` of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly.
+strategy | bytes32 | 32-byte encoding of the strategy this order belongs to. The `strategy` of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly. The `strategy` refers to the cross-margined bucket this trade belongs to. Currently, there is only the default `main` strategy, but support for multiple strategies is coming soon!
 side | uint256 | An integer value either `0` (Bid) or `1` (Ask)
 orderType | uint256 | An integer value either `0` (Limit) or `1` (Market)
-clientId | bytes32 | 32-byte nonce resulting in uniqueness
-assetAmount | uint256 | Order amount (scaled up by 18 decimals). The `amount` of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.
-price | uint256 | Order price (scaled up by 18 decimals). The `price` of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.
+requestId | bytes32 | 32-byte nonce (an incrementing numeric identifier that is unique per user for all time) resulting in uniqueness of order
+amount | uint256 | Order amount (scaled up by 18 decimals; e.g. 2.5 => 2500000000000000000). The `amount` of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.
+price | uint256 | Order price (scaled up by 18 decimals; e.g. 2001.37 => 2001370000000000000000). The `price` of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.
 stopPrice | uint256 | Stop price (scaled up by 18 decimals). The `stopPrice` of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.
 
 **Take special note of the transformations done on several fields as described in the table above. In other words, the order intent you submit to the API will have different representations for some fields than the order intent you hash.** You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. Example Solidity and Python reference implementations are displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.
@@ -340,7 +340,7 @@ Note: Valid deposit collateral is curated by the smart contract and is managed b
 field | description 
 ------ | -----------
 _collateralAddress | ERC-20 token address deposited as collateral
-_strategyId | Strategy ID (encoded as a 32-byte value) being funded 
+_strategyId | Strategy ID (encoded as a 32-byte value) being funded. The `strategy` refers to the cross-margined bucket this trade belongs to. Currently, there is only the default `main` strategy, but support for multiple strategies is coming soon!
 _amount | Amount deposited (be sure to use the grains format specific of the collateral token you are using (e.g. if you wanted to deposit 1 USDC, you would enter 1000000 since the USDC token contract has 6 decimal places)
 
 An example Python implementation is displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.
@@ -398,8 +398,7 @@ The websocket API offers commands for placing and canceling orders, as well as w
 
 ## Place order
 
-You can place new orders by specifying specific attributes in the `Order` command's request payload. These requests are subject to a set of validations. Orders should specify the name of the cross-margined strategy this trade belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
-
+### Request
 > Request format (JSON)
 ```json
 {
@@ -421,6 +420,8 @@ You can place new orders by specifying specific attributes in the `Order` comman
 }
 ```
 
+You can place new orders by specifying specific attributes in the `Order` command's request payload. These requests are subject to a set of validations.
+
 type | field | description 
 ------ | ---- | -------
 address_s | traderAddress | Trader's Ethereum address (same as the one that facilitated the deposit)
@@ -428,17 +429,57 @@ string  | symbol | Name of the market to trade. Currently, this is limited to 'E
 string | strategy | Name of the cross-margined strategy this trade belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
 string | side | Side of trade, either `Bid` (buy/long) or an `Ask` (sell/short)
 string | orderType | Order type, either `Limit` or `Market`. Other order types coming soon!
-bytes32_s | requestId | An incrementing numeric identifier for this request
+bytes32_s | requestId | An incrementing numeric identifier for this request that is unique per user for all time
 decimal | amount | The order amount/size requested
 decimal | price | The order price
 decimal | stopPrice | Currently, always 0 as stops are not implemented.
 bytes_s | signature | EIP-712 signature of the order placement intent
 
 
+### Response
+> Receipt (success) format (JSON)
+```json
+{
+  "receipt": {
+    "t": "Received",
+    "c": {
+      "requestId": "0x0000000000000000000000000000000000000000000000000000000000000003",
+      "requestIndex": "0x5",
+      "enclaveSignature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    }
+  }
+}
+```
+
+A place order `command` returns a response receipt, which confirms that an Operator has received the request and has sequenced it for processing. The receipt `type` will be either `Received` or `Error`.
+ 
+A successful `command` returns a `Received` receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the security guarantees associated with Intel SGX TEEs.
+
+type | field | description
+------ | ---- | -----------
+bytes32_s | requestId | The requestId supplied in the initial request - can be used to correlate requests with receipts
+?? | requestIndex | A ticket number which guarantees fair sequencing
+bytes_s | enclaveSignature | An Operator's signature which proves secure handling of the request 
+
+> Receipt (error) format (JSON)
+```json
+{
+  "receipt": {
+    "t": "Error",
+    "c": {
+      "msg": "Nonces cannot go backwards"
+    }
+  }
+}
+```
+An erroneous command returns an `Error` receipt from the Operator.
+
+type | field | description
+------ | ---- | -----------
+string | msg | Error message
+
+
 ## Cancel order
-
-You can cancel existing orders by specifying specific attributes in the `CancelOrder` command's request payload.
-
 > Request format (JSON)
 ```json
 {
@@ -454,18 +495,61 @@ You can cancel existing orders by specifying specific attributes in the `CancelO
 }
 ```
 
+You can cancel existing orders by specifying specific attributes in the `CancelOrder` command's request payload.
+
 type | field | description
 -----|---- | -----------------------
 string | symbol | Currently always 'ETHPERP'. New symbols coming soon! 
-bytes32_s | orderHash| The hash of the order being canceled
-bytes32_s | requestId | An incrementing numeric identifier for this request
+bytes32_s | orderHash| The hash of the order being canceled.
+bytes32_s | requestId | An incrementing numeric identifier for this request that is unique per user for all time
 bytes_s | signature | EIP-712 signature
+
+As described in the `Signatures & hashing` section, the `orderHash` is something that you construct client-side prior to submitting the order to the exchange. In this regard, you have the `orderHash` for each order you submit irrespective of acknowledgement from the exchange. You can determine which ones have actually been received by the exchange by filtering all the ones you have sent by using the `requestId` field in the successful/received responses from the place order `command`. As an alternate/additional reference, the `OrdersUpdate` `subscription` (see below for further information) includes the `orderHash` field for any open orders you have.
+
+### Response
+> Receipt (success) format (JSON)
+```json
+{
+  "receipt": {
+    "t": "Received",
+    "c": {
+      "requestId": "0x0000000000000000000000000000000000000000000000000000000000000003",
+      "requestIndex": "0x5",
+      "enclaveSignature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    }
+  }
+}
+```
+
+A cancel order `command` returns a response receipt, which confirms that an Operator has received the request and has sequenced it for processing. The receipt `type` will be either `Received` or `Error`.
+ 
+A successful `command` returns a `Received` receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the security guarantees associated with Intel SGX TEEs.
+
+type | field | description
+------ | ---- | -----------
+bytes32_s | requestId | The requestId supplied in the initial request - can be used to correlate requests with receipts
+?? | requestIndex | A ticket number which guarantees fair sequencing
+bytes_s | enclaveSignature | An Operator's signature which proves secure handling of the request 
+
+> Receipt (error) format (JSON)
+```json
+{
+  "receipt": {
+    "t": "Error",
+    "c": {
+      "msg": "Nonces cannot go backwards"
+    }
+  }
+}
+```
+An erroneous command returns an `Error` receipt from the Operator.
+
+type | field | description
+------ | ---- | -----------
+string | msg | Error message
 
 
 ## Withdraw
-
-You can signal withdrawal intents to the Operators by specifying specific attributes in the `Withdraw` command's request payload. Withdrawal is a 2-step process: submitting a withdrawal intent, and performing a smart contract withdrawal. Once a withdrawal intent is initiated, you won't be able to trade with the collateral you are attempting to withdraw. You will only be able to formally initiate a smart contract withdrawal/token transfer once the epoch in which you signal your withdrawal desire has concluded. 
-
 > Request format (JSON)
 ```json
 {
@@ -483,24 +567,18 @@ You can signal withdrawal intents to the Operators by specifying specific attrib
 }
 ```
 
+You can signal withdrawal intents to the Operators by specifying specific attributes in the `Withdraw` command's request payload. Withdrawal is a 2-step process: submitting a withdrawal intent, and performing a smart contract withdrawal. Once a withdrawal intent is initiated, you won't be able to trade with the collateral you are attempting to withdraw. You will only be able to formally initiate a smart contract withdrawal/token transfer once the epoch in which you signal your withdrawal desire has concluded. 
+
 type | field | description
 ---- | --- | -----------------
 address_s | traderAddress | Trader's Ethereum address (same as the one that facilitated the deposit)
 string | strategyId | Name of the cross-margined strategy this withdrawal belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
 address_s | currency | ERC-20 token address being withdrawn
 decimal | amount | Amount withdrawn (be sure to use the grains format specific to the collateral token being used (e.g. if you wanted to withdraw 1 USDC, you would enter 1000000 since the USDC token contract has 6 decimal places)
-bytes32_s | requestId | An incrementing numeric identifier for this request.
+bytes32_s | requestId | An incrementing numeric identifier for this request that is unique per user for all time
 bytes_s | signature | EIP-712 signature
 
-
-## Receipts
-
-Each command returns a receipt, which confirms that an Operator has received the request and has sequenced it for processing. The receipt `type` will be either `Received` or `Error`.
-
-### Received (successful) receipts
-
-A successful command returns a `Received` receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the security guarantees associated with Intel SGX TEEs.
-
+### Response
 > Receipt (success) format (JSON)
 ```json
 {
@@ -515,15 +593,15 @@ A successful command returns a `Received` receipt from the Operator. DerivaDEX O
 }
 ```
 
+A withdraw `command` returns a response receipt, which confirms that an Operator has received the request and has sequenced it for processing. The receipt `type` will be either `Received` or `Error`.
+ 
+A successful `command` returns a `Received` receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the security guarantees associated with Intel SGX TEEs.
+
 type | field | description
 ------ | ---- | -----------
 bytes32_s | requestId | The requestId supplied in the initial request - can be used to correlate requests with receipts
 ?? | requestIndex | A ticket number which guarantees fair sequencing
 bytes_s | enclaveSignature | An Operator's signature which proves secure handling of the request 
-
-### Error (failed) receipts
-
-An erroneous command returns an `Error` receipt from the Operator.
 
 > Receipt (error) format (JSON)
 ```json
@@ -536,11 +614,11 @@ An erroneous command returns an `Error` receipt from the Operator.
   }
 }
 ```
+An erroneous command returns an `Error` receipt from the Operator.
 
 type | field | description
 ------ | ---- | -----------
 string | msg | Error message
-
 
 # Subscriptions
 
@@ -548,14 +626,7 @@ You can subscribe to two different kinds of feeds corresponding to a specific tr
 
 ## Account
 
-You can subscribe to data feeds corresponding to events for a particular trader's Ethereum address. The possible account events you can subscribe to are `StrategyUpdate`, `OrdersUpdate`, and `PositionUpdate`. These will be discussed below individually. 
-
-## Strategy update (account)
-
-You can subscribe to updates to their strategy with the `StrategyUpdate` event. A strategy is a cross-margined account in which you can deposit/withdraw collateral and make trades. Strategies are siloed off from one another. Any updates to the free or frozen collaterals you have (whether it's from deposits, withdrawals, or realized PNL) will be registered in this feed.
-
-Upon subscription, you will receive a `Partial` back, containing a snapshot of your strategy at that moment in time. From then on, you will receive streaming `Update` messages as appropriate. 
-
+### Request
 > Request format (JSON)
 ```json
 {
@@ -564,12 +635,64 @@ Upon subscription, you will receive a `Partial` back, containing a snapshot of y
     "c": {
       "trader": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
       "strategies": ["main"],
-      "events": ["StrategyUpdate"]
+      "events": ["StrategyUpdate", "OrdersUpdate", "PositionUpdate"]
     }
   }
 }
 ```
 
+You can subscribe to data feeds corresponding to events for a particular trader's Ethereum address. The possible account events you can subscribe to are `StrategyUpdate`, `OrdersUpdate`, and `PositionUpdate`.
+
+type | field | description
+-----|----- | ---------------------
+address_s  | trader | Trader's Ethereum address (same as the one that facilitated the deposit)
+string[] | strategies | Strategies being subscribed to. Currently, the only supported strategy is `main`, but support for multiple strategies is coming soon!
+string[] | events | Events being subscribed to. This can be one or more of `StrategyUpdate`, `OrdersUpdate`, and `PositionUpdate` 
+
+### Response
+> Receipt (success) format (JSON)
+```json
+{
+  "receipt": {
+    "t": "Subscribed",
+    "c": {
+      "msg": "Subscribed to [StrategyUpdate | OrdersUpdate | PositionUpdate] for ETHPERP"
+    }
+  }
+}
+```
+
+Each `subscription` returns a receipt, which confirms that an Operator has received the `subscription` request. The receipt `type` will be either `Subscribed` or `Error`.
+
+A successful `subscription` returns a `Subscribed` receipt from the Operator.
+
+type | field | description
+------ | ---- | -----------
+string | msg | Success message 
+
+> Receipt (error) format (JSON)
+```json
+{
+  "receipt": {
+    "t": "Error",
+    "c": {
+      "msg": "Invalid subscription"
+    }
+  }
+}
+```
+
+An erroneous `subscription` returns an `Error` receipt from the Operator.
+
+type | field | description
+------ | ---- | -----------
+string | msg | Error message 
+
+Each of the market `subscription` events will be discussed below individually. 
+
+Each subscription event will be discussed below individually. 
+
+## Strategy update (account)
 > Partial response (JSON)
 ```json
 {
@@ -611,15 +734,11 @@ Upon subscription, you will receive a `Partial` back, containing a snapshot of y
 }
 ```
 
-**Request parameters**
+You can subscribe to updates to their strategy with the `StrategyUpdate` event. A strategy is a cross-margined account in which you can deposit/withdraw collateral and make trades. Strategies are siloed off from one another. Any updates to the free or frozen collaterals you have (whether it's from deposits, withdrawals, or realized PNL) will be registered in this feed.
 
-type | field | description
------|----- | ---------------------
-address_s  | trader | Trader's Ethereum address (same as the one that facilitated the deposit)
-string[] | strategies | Strategies being subscribed to. Currently, the only supported strategy is `main`, but support for multiple strategies is coming soon!
-string[] | events | Events being subscribed to. This can be one or more of `OrdersUpdate`, `PositionUpdate`, and `StrategyUpdate`
+Upon subscription, you will receive a `Partial` back, containing a snapshot of your strategy at that moment in time. From then on, you will receive streaming `Update` messages as appropriate. 
 
-**Response parameters** - an array of updates per strategy is emitted, with each update defined as follows:
+For the response, an array of updates per strategy you have subscribed to is emitted, with each update defined as follows:
 
 type | field | description
 -----|----- | ---------------------
@@ -631,24 +750,6 @@ int_s   | maxLeverage | Maximum leverage for strategy, which impacts the mainten
 bool     | frozen | Whether the account and its collateral is frozen or not
 
 ## Orders update (account)
-
-You can subscribe to updates to your open orders with the `OrdersUpdate` event. 
-Upon subscription, you will receive a `Partial` back, containing a snapshot of all of your open orders at that moment in time. From then on, you will receive streaming/incremental `Update` messages with any changes to these orders (due to posting new orders, canceling existing orders, or orders that have been matched in partial or in full).
-
-> Request format (JSON)
-```json
-{
-  "request": {
-    "t": "SubscribeAccount",
-    "c": {
-      "trader": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
-      "strategies": ["main"],
-      "events": ["OrdersUpdate"]
-    }
-  }
-}
-```
-
 > Partial response (JSON)
 ```json
 {
@@ -693,15 +794,11 @@ Upon subscription, you will receive a `Partial` back, containing a snapshot of a
 }
 ```
 
-**Request parameters**
+You can subscribe to updates to your open orders with the `OrdersUpdate` event. 
 
-type | field | description
------|----- | ---------------------
-address_s  | trader | Trader's Ethereum address (same as the one that facilitated the deposit)
-string[] | strategies | Strategies being subscribed to. Currently, the only supported strategy is `main`, but support for multiple strategies is coming soon!
-string[] | events | Events being subscribed to. This can be one or more of `OrdersUpdate`, `PositionUpdate`, and `StrategyUpdate`
+Upon subscription, you will receive a `Partial` back, containing a snapshot of all of your open orders at that moment in time. From then on, you will receive streaming/incremental `Update` messages with any changes to these orders (due to posting new orders, canceling existing orders, or orders that have been matched in partial or in full).
 
-**Response parameters** - an array of updates per order is emitted, with each update defined as follows:
+For the response, an array of updates per order is emitted, with each update defined as follows:
 
 type | field | description 
 ------ | ---- | -------
@@ -711,7 +808,7 @@ string  | symbol | Name of the market this order belongs to. Currently, this is 
 string | strategy | Name of the cross-margined strategy this order belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
 int_s | side | Side of order, either `0` (`Bid`) or an `1` (`Ask`)
 int_s | orderType | Order type, either `0` (`Limit`) or `0` (`Market`). Other order types coming soon!
-bytes32_s | requestId | Numeric identifier for the order
+bytes32_s | requestId | Numeric identifier for the order. To clarify, this is NOT an identifier relating to this particular subscription/response, but rather the `requestId` field associated with this order at the time of placement.
 decimal_s | amount | The original order amount/size requested
 decimal_s | remainingAmount | The order amount/size remaining on the order book
 decimal_s | price | The order price
@@ -727,14 +824,7 @@ TBD
 
 ## Market
 
-You can subscribe to data feeds corresponding to events for the broader market. The possible market events you can subscribe to at this time are `OrderBookUpdate` and `MarkPriceUpdate`. These will be discussed below individually. 
-
-## Order book update (market)
-
-You can subscribe to updates to an L2-order book for any given market with the `OrderBookUpdate` event. As is typically seen, an order book is a price-time FIFO priority queue market place for you to interact with. Since this is an L2-aggregation, the response will collapse any given price level to the aggregate quantity at that level irrespective of the number of participants or the individual order details that comprise that price level.
-
-Upon subscription, you will receive a `Partial` back, containing an L2-aggregate snapshot of the order book at that moment in time. From then on, you will receive streaming/incremental `Update` messages as appropriate containing only the aggregated price levels that are different (due to the placement of new orders, order cancellation, or liquidations/matches that have taken place). Updates will come in with a reference to the side of the order book and in the form of 2-item lists with the format `[price, new aggregate quantity]`. A new aggregate quantity of `0` indicates that the price level is now gone. 
-
+### Request
 > Request format (JSON)
 ```json
 {
@@ -742,11 +832,61 @@ Upon subscription, you will receive a `Partial` back, containing an L2-aggregate
     "t": "SubscribeMarket",
     "c": {
       "symbols": ["ETHPERP"],
-      "events": ["OrderBookUpdate"]
+      "events": ["OrderBookUpdate", "MarkPriceUpdate"]
     }
   }
 }
 ```
+
+You can subscribe to data feeds corresponding to events for the broader market. The possible market events you can subscribe to at this time are `OrderBookUpdate` and `MarkPriceUpdate`. 
+
+type | field | description
+-----|----- | ---------------------
+string[] | symbols | Symbols being subscribed to. Currently, the only supported symbol is `ETHPERP`, but support for more symbols is coming soon!
+string[] | events | Events being subscribed to. This can be one or more of `OrderBookUpdate` and `MarkPriceUpdate`
+
+### Response
+> Receipt (success) format (JSON)
+```json
+{
+  "receipt": {
+    "t": "Subscribed",
+    "c": {
+      "msg": "Subscribed to [OrderBookUpdate | MarkPriceUpdate] for ETHPERP"
+    }
+  }
+}
+```
+
+Each `subscription` returns a receipt, which confirms that an Operator has received the `subscription` request. The receipt `type` will be either `Subscribed` or `Error`.
+
+A successful `subscription` returns a `Subscribed` receipt from the Operator.
+
+type | field | description
+------ | ---- | -----------
+string | msg | Success message 
+
+> Receipt (error) format (JSON)
+```json
+{
+  "receipt": {
+    "t": "Error",
+    "c": {
+      "msg": "Invalid subscription"
+    }
+  }
+}
+```
+
+An erroneous `subscription` returns an `Error` receipt from the Operator.
+
+type | field | description
+------ | ---- | -----------
+string | msg | Error message 
+
+Each of the market `subscription` events will be discussed below individually. 
+
+## Order book update (market)
 
 > Partial response (JSON)
 ```json
@@ -785,14 +925,11 @@ Upon subscription, you will receive a `Partial` back, containing an L2-aggregate
 }
 ```
 
-**Request parameters**
+You can subscribe to updates to an L2-order book for any given market with the `OrderBookUpdate` event. As is typically seen, an order book is a price-time FIFO priority queue market place for you to interact with. Since this is an L2-aggregation, the response will collapse any given price level to the aggregate quantity at that level irrespective of the number of participants or the individual order details that comprise that price level.
 
-type | field | description
------|----- | ---------------------
-string[] | symbols | Symbols being subscribed to. Currently, the only supported symbol is `ETHPERP`, but support for more symbols is coming soon!
-string[] | events | Events being subscribed to. This can be one or more of `OrderBookUpdate` and `MarkPriceUpdate`
+Upon subscription, you will receive a `Partial` back, containing an L2-aggregate snapshot of the order book at that moment in time. From then on, you will receive streaming/incremental `Update` messages as appropriate containing only the aggregated price levels that are different (due to the placement of new orders, order cancellation, or liquidations/matches that have taken place). Updates will come in with a reference to the side of the order book and in the form of 2-item lists with the format `[price, new aggregate quantity]`. A new aggregate quantity of `0` indicates that the price level is now gone. 
 
-**Response parameters** - an array of updates per order book is emitted, with each update defined as follows:
+For the response, an array of updates per order book is emitted, with each update defined as follows:
 
 type | field | description
 -----|----- | ---------------------
@@ -802,25 +939,16 @@ timestamp_i  | timestamp | Timestamp of order book partial/update
 timestamp_s_i  | nonce | ???
 decimal_s   | aggregationType | ???
 
+### Maintaining local order book
+
+To maintain a local order book, you can use a combination of the `Partial` snapshot and `Update` streaming messages. A sample algorithm is as follows:
+
+1. Receive a `Partial` snapshot and use that as the starting point for the order book. Keep in mind that the response outputs the aggregated quantities at each price level for both the `bids` and `asks` sides of the order book.
+2. For every `Update` streaming message, you will receive information for both sides of the order book regarding any price level that has changed. There will be no explicit indication if a level has been newly-formed, modified, or deleted. For any `[price, updated_aggregated_quantity]` you receive, update your local order book. If your local order book does not currently have an entry for this `price`, you know it is a new level and can set the quantity to `updated_aggregated_quantity`. If your local order book has the price level corresponding to `price`, adjust its quantity to `updated_aggregated_quantity` except in the scenario where `updated_aggregated_quantity` is `"0"`, in which case you can delete the level entirely.
+3. If your connection drops or you believe you may have missed/mishandled an update, simply refetch the `Partial` as per Step 1, and proceed from there with Step 2.
+
 
 ## Mark price update (market)
-
-You can subscribe to updates to the mark price for any given market with the `MarkPriceUpdate` event. The mark price is an important concept on DerivaDEX as it is the price at which positions are marked when displaying unrealized PNL. Consequently, the mark price helps determine a strategy's margin fraction, thereby triggering liquidations when appropriate. The mark price is computed based on a 30s exponential moving average (often referred to as a 30s EMA) of the spread between the underlying price (a composite of several spot price feeds for the underlying asset) and the DerivaDEX order book itself. 
-
-Upon subscription, you will receive a `Partial` back, containing a mark price snapshot at that moment in time. From then on, you will receive streaming/incremental `Update` messages as appropriate. 
-
-> Request format (JSON)
-```json
-{
-  "request": {
-    "t": "SubscribeMarket",
-    "c": {
-      "symbols": ["ETHPERP"],
-      "events": ["MarkPriceUpdate"]
-    }
-  }
-}
-```
 
 > Partial response (JSON)
 ```json
@@ -850,14 +978,11 @@ Upon subscription, you will receive a `Partial` back, containing a mark price sn
 }
 ```
 
-**Request parameters**
+You can subscribe to updates to the mark price for any given market with the `MarkPriceUpdate` event. The mark price is an important concept on DerivaDEX as it is the price at which positions are marked when displaying unrealized PNL. Consequently, the mark price helps determine a strategy's margin fraction, thereby triggering liquidations when appropriate. The mark price is computed based on a 30s exponential moving average (often referred to as a 30s EMA) of the spread between the underlying price (a composite of several spot price feeds for the underlying asset) and the DerivaDEX order book itself. 
 
-type | field | description
------|----- | ---------------------
-string[] | symbols | Symbols being subscribed to. Currently, the only supported symbol is `ETHPERP`, but support for more symbols is coming soon!
-string[] | events | Events being subscribed to. This can be one or more of `OrderBookUpdate` and `MarkPriceUpdate`
+Upon subscription, you will receive a `Partial` back, containing a mark price snapshot at that moment in time. From then on, you will receive streaming/incremental `Update` messages as appropriate. 
 
-**Response parameters** - an array of updates per order book is emitted, with each update defined as follows:
+For the response, an array of updates per symbol is emitted, with each update defined as follows:
 
 type | field | description
 -----|----- | ---------------------
@@ -865,51 +990,6 @@ timestamp_s  | createdAt | Timestamp of original mark price entry
 timestamp_s  | updatedAt | Timestamp of mark price update
 decimal_s | price | Mark price for the market
 string  | symbol | Market subscribed to
-
-
-## Receipts
-
-Each subscription returns a receipt, which confirms that an Operator has received the subscription request. The receipt `type` will be either `Subscribed` or `Error`.
-
-### Subscribed (successful) receipts
-
-A successful subscription returns a `Subscribed` receipt from the Operator.
-
-> Receipt (success) format (JSON)
-```json
-{
-  "receipt": {
-    "t": "Subscribed",
-    "c": {
-      "msg": "Subscribed to OrderBookUpdate for ETHPERP"
-    }
-  }
-}
-```
-
-type | field | description
------- | ---- | -----------
-string | msg | Success message 
-
-### Error (failed) receipts
-
-An erroneous subscription returns an `Error` receipt from the Operator.
-
-> Receipt (error) format (JSON)
-```json
-{
-  "receipt": {
-    "t": "Error",
-    "c": {
-      "msg": "Invalid subscription"
-    }
-  }
-}
-```
-
-type | field | description
------- | ---- | -----------
-string | msg | Error message 
 
 
 # Validation
