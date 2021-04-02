@@ -138,11 +138,11 @@ The `message` field varies depending on the typed data you are signing, and is i
 > Sample computation of order struct hash
 ```plaintext
 // solidity
-function compute_eip712_order_struct_hash(address _makerAddress, bytes32 _symbol, bytes32 _strategy, uint256 _side, uint256 _orderType, bytes32 _requestId, uint256 _amount, uint256 _price, uint256 _stopPrice) public view returns (bytes32) {
+function compute_eip712_order_struct_hash(address _traderAddress, bytes32 _symbol, bytes32 _strategy, uint256 _side, uint256 _orderType, bytes32 _requestId, uint256 _amount, uint256 _price, uint256 _stopPrice) public view returns (bytes32) {
     // keccak-256 hash of the encoded schema for the order params struct
     bytes32 orderSchemaHash = keccak256(abi.encodePacked(
         "OrderParams(",
-        "address makerAddress,",
+        "address traderAddress,",
         "bytes32 symbol,",
         "bytes32 strategy,",
         "uint256 side,",
@@ -156,7 +156,7 @@ function compute_eip712_order_struct_hash(address _makerAddress, bytes32 _symbol
     
     bytes32 orderStructHash = keccak256(abi.encodePacked(
         orderSchemaHash,
-        uint256(_makerAddress),
+        uint256(_traderAddress),
         _symbol,
         _strategy,
         _side,
@@ -180,7 +180,7 @@ def compute_eip712_order_struct_hash(maker_address: str, symbol: str, strategy: 
     # keccak-256 hash of the encoded schema for the place order command
     eip712_order_params_schema_hash = keccak(
         b"OrderParams("
-        + b"address makerAddress,"
+        + b"address traderAddress,"
         + b"bytes32 symbol,"
         + b"bytes32 strategy,"
         + b"uint256 side,"
@@ -232,7 +232,7 @@ The parameters that comprise the `message` for the `command` to place an order a
 
 type | field | description
 -----|----- | ---------------------
-makerAddress  | address | Trader's ETH address used to sign order intent
+traderAddress  | address | Trader's ETH address used to sign order intent
 symbol  | bytes32 | 32-byte encoding of the symbol this order is for. The `symbol` of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly.
 strategy | bytes32 | 32-byte encoding of the strategy this order belongs to. The `strategy` of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly.
 side | uint256 | An integer value either `0` (Bid) or `1` (Ask)
@@ -398,7 +398,7 @@ The websocket API offers commands for placing and canceling orders, as well as w
 
 ## Place order
 
-You can place new orders by specifying specific attributes in the `Order` command's request payload. These requests are subject to a set of validations.
+You can place new orders by specifying specific attributes in the `Order` command's request payload. These requests are subject to a set of validations. Orders should specify the name of the cross-margined strategy this trade belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
 
 > Request format (JSON)
 ```json
@@ -406,7 +406,7 @@ You can place new orders by specifying specific attributes in the `Order` comman
 	"request": {
 		"t": "Order",
 		"c": {
-			"makerAddress": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
+			"traderAddress": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
 			"symbol": "ETHPERP",
 			"strategy": "main",
 			"side": "Bid",
@@ -423,7 +423,7 @@ You can place new orders by specifying specific attributes in the `Order` comman
 
 type | field | description 
 ------ | ---- | -------
-address_s | makerAddress | Trader's Ethereum address (same as the one that facilitated the deposit)
+address_s | traderAddress | Trader's Ethereum address (same as the one that facilitated the deposit)
 string  | symbol | Name of the market to trade. Currently, this is limited to 'ETHPERP', but new symbols are coming soon! 
 string | strategy | Name of the cross-margined strategy this trade belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
 string | side | Side of trade, either `Bid` (buy/long) or an `Ask` (sell/short)
@@ -464,7 +464,7 @@ bytes_s | signature | EIP-712 signature
 
 ## Withdraw
 
-You can signal withdrawal intents to the Operators by specifying specific attributes in the `Withdraw` command's request payload. While you won't be able to trade with this collateral you are attempting to withdraw, you will only be able to formally initiate a smart contract withdrawal/token transfer once the epoch in which you signal your withdrawal desire has concluded. 
+You can signal withdrawal intents to the Operators by specifying specific attributes in the `Withdraw` command's request payload. Withdrawal is a 2-step process: submitting a withdrawal intent, and performing a smart contract withdrawal. Once a withdrawal intent is initiated, you won't be able to trade with the collateral you are attempting to withdraw. You will only be able to formally initiate a smart contract withdrawal/token transfer once the epoch in which you signal your withdrawal desire has concluded. 
 
 > Request format (JSON)
 ```json
@@ -656,7 +656,7 @@ Upon subscription, you will receive a `Partial` back, containing a snapshot of a
 	"e": "Partial",
 	"c": [{
 		"orderHash": "0x946e4bedf2dd87e5380f32a18d1af19adb4d7ecec3a8a346cb641adc5201e53e",
-		"makerAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
+		"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
 		"symbol": "ETHPERP",
 		"side": "0",
 		"orderType": "0",
@@ -678,7 +678,7 @@ Upon subscription, you will receive a `Partial` back, containing a snapshot of a
 	"e": "Update",
 	"c": [{
 		"orderHash": "0x946e4bedf2dd87e5380f32a18d1af19adb4d7ecec3a8a346cb641adc5201e53e",
-		"makerAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
+		"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
 		"symbol": "ETHPERP",
 		"side": "0",
 		"orderType": "0",
@@ -706,7 +706,7 @@ string[] | events | Events being subscribed to. This can be one or more of `Orde
 type | field | description 
 ------ | ---- | -------
 bytes32_s | orderHash | Hash of the order that has changed or is new
-address_s | makerAddress | Trader's Ethereum address associated with this order
+address_s | traderAddress | Trader's Ethereum address associated with this order
 string  | symbol | Name of the market this order belongs to. Currently, this is limited to 'ETHPERP', but new symbols are coming soon! 
 string | strategy | Name of the cross-margined strategy this order belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
 int_s | side | Side of order, either `0` (`Bid`) or an `1` (`Ask`)
