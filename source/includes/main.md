@@ -45,8 +45,7 @@ EIP-712 hashing consists of three critical components - a `header`, `domain` str
 ### Header
 
 > Sample EIP-191 header definition
-```plaintext
-// solidity
+```solidity
 bytes2 eip191_header = 0x1901;
 ```
 
@@ -70,8 +69,7 @@ The `header` is simply the byte-string `\x19\x01`. You are welcome to do this ho
 ```
 
 > Sample computation of domain struct hash
-```plaintext
-// solidity
+```solidity
 function compute_eip712_domain_struct_hash(string memory _name, string memory _version, uint256 _chainId, address _verifyingContract) public view returns (bytes32) {
     // keccak-256 hash of the encoded schema for the domain separator
     bytes32 domainSchemaHash = keccak256(abi.encodePacked(
@@ -133,11 +131,10 @@ To generate the `domain` struct hash, you must perform a series of encodings and
 
 The `message` field varies depending on the typed data you are signing, and is illustrated on a case-by-case basis below.
 
-### Place order (message)
+#### Place order
 
 > Sample computation of order struct hash
-```plaintext
-// solidity
+```solidity
 function compute_eip712_order_struct_hash(address _traderAddress, bytes32 _symbol, bytes32 _strategy, uint256 _side, uint256 _orderType, bytes32 _requestId, uint256 _amount, uint256 _price, uint256 _stopPrice) public view returns (bytes32) {
     // keccak-256 hash of the encoded schema for the order params struct
     bytes32 orderSchemaHash = keccak256(abi.encodePacked(
@@ -248,7 +245,7 @@ stopPrice | uint256 | Stop price (scaled up by 18 decimals). The `stopPrice` of 
 ### Tying it all together
 
 > Computing the final EIP-712 hash
-```plaintext
+```solidity
 function compute_eip712_hash(bytes2 _eip191_header, bytes32 _domainStructHash, bytes32 _orderStructHash) public view returns (bytes32) {
     return keccak256(abi.encodePacked(
         _eip191_header,
@@ -303,7 +300,7 @@ To derive the final EIP-712 hash of the typed data you will sign, you will need 
 ```
 
 > Smart contract deposit function (Solidity)
-```plaintext
+```solidity
 function deposit(
     address _collateralAddress,
     bytes32 _strategyId,
@@ -480,6 +477,8 @@ string | msg | Error message
 
 
 ## Cancel order
+
+### Request
 > Request format (JSON)
 ```json
 {
@@ -550,6 +549,8 @@ string | msg | Error message
 
 
 ## Withdraw
+
+### Request
 > Request format (JSON)
 ```json
 {
@@ -688,11 +689,11 @@ type | field | description
 ------ | ---- | -----------
 string | msg | Error message 
 
+### Events
+
 Each of the market `subscription` events will be discussed below individually. 
 
-Each subscription event will be discussed below individually. 
-
-## Strategy update (account)
+#### Strategy update
 > Partial response (JSON)
 ```json
 {
@@ -749,7 +750,7 @@ int_s   | maxLeverage | Maximum leverage for strategy, which impacts the mainten
 <address_s, decimal_s>  | frozenCollateral | Collateral (on a per token basis) available for a smart contract withdrawal, but not for trading, since the Operators have received the withdraw intent)
 bool     | frozen | Whether the account and its collateral is frozen or not
 
-## Orders update (account)
+#### Orders update
 > Partial response (JSON)
 ```json
 {
@@ -817,7 +818,7 @@ bytes_s   | signature | EIP-712 signature
 timestamp_s  | createdAt | Timestamp when order was initially created
 
 
-## Positions update (account)
+#### Positions update
 
 TBD
 
@@ -884,9 +885,11 @@ type | field | description
 ------ | ---- | -----------
 string | msg | Error message 
 
+### Events
+
 Each of the market `subscription` events will be discussed below individually. 
 
-## Order book update (market)
+#### Order book update
 
 > Partial response (JSON)
 ```json
@@ -939,7 +942,7 @@ timestamp_i  | timestamp | Timestamp of order book partial/update
 timestamp_s_i  | nonce | ???
 decimal_s   | aggregationType | ???
 
-### Maintaining local order book
+##### Maintaining local order book
 
 To maintain a local order book, you can use a combination of the `Partial` snapshot and `Update` streaming messages. A sample algorithm is as follows:
 
@@ -948,7 +951,7 @@ To maintain a local order book, you can use a combination of the `Partial` snaps
 3. If your connection drops or you believe you may have missed/mishandled an update, simply refetch the `Partial` as per Step 1, and proceed from there with Step 2.
 
 
-## Mark price update (market)
+#### Mark price update
 
 > Partial response (JSON)
 ```json

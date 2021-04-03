@@ -10,7 +10,7 @@
       <link href=stylesheets/highlight-monokai.css rel=stylesheet media=screen,print>
       <script src=javascripts/all.js></script>
    </head>
-   <body class="" data-languages="[&#34;json&#34;,&#34;plaintext&#34;,&#34;python&#34;]">
+   <body class="" data-languages="[&#34;json&#34;,&#34;solidity&#34;,&#34;python&#34;]">
       <a href=# id=nav-button>
          <span>NAV <img alt=navbar class=image-navbar src=images/navbar.png></span>
       </a>
@@ -18,7 +18,7 @@
          <img alt=logo class=image-logo src=images/logo.png>
          <div class=lang-selector>
             <a href=# data-language-name="json">json</a>
-            <a href=# data-language-name="plaintext">plaintext</a>
+            <a href=# data-language-name="solidity">solidity</a>
             <a href=# data-language-name="python">python</a>
          </div>
          <div class=search>
@@ -107,8 +107,7 @@
             <blockquote>
                <p>Sample EIP-191 header definition</p>
             </blockquote>
-            <pre class="highlight plaintext"><code>// solidity
-bytes2 eip191_header = 0x1901;</code></pre><pre class="highlight python"><code>eip191_header = <span class="hljs-string">b&quot;\x19\x01&quot;</span></code></pre>
+            <pre class="highlight solidity"><code><span class="hljs-keyword">bytes2</span> eip191_header = <span class="hljs-number">0x1901</span>;</code></pre><pre class="highlight python"><code>eip191_header = <span class="hljs-string">b&quot;\x19\x01&quot;</span></code></pre>
             <p>The <code>header</code> is simply the byte-string <code>\x19\x01</code>. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. Example Solidity and Python reference implementations are displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.</p>
             <h3 id="domain">Domain</h3>
             <blockquote>
@@ -123,27 +122,26 @@ bytes2 eip191_header = 0x1901;</code></pre><pre class="highlight python"><code>e
             <blockquote>
                <p>Sample computation of domain struct hash</p>
             </blockquote>
-            <pre class="highlight plaintext"><code>// solidity
-function compute_eip712_domain_struct_hash(string memory _name, string memory _version, uint256 _chainId, address _verifyingContract) public view returns (bytes32) {
-    // keccak-256 hash of the encoded schema for the domain separator
-    bytes32 domainSchemaHash = keccak256(abi.encodePacked(
-        &quot;EIP712Domain(&quot;,
-        &quot;string name,&quot;,
-        &quot;string version,&quot;,
-        &quot;uint256 chainId,&quot;,
-        &quot;address verifyingContract&quot;,
-        &quot;)&quot;
+            <pre class="highlight solidity"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">compute_eip712_domain_struct_hash</span>(<span class="hljs-params"><span class="hljs-keyword">string</span> <span class="hljs-keyword">memory</span> _name, <span class="hljs-keyword">string</span> <span class="hljs-keyword">memory</span> _version, <span class="hljs-keyword">uint256</span> _chainId, <span class="hljs-keyword">address</span> _verifyingContract</span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> <span class="hljs-title"><span class="hljs-keyword">view</span></span> <span class="hljs-title"><span class="hljs-keyword">returns</span></span> (<span class="hljs-params"><span class="hljs-keyword">bytes32</span></span>) </span>{
+    <span class="hljs-comment">// keccak-256 hash of the encoded schema for the domain separator</span>
+    <span class="hljs-keyword">bytes32</span> domainSchemaHash = <span class="hljs-built_in">keccak256</span>(<span class="hljs-built_in">abi</span>.<span class="hljs-built_in">encodePacked</span>(
+        <span class="hljs-string">&quot;EIP712Domain(&quot;</span>,
+        <span class="hljs-string">&quot;string name,&quot;</span>,
+        <span class="hljs-string">&quot;string version,&quot;</span>,
+        <span class="hljs-string">&quot;uint256 chainId,&quot;</span>,
+        <span class="hljs-string">&quot;address verifyingContract&quot;</span>,
+        <span class="hljs-string">&quot;)&quot;</span>
     ));
     
-    bytes32 domainStructHash = keccak256(abi.encodePacked(
+    <span class="hljs-keyword">bytes32</span> domainStructHash = <span class="hljs-built_in">keccak256</span>(<span class="hljs-built_in">abi</span>.<span class="hljs-built_in">encodePacked</span>(
         domainSchemaHash,
-        keccak256(bytes(_name)),
-        keccak256(bytes(_version)),
+        <span class="hljs-built_in">keccak256</span>(<span class="hljs-keyword">bytes</span>(_name)),
+        <span class="hljs-built_in">keccak256</span>(<span class="hljs-keyword">bytes</span>(_version)),
         _chainId,
-        uint256(_verifyingContract)
+        <span class="hljs-keyword">uint256</span>(_verifyingContract)
     ));
     
-    return domainStructHash;
+    <span class="hljs-keyword">return</span> domainStructHash;
 }</code></pre><pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single
 <span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
 
@@ -195,30 +193,29 @@ function compute_eip712_domain_struct_hash(string memory _name, string memory _v
             <p>To generate the <code>domain</code> struct hash, you must perform a series of encodings and hashings of the schema and contents of the <code>domain</code> specfication. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. Example Solidity and Python reference implementations are displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.</p>
             <h3 id="message">Message</h3>
             <p>The <code>message</code> field varies depending on the typed data you are signing, and is illustrated on a case-by-case basis below.</p>
-            <h3 id="place-order-message">Place order (message)</h3>
+            <h4 id="place-order">Place order</h4>
             <blockquote>
                <p>Sample computation of order struct hash</p>
             </blockquote>
-            <pre class="highlight plaintext"><code>// solidity
-function compute_eip712_order_struct_hash(address _traderAddress, bytes32 _symbol, bytes32 _strategy, uint256 _side, uint256 _orderType, bytes32 _requestId, uint256 _amount, uint256 _price, uint256 _stopPrice) public view returns (bytes32) {
-    // keccak-256 hash of the encoded schema for the order params struct
-    bytes32 orderSchemaHash = keccak256(abi.encodePacked(
-        &quot;OrderParams(&quot;,
-        &quot;address traderAddress,&quot;,
-        &quot;bytes32 symbol,&quot;,
-        &quot;bytes32 strategy,&quot;,
-        &quot;uint256 side,&quot;,
-        &quot;uint256 orderType,&quot;,
-        &quot;bytes32 requestId,&quot;,
-        &quot;uint256 amount,&quot;,
-        &quot;uint256 price,&quot;,
-        &quot;uint256 stopPrice&quot;,
-        &quot;)&quot;
+            <pre class="highlight solidity"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">compute_eip712_order_struct_hash</span>(<span class="hljs-params"><span class="hljs-keyword">address</span> _traderAddress, <span class="hljs-keyword">bytes32</span> _symbol, <span class="hljs-keyword">bytes32</span> _strategy, <span class="hljs-keyword">uint256</span> _side, <span class="hljs-keyword">uint256</span> _orderType, <span class="hljs-keyword">bytes32</span> _requestId, <span class="hljs-keyword">uint256</span> _amount, <span class="hljs-keyword">uint256</span> _price, <span class="hljs-keyword">uint256</span> _stopPrice</span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> <span class="hljs-title"><span class="hljs-keyword">view</span></span> <span class="hljs-title"><span class="hljs-keyword">returns</span></span> (<span class="hljs-params"><span class="hljs-keyword">bytes32</span></span>) </span>{
+    <span class="hljs-comment">// keccak-256 hash of the encoded schema for the order params struct</span>
+    <span class="hljs-keyword">bytes32</span> orderSchemaHash = <span class="hljs-built_in">keccak256</span>(<span class="hljs-built_in">abi</span>.<span class="hljs-built_in">encodePacked</span>(
+        <span class="hljs-string">&quot;OrderParams(&quot;</span>,
+        <span class="hljs-string">&quot;address traderAddress,&quot;</span>,
+        <span class="hljs-string">&quot;bytes32 symbol,&quot;</span>,
+        <span class="hljs-string">&quot;bytes32 strategy,&quot;</span>,
+        <span class="hljs-string">&quot;uint256 side,&quot;</span>,
+        <span class="hljs-string">&quot;uint256 orderType,&quot;</span>,
+        <span class="hljs-string">&quot;bytes32 requestId,&quot;</span>,
+        <span class="hljs-string">&quot;uint256 amount,&quot;</span>,
+        <span class="hljs-string">&quot;uint256 price,&quot;</span>,
+        <span class="hljs-string">&quot;uint256 stopPrice&quot;</span>,
+        <span class="hljs-string">&quot;)&quot;</span>
     ));
     
-    bytes32 orderStructHash = keccak256(abi.encodePacked(
+    <span class="hljs-keyword">bytes32</span> orderStructHash = <span class="hljs-built_in">keccak256</span>(<span class="hljs-built_in">abi</span>.<span class="hljs-built_in">encodePacked</span>(
         orderSchemaHash,
-        uint256(_traderAddress),
+        <span class="hljs-keyword">uint256</span>(_traderAddress),
         _symbol,
         _strategy,
         _side,
@@ -229,7 +226,7 @@ function compute_eip712_order_struct_hash(address _traderAddress, bytes32 _symbo
         _stopPrice
     ));
     
-    return orderStructHash;
+    <span class="hljs-keyword">return</span> orderStructHash;
 }</code></pre><pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single
 <span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
 <span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
@@ -346,8 +343,8 @@ function compute_eip712_order_struct_hash(address _traderAddress, bytes32 _symbo
             <blockquote>
                <p>Computing the final EIP-712 hash</p>
             </blockquote>
-            <pre class="highlight plaintext"><code>function compute_eip712_hash(bytes2 _eip191_header, bytes32 _domainStructHash, bytes32 _orderStructHash) public view returns (bytes32) {
-    return keccak256(abi.encodePacked(
+            <pre class="highlight solidity"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">compute_eip712_hash</span>(<span class="hljs-params"><span class="hljs-keyword">bytes2</span> _eip191_header, <span class="hljs-keyword">bytes32</span> _domainStructHash, <span class="hljs-keyword">bytes32</span> _orderStructHash</span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> <span class="hljs-title"><span class="hljs-keyword">view</span></span> <span class="hljs-title"><span class="hljs-keyword">returns</span></span> (<span class="hljs-params"><span class="hljs-keyword">bytes32</span></span>) </span>{
+    <span class="hljs-keyword">return</span> <span class="hljs-built_in">keccak256</span>(<span class="hljs-built_in">abi</span>.<span class="hljs-built_in">encodePacked</span>(
         _eip191_header,
         _domainStructHash,
         _orderStructHash
@@ -392,11 +389,11 @@ function compute_eip712_order_struct_hash(address _traderAddress, bytes32 _symbo
             <blockquote>
                <p>Smart contract deposit function (Solidity)</p>
             </blockquote>
-            <pre class="highlight plaintext"><code>function deposit(
-    address _collateralAddress,
-    bytes32 _strategyId,
-    uint128 _amount
-) external;</code></pre>
+            <pre class="highlight solidity"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">deposit</span>(<span class="hljs-params">
+    <span class="hljs-keyword">address</span> _collateralAddress,
+    <span class="hljs-keyword">bytes32</span> _strategyId,
+    <span class="hljs-keyword">uint128</span> _amount
+</span>) <span class="hljs-title"><span class="hljs-keyword">external</span></span></span>;</code></pre>
             <blockquote>
                <p>Sample API URL connection generation (Python)</p>
             </blockquote>
@@ -489,7 +486,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             <p>An example Python implementation is displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.</p>
             <h1 id="commands">Commands</h1>
             <p>The websocket API offers commands for placing and canceling orders, as well as withdrawals. Since commands modify system state, these requests must include an <a href="https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md">EIP-712 signature</a>. Examples are included in the <a href="samples.md">sample code</a>.</p>
-            <h2 id="place-order">Place order</h2>
+            <h2 id="place-order-1">Place order</h2>
             <h3 id="request">Request</h3>
             <blockquote>
                <p>Request format (JSON)</p>
@@ -644,6 +641,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                </tbody>
             </table>
             <h2 id="cancel-order">Cancel order</h2>
+            <h3 id="request-1">Request</h3>
             <blockquote>
                <p>Request format (JSON)</p>
             </blockquote>
@@ -762,6 +760,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                </tbody>
             </table>
             <h2 id="withdraw">Withdraw</h2>
+            <h3 id="request-2">Request</h3>
             <blockquote>
                <p>Request format (JSON)</p>
             </blockquote>
@@ -893,7 +892,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             <h1 id="subscriptions">Subscriptions</h1>
             <p>You can subscribe to two different kinds of feeds corresponding to a specific trader&#39;s account or market data with <code>SubscribeAccount</code> or <code>SubscribeMarket</code> requests, respectively.</p>
             <h2 id="account">Account</h2>
-            <h3 id="request-1">Request</h3>
+            <h3 id="request-3">Request</h3>
             <blockquote>
                <p>Request format (JSON)</p>
             </blockquote>
@@ -992,9 +991,9 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
+            <h3 id="events">Events</h3>
             <p>Each of the market <code>subscription</code> events will be discussed below individually. </p>
-            <p>Each subscription event will be discussed below individually. </p>
-            <h2 id="strategy-update-account">Strategy update (account)</h2>
+            <h4 id="strategy-update">Strategy update</h4>
             <blockquote>
                <p>Partial response (JSON)</p>
             </blockquote>
@@ -1078,7 +1077,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
-            <h2 id="orders-update-account">Orders update (account)</h2>
+            <h4 id="orders-update">Orders update</h4>
             <blockquote>
                <p>Partial response (JSON)</p>
             </blockquote>
@@ -1200,10 +1199,10 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
-            <h2 id="positions-update-account">Positions update (account)</h2>
+            <h4 id="positions-update">Positions update</h4>
             <p>TBD</p>
             <h2 id="market">Market</h2>
-            <h3 id="request-2">Request</h3>
+            <h3 id="request-4">Request</h3>
             <blockquote>
                <p>Request format (JSON)</p>
             </blockquote>
@@ -1296,8 +1295,9 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
+            <h3 id="events-1">Events</h3>
             <p>Each of the market <code>subscription</code> events will be discussed below individually. </p>
-            <h2 id="order-book-update-market">Order book update (market)</h2>
+            <h4 id="order-book-update">Order book update</h4>
             <blockquote>
                <p>Partial response (JSON)</p>
             </blockquote>
@@ -1372,14 +1372,14 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
-            <h3 id="maintaining-local-order-book">Maintaining local order book</h3>
+            <h5 id="maintaining-local-order-book">Maintaining local order book</h5>
             <p>To maintain a local order book, you can use a combination of the <code>Partial</code> snapshot and <code>Update</code> streaming messages. A sample algorithm is as follows:</p>
             <ol>
                <li>Receive a <code>Partial</code> snapshot and use that as the starting point for the order book. Keep in mind that the response outputs the aggregated quantities at each price level for both the <code>bids</code> and <code>asks</code> sides of the order book.</li>
                <li>For every <code>Update</code> streaming message, you will receive information for both sides of the order book regarding any price level that has changed. There will be no explicit indication if a level has been newly-formed, modified, or deleted. For any <code>[price, updated_aggregated_quantity]</code> you receive, update your local order book. If your local order book does not currently have an entry for this <code>price</code>, you know it is a new level and can set the quantity to <code>updated_aggregated_quantity</code>. If your local order book has the price level corresponding to <code>price</code>, adjust its quantity to <code>updated_aggregated_quantity</code> except in the scenario where <code>updated_aggregated_quantity</code> is <code>&quot;0&quot;</code>, in which case you can delete the level entirely.</li>
                <li>If your connection drops or you believe you may have missed/mishandled an update, simply refetch the <code>Partial</code> as per Step 1, and proceed from there with Step 2.</li>
             </ol>
-            <h2 id="mark-price-update-market">Mark price update (market)</h2>
+            <h4 id="mark-price-update">Mark price update</h4>
             <blockquote>
                <p>Partial response (JSON)</p>
             </blockquote>
@@ -1453,7 +1453,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
          <div class=dark-box>
             <div class=lang-selector>
                <a href=# data-language-name="json">json</a>
-               <a href=# data-language-name="plaintext">plaintext</a>
+               <a href=# data-language-name="solidity">solidity</a>
                <a href=# data-language-name="python">python</a>
             </div>
          </div>

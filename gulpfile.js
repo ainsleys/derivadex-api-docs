@@ -10,6 +10,7 @@ import gulp from        'gulp';
 import gulpIf from      'gulp-if';
 import log from         'fancy-log';
 import highlight from   'highlight.js';
+import highlightSl from 'highlightjs-solidity';
 import htmlHint from    'gulp-htmlhint';
 import jsHint from      'gulp-jshint';
 import marked from      'marked';
@@ -57,6 +58,7 @@ const jsFiles = {
 
 // Helper functions
 const renderer = new marked.Renderer();
+highlightSl(highlight);
 renderer.code = (code, language) => {
    const highlighted = language ? highlight.highlight(language, code).value :
       highlight.highlightAuto(code).value;

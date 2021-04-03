@@ -175,6 +175,42 @@ html, body {
          box-shadow: none; // otherwise it'll overflow out of the subheader
          }
       }
+   .tocify-subheader {
+      .tocify-subheader {
+         display: none; // tocify will override this when needed
+         background-color: $nav-subsubitem-bg;
+         font-weight: 500;
+         .tocify-item>a {
+            background-color: $nav-subsubitem-bg;
+            padding-left: $nav-padding + $nav-indent * 2;
+            font-size: 12px;
+         }
+         // for embossed look:
+         @include embossed-bg;
+         &>li:last-child {
+            box-shadow: none; // otherwise it'll overflow out of the subheader
+         }
+      }
+   }
+   .tocify-subheader {
+      .tocify-subheader {
+         .tocify-subheader {
+            display: none; // tocify will override this when needed
+            background-color: $nav-subsubsubitem-bg;
+            font-weight: 500;
+            .tocify-item>a {
+               background-color: $nav-subsubsubitem-bg;
+               padding-left: $nav-padding + $nav-indent * 3;
+               font-size: 12px;
+            }
+            // for embossed look:
+            @include embossed-bg;
+            &>li:last-child {
+               box-shadow: none; // otherwise it'll overflow out of the subheader
+            }
+         }
+      }
+   }
    .toc-footer {
       padding: 1em 0;
       margin-top: 1em;
