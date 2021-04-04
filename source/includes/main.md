@@ -1,4 +1,288 @@
 
+# DerivaDEX Protocol
+
+DerivaDEX is a decentralized exchange for derivative contracts built on top of Ethereum. This non-custodial exchange is designed to maximize for both performance and security. The exchange primarily utilizes an order-book model, with matching and trade execution handled by off-chain operators. Settlement (i.e., collateral deposits and withdrawals) are currently handled via a bridge to the DerivaDEX contracts on the Ethereum blockchain. 
+
+DerivaDEX is owned and managed by the DerivaDAO, the community who hold the native DerivaDEX token (DDX). DDX is a governance token that is required for proposals and voting, and can also be used reduce fees and participate in other exchange programs. All exchange parameters, such as fees, the size of the insurance fund, supported trading products, and liquidity mining are managed via the DerivaDAO alone. Any upgrades or additional products added to the DerivaDEX protocol must likewise be integrated via a successful governance proposal. 
+
+
+# Protocol Architecture
+
+## Overview
+
+### The DerivaDEX Exchange
+
+To understand the architecture of the DerivaDEX system at a high level, this section approaches each component from a user's perspective, and describes how each component is used in the normal trading process of making a deposit, executing a trade, and withdrawing collateral. 
+
+The DerivaDEX protocol enables users to deposit collateral to the DerivaDEX smart contracts on Ethereum. The Etherum bridge enables the DerivaDEX trade engine to register these deposits, and allocate the value of the collateral to a trader's DerivaDEX account ("strategy"). When a trader places an order, they must sign the "order intent" message using their Ethereum wallet. These signed order intents enter the request log, where they are verified and processed by the operator. When a trade matches, the fee imposed on the trade is a straighforward trading fee (a percentage of notional), which is determined via governance. There is no Ethereum gas fee for orders or trades.  
+
+The DerivaDEX protocol requires operators to run verified Intel SGX execution environments, a form of Trusted Execution Envioronment (TEE). These TEE applications have a protected region of memory, which cannot be modified by the device owner and where only verified code can be executed (see ### Registration). In practice, this provides strong guarantees that the operators can *only* run the DerivaDEX code, without making malicious or inadvertent changes. Code that executes within the enclave includes the matching engine and the liquidation engine, for example. The price feeds (Price oracle) used for trading products also have an endpoint within the enclave, preventing operators from tampering with or delaying price information.
+
+Every epoch (define epoch), the Ethereum bridge submits a record (checkpoint) of all executed transactions and state hashes to the DerivaDEX Ethereum contracts. This enables an external auditor (Auditor), allows anyone to replay the settlement transactions (see off-chain data structures) and arrive at the same state transitions. This is another method by which operator actions are verified. 
+
+These checkpoints are also used during the withdrawals process. A trader submits a signed withdrawal intent, and the collateral they want to withdraw is "frozen" by the operator. Their withdrawal intent is included in the subsequent checkpoint submission to Ethereum. At that point, a trader can submit a normal withdrawal transaction to the DerivaDEX contract on Ethereum, and receive their funds. 
+
+## Smart Contracts
+
+## Ethereum bridge
+### Deposits
+### Withdrawals
+
+Withdrawals on DerivaDEX require a multi-step process from users. For users, there are two required steps:
+1. begin withdrawal: this will freeze the collateral the user intends to withdraw.
+2. complete withdrawal: some time later, the user will complete the withdrawal by sending an Ethereum withdrawal transaction with a proof from DerivaDEX. 
+
+
+First, users must initiate a withdrawal, and indicate the amount. Then, DerivaDEX 'freezes' this amount. Users will no longer see that amount in their Strategy Value, or be able to trade with it. However, the withdrawal is not finished.
+
+DerivaDEX performs trade execution and matching via off-chain operators. Deposits and withdrawals however, happen on-chain on Ethereum. DerivaDEX periodically submits a 'checkpoint' to the Ethereum contract (this process is referred to as a "bridge", because it bridges the data held by the operator, with the information available to Ethereum about what traders control what assets). 
+
+Users must wait for a withdrawal request to be included in a checkpoint, because that's how Ethereum can verify that the withdrawal request is legitimate. After the checkpoint, the user must "complete withdrawal".
+
+When the user completes the withdrawal, they submit a withdrawal request to Ethereum that also contains a proof that verifies their balance available for withdrawal. 
+
+A more technical documentation of the withdrawal flow is below:
+
+
+Detailed summary of withdrawal flow
+Step 1: 
+Client submits a withdrawal request to request queue
+The client needs to submit a withdraw request to the request queue.
+The structure of a withdraw request looks like this https://gitlab.com/dexlabs/derivadex/-/blob/develop/rust-packages/ddx-common/src/types/request.rs#L431)
+The withdraw intent request requires a requestId and a signature field. 
+
+Example of a withdraw request
+
+```
+{
+    "amount": "500", 
+    "currency": "0x0b1ba0af832d7c05fd64161e0db78e85978e8082", 
+    "requestId": "0x3136313534323130363536393700000000000000000000000000000000000000", // unique incremental identifier
+    "strategyId": "main", 
+    "traderAddress": "0x7E98Fdf18dAe0b7b1925d6735D4B77f4889879e1",
+    "signature": "0x0" // signature needs to be generated based on the other fields of the withdraw request
+}
+```
+Withdrawal requestId field
+The requestId field needs to be unique and incremental. 
+It can be generated like this:
+
+```
+import { hexUtils } from '@0x/utils';
+import { utils } from 'ethers';
+
+const requestId = utils.formatBytes32String(new Date().getTime().toString());
+
+```
+
+Withdrawal signature field
+EIP712 Signatures in Ethereum overview https://eips.ethereum.org/EIPS/eip-712
+
+How our operator rust code base is handle signatures https://gitlab.com/dexlabs/derivadex/-/blob/develop/rust-packages/ddx-common/src/util/eip712.rs
+
+It seems like this is how it should be handled in typescript code? https://gist.github.com/ajb413/6ca63eb868e179a9c0a3b8dc735733cf
+Additional information on this would help. Sorry, rust code is still not that straighforward to me.
+I am trying to proceed with this based on this javascript example, assuming that it is how we should be doing it. 
+
+Alex's Answer:
+
+See the answer below. You don't need to re-create EIP712 type hashing. The RPC endpoint will handle this for you.
+
+Additional Note
+According to this https://eips.ethereum.org/EIPS/eip-712#motivation and my understanding of the whole point of signing with EIP712, from the frontend perspective, sounds to me that we should present the user with the EXACT information of what it is that they are signing. 
+Seeing how the rust code is doing the signature, and assuming we need to follow the exact same steps in our typesscript code, sounds like we will end up calling the signingMessage method, with a hash as a parameter, that represents the withdraw intent request (still need to clarify the exact steps of that hashing process). 
+If that is the case, we will present a hash as the message being signed to the user, which seems to go on a different direction of my understanding of the purpose of this, and what i see described in the link above.
+Is this correct? Feels like i am missing something. 
+
+Alex's Answer: 
+
+You're going to call the `eth_signedTypedData_v4` RPC endpoint. The behavior that you're talking about in this note will be handled by the Metamask Subprovider that you're utilizing and will surely handle this properly. This is a link to an older API that you can refer to while setting this up: https://eips.ethereum.org/EIPS/eip-712#specification-of-the-eth_signtypeddata-json-rpc.
+
+To elaborate, you do *not* to copy the Rust implementation. The Rust implementation has to handle typed data hashing, signing, etc. All that you need to do in the frontend is to utilize the JSON-RPC API accomplish this task. This is a significantly higher level API and you will not need to do the majority of the work that the Rust implementation does. I linked the line of the Rust code so that you know what the type hash for WithdrawParams needs to look like. You will give this to the `eth_signedTypedData_v4` endpoint in the form of JSON.
+
+Operator processes the withdraw request from the request queue
+Once the withdraw intent is submitted in the request queue, it will yield an event in the tx log and will result in an update to the database. Specifically, the operator updates the strategy table (free collateral & frozen collateral)
+
+Notes
+Currently, as i was not able to overcome the signature validation, i temporarly disabled the signature validation on the operator, to get the operator updating the strategy table and the tx log table.
+I got the strategy table updated, but i am not seeing a new row in the tx log table being added when the operator processes the withdraw intent. 
+
+I am not sure if the frontend depends on that tx log entry for something? Seems that we need to get the epoch querying the ethereum contracts, somehow, and that can be done right after the frontend receives a strategy update with a frozen collateral value after submitting the withdraw request. Am i missing something?
+
+Step 2: 
+Wait for a checkpoint event to be emitted. While the checkpoint event is not fired, the client should estimate the timeline for the next checkpoint, based the curent epoch information, the epoch length (how many blocks) and the starting block number. It seems this information should be obtained from the ethereum contracts.
+
+Where can we query our ethereum contracts for epoch information?
+
+NOTE: Based on a talk with Alex, this step will be ignored for now. The frontend will go directly from step 1 to step 3.
+
+ Step 3: 
+After the blocks countdown, we need to handle a checkpoint event from the operator ethereum contract.
+Reference https://gitlab.com/dexlabs/derivadex/-/blob/develop/packages/protocol/contracts/src/facets/Operator.sol#L39
+
+The client can assume, once all blocks were advanced according to the epoch length, and once he got a checkpoint event, that a new checkpoint was submitted to ethereum, containing the withdraw request.
+
+Step 4: 
+Get a compiled merkle proof for a strategy key from the proof rest endpoint. 
+
+Example of generating a strategy key:
+
+```json
+import { hexUtils } from '@0x/utils';
+import { utils } from 'ethers';
+
+const strategyId = 'main';  // default
+const strategyByte32 = utils.formatBytes32String(strategyId);
+const traderAddress = '0x7E98Fdf18dAe0b7b1925d6735D4B77f4889879e1';
+const strategyKey = hexUtils.hash(
+    hexUtils.concat(hexUtils.leftPad(traderAddress, 32), strategyByte32),
+);
+console.log(strategyKey)
+```
+
+Reference to the proof endpoint https://gitlab.com/dexlabs/derivadex/-/blob/develop/rust-packages/ddx-operator/app/src/api/proof.rs
+
+For local testing, the REST url endpoint will look like this (the server name may be different if you are using a NUC)
+
+>  http://localhost:8080/proof/v1?key=[strategyKey]
+
+For more informtion on local dev setup, [see Appendix I](#Appendix-I-Docker-dev-environment) below.
+
+Step 5: 
+Submit a withdrawal transaction (?) to the DerivaDEX contract containing the aforementioned proof and strategy. (??)
+
+Reference https://gitlab.com/dexlabs/derivadex/-/blob/develop/packages/protocol/contracts/src/facets/Trader.sol#L245
+
+
+Appendix I: Docker dev environment
+
+Ensure your docker operator starts up with port **8080** exposed (see `activate-settings.sh` and `docker-compose.dev.yml`).
+
+If you are running a NUC, replace "localhost" with your NUC hostname.
+
+
+
+```
+> docker ps
+93bddba6b587   operator-processor_1         0.0.0.0:8080->8080/tcp 
+```
+Note the open docker port 8080. Confirm the Operator REST API port is open and listening:
+
+```
+> nc -v localhost 8080
+Connection to localhost (::1) 8080 port [tcp/http-alt] succeeded!
+```
+
+Start tailing operator-processor logs:
+```
+docker logs -f operator-processor_1
+```
+
+Then curl the proof endpoint and make sure it's receiving requests:
+```
+curl  -v http://localhost:8080/proof/v1?key=[key]
+```
+
+
+## Price oracle
+
+## Insurance mining
+
+## Governance
+### Proposals
+### Voting
+### 
+
+## DerivaDEX Operator
+### Operator API
+### Matching engine
+### Liquidation engine
+### Funding engine
+### Consensus
+### Registration
+### Bonding 
+
+## Auditor
+
+## Checkpointing
+
+## Request Log
+
+```json
+Subscribe to `pg_notify`
+    ///
+    /// Except for dropping later instances of duplicate notifications, NOTIFY guarantees that
+    /// notifications from the same client get delivered in the order they were sent.
+    /// If multiple clients insert messages into the table concurrently, notification
+    /// sequencing is no longer guaranteed. Our guarantees are:
+    ///
+    /// 1. Messages are eventually delivered to all listening sessions. A large queue (8GB)
+    /// holds messages in the database when listening sessions stop reading.
+    /// 2. Each message comes with a unique and sequential request_index indicating the order in which
+    /// it must be processed.
+    ///
+    /// Given those guarantees, if we receive a message out of order, we detect it using the
+    /// request_index and park it in a temporary queue. When subsequent messages arrive, we match them
+    /// against the queue until we receive the next in line. Then we remove and emit all the
+    /// remaining correctly sequenced messages in the queue.
+    /*
+
+      request_queue:
+
+          epochs:
+
+           #0       #1       #2       #3       #4
+
+           |        |        |        |        |
+           |        |        |        |        |
+           |        |        |        |        |
+           +-----------------------------------------------------------------------------------+
+           |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+           |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+           |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+           |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+           |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+           |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+           |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+           +-----------------------------------------------------------------------------------+
+           |        |        |        |        | | |
+           |        |        |        |        | | |
+           |        |        |        |        | | |
+                                                 | |
+           #0       #1       #2       #3       #4| |
+                                                 | |
+          snapshots ^                            | |
+                                                 | |
+                                                 | |
+                                          +-------------+
+                                          | | | | | | | |
+                                  tx_log: | | | | | | | |
+                                          | | | | | | | |
+                                          | | | | | | | |
+                                          | | | | | | | |
+                                          +-------------+
+```
+
+
+
+
+## External Interfaces
+### Trader API
+### Exchange Front-end
+
+## Appendix
+### Sparse merkle tree primer
+### Solidity guide
+### Operator encoding specification
+### Ethereum providers
+### Ganache
+
+
+
+# Insurance mining
+
+# Governance
+
 # DerivaDEX API
 
 DerivaDEX is a decentralized derivatives exchange that combines the performance of centralized exchanges with the security of decentralized exchanges.
