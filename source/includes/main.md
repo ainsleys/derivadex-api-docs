@@ -3,7 +3,7 @@
 
 DerivaDEX is a decentralized derivatives exchange that combines the performance of centralized exchanges with the security of decentralized exchanges.
 
-DerivaDEX currently offers a public WebSocket API for traders and developers. In order to use this API, you must must first make a deposit to the DerivaDEX Ethereum contracts. The API will then enable you to open and manage your positions via commands, and subscribe to market data via `subscriptions`. 
+DerivaDEX currently offers a public WebSocket API for traders and developers. The API will enable you to open and manage your positions via commands, and subscribe to market data via `subscriptions`. 
 
 Find us online [Discord](https://discord.gg/a54BWuG) | [Telegram](https://t.me/DerivaDEX) | [Medium](https://medium.com/derivadex)
 
@@ -23,7 +23,7 @@ Additionally, you should familiarize yourself with the [DerivaDEX types terminol
 
 The types labeled throughout this document in the request and response parameters may be familiar to those who have a background in Ethereum. In any case, please refer to the table below for additional information on the terminology used here. This reference in conjunction with the JSON samples should provide enough clarity:
 
-type | description |example
+type | description | example
 -----| --------------------- | -----------
 string | Literal of a sequence of characters surrounded by quotes | "ETHPERP"
 address_s  | 20-byte "0x"-prefixed hexadecimal string literal (i.e. 40 digits long) corresponding to an `address` ETH type | "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
@@ -58,13 +58,13 @@ The `header` is simply the byte-string `\x19\x01`. You are welcome to do this ho
 
 ### Domain
 
-> Domain separator for mainnet. DO NOT modify these parameters.
+> Domain separator for kovan. DO NOT modify these parameters.
 ```json
 {
     "name": "DerivaDEX",
     "version": "1",
-    "chainId":  1,
-    "verifyingContract": "0x"
+    "chainId":  42,
+    "verifyingContract": "0x80ead6c2d69acc72dad76fb3151820a9b5d6a9e9"
 }
 ```
 
@@ -97,7 +97,7 @@ function compute_eip712_domain_struct_hash(string memory _name, string memory _v
 from eth_abi import encode_single
 from eth_utils.crypto import keccak
 
-def compute_eip712_domain_struct_hash(chain_id):
+def compute_eip712_domain_struct_hash(chain_id, verifying_contract):
     # keccak-256 hash of the encoded schema for the domain separator
     eip712_domain_separator_schema_hash = keccak(
         b"EIP712Domain("
@@ -113,7 +113,7 @@ def compute_eip712_domain_struct_hash(chain_id):
         + keccak(b"DerivaDEX")
         + keccak(b"1")
         + encode_single('uint256', chain_id)
-        + encode_single('address', "0x")
+        + encode_single('address', verifying_contract)
     )
 ```
 
@@ -124,6 +124,7 @@ type | field | description
 name  | string | Name of the dApp or protocol
 version  | string | Current version of the signing domain
 chainId | uint256 | EIP-155 chain ID
+verifyingContract | address | DerivaDEX smart contract's Ethereum address
 
 To generate the `domain` struct hash, you must perform a series of encodings and hashings of the schema and contents of the `domain` specfication. You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. Example Solidity and Python reference implementations are displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.
 
@@ -135,7 +136,7 @@ The `message` field varies depending on the typed data you are signing, and is i
 
 > Sample computation of order struct hash
 ```solidity
-function compute_eip712_order_struct_hash(address _traderAddress, bytes32 _symbol, bytes32 _strategy, uint256 _side, uint256 _orderType, bytes32 _requestId, uint256 _amount, uint256 _price, uint256 _stopPrice) public view returns (bytes32) {
+function compute_eip712_order_struct_hash(address _traderAddress, bytes32 _symbol, bytes32 _strategy, uint256 _side, uint256 _orderType, bytes32 _nonce, uint256 _amount, uint256 _price, uint256 _stopPrice) public view returns (bytes32) {
     // keccak-256 hash of the encoded schema for the order params struct
     bytes32 orderSchemaHash = keccak256(abi.encodePacked(
         "OrderParams(",
@@ -144,7 +145,7 @@ function compute_eip712_order_struct_hash(address _traderAddress, bytes32 _symbo
         "bytes32 strategy,",
         "uint256 side,",
         "uint256 orderType,",
-        "bytes32 requestId,",
+        "bytes32 nonce,",
         "uint256 amount,",
         "uint256 price,",
         "uint256 stopPrice",
@@ -158,7 +159,7 @@ function compute_eip712_order_struct_hash(address _traderAddress, bytes32 _symbo
         _strategy,
         _side,
         _orderType,
-        _requestId,
+        _nonce,
         _amount,
         _price,
         _stopPrice
@@ -173,7 +174,7 @@ from eth_abi import encode_single
 from eth_utils.crypto import keccak
 from decimal import Decimal, ROUND_DOWN
 
-def compute_eip712_order_struct_hash(trader_address: str, symbol: str, strategy: str, side: str, order_type: str, request_id: str, amount: Decimal, price: Decimal, stop_price: Decimal) -> bytes:
+def compute_eip712_order_struct_hash(trader_address: str, symbol: str, strategy: str, side: str, order_type: str, nonce: str, amount: Decimal, price: Decimal, stop_price: Decimal) -> bytes:
     # keccak-256 hash of the encoded schema for the place order command
     eip712_order_params_schema_hash = keccak(
         b"OrderParams("
@@ -182,7 +183,7 @@ def compute_eip712_order_struct_hash(trader_address: str, symbol: str, strategy:
         + b"bytes32 strategy,"
         + b"uint256 side,"
         + b"uint256 orderType,"
-        + b"bytes32 requestId,"
+        + b"bytes32 nonce,"
         + b"uint256 amount,"
         + b"uint256 price,"
         + b"uint256 stopPrice"
@@ -214,11 +215,13 @@ def compute_eip712_order_struct_hash(trader_address: str, symbol: str, strategy:
     return keccak(
         eip712_order_params_schema_hash
         + encode_single('address', trader_address)
-        + encode_single('bytes32', symbol.encode('utf8'))
-        + encode_single('bytes32', strategy.encode('utf8'))
+        + len(symbol).to_bytes(1, byteorder="little")
+        + encode_single("bytes32", symbol.encode("utf8"))[:-1]
+        + len(strategy).to_bytes(1, byteorder="little")
+        + encode_single("bytes32", strategy.encode("utf8"))[:-1]
         + encode_single('uint256', order_side_to_int(side))
         + encode_single('uint256', order_type_to_int(order_type))
-        + encode_single('bytes32', bytes.fromhex(request_id[2:]))
+        + encode_single('bytes32', bytes.fromhex(nonce[2:]))
         + encode_single('uint256', to_base_unit_amount(amount, 18))
         + encode_single('uint256', to_base_unit_amount(price, 18))
         + encode_single('uint256', to_base_unit_amount(stop_price, 18))
@@ -230,11 +233,11 @@ The parameters that comprise the `message` for the `command` to place an order a
 type | field | description
 -----|----- | ---------------------
 traderAddress  | address | Trader's ETH address used to sign order intent
-symbol  | bytes32 | 32-byte encoding of the symbol this order is for. The `symbol` of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly.
-strategy | bytes32 | 32-byte encoding of the strategy this order belongs to. The `strategy` of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly. The `strategy` refers to the cross-margined bucket this trade belongs to. Currently, there is only the default `main` strategy, but support for multiple strategies is coming soon!
+symbol  | bytes32 | 32-byte encoding of the symbol length and symbol this order is for. The `symbol` of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly.
+strategy | bytes32 | 32-byte encoding of the strategy length and strategy this order belongs to. The `strategy` of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly. The `strategy` refers to the cross-margined bucket this trade belongs to. Currently, there is only the default `main` strategy, but support for multiple strategies is coming soon!
 side | uint256 | An integer value either `0` (Bid) or `1` (Ask)
 orderType | uint256 | An integer value either `0` (Limit) or `1` (Market)
-requestId | bytes32 | 32-byte nonce (an incrementing numeric identifier that is unique per user for all time) resulting in uniqueness of order
+nonce | bytes32 | 32-byte value (an incrementing numeric identifier that is unique per user for all time) resulting in uniqueness of order
 amount | uint256 | Order amount (scaled up by 18 decimals; e.g. 2.5 => 2500000000000000000). The `amount` of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.
 price | uint256 | Order price (scaled up by 18 decimals; e.g. 2001.37 => 2001370000000000000000). The `price` of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.
 stopPrice | uint256 | Stop price (scaled up by 18 decimals). The `stopPrice` of the order you send to the API is a decimal, however for signing purposes, you must scale up by 18 decimals and convert to an integer.
@@ -308,7 +311,7 @@ function deposit(
 ) external;
 ```
 
-> Sample API URL connection generation (Python)
+> Smart contract deposit function (Python)
 ```python
 from web3 import Web3
 from eth_abi import encode_single
@@ -322,7 +325,7 @@ with open('trader_abi.json') as f:
     trader_abi = json.load(f)
     
     # Create an trader_abi contract wrapper
-    trader_contract = w3.eth.contract(address=Web3.toChecksumAddress('<derivadex_contract_address>'), abi=trader_abi)
+    trader_contract = w3.eth.contract(address=Web3.toChecksumAddress('0x80ead6c2d69acc72dad76fb3151820a9b5d6a9e9'), abi=trader_abi)
     
     # Deposit 1000 USDC
     trader_contract.functions.deposit('<usdc_address>', encode_single("bytes32", 'main'.encode("utf8")), 1000000000).transact()
@@ -330,7 +333,7 @@ with open('trader_abi.json') as f:
 
 DerivaDEX is a decentralized exchange. As such, trading is non-custodial. Users are responsible for their own funds, which are deposited to the DerivaDEX smart contracts on Ethereum for trading. 
 
-To deposit funds on DerivaDEX, first ensure that you have created an Ethereum account. The deposit interaction is between a user and the DerivaDEX smart contracts. To be more explicit, you will not be utilizing the WebSocket API to facilitate a deposit. The DerivaDEX Solidity smart contracts adhere to the [Diamond Standard](https://medium.com/derivadex/the-diamond-standard-a-new-paradigm-for-upgradeability-569121a08954). The `deposit` smart contract function you will need to use is located in the `Trader` facet, at the address of the main `DerivaDEX` proxy contract (insert address here).
+To deposit funds on DerivaDEX, first ensure that you have created an Ethereum account. The deposit interaction is between a user and the DerivaDEX smart contracts. To be more explicit, you will not be utilizing the WebSocket API to facilitate a deposit. The DerivaDEX Solidity smart contracts adhere to the [Diamond Standard](https://medium.com/derivadex/the-diamond-standard-a-new-paradigm-for-upgradeability-569121a08954). The `deposit` smart contract function you will need to use is located in the `Trader` facet, at the address of the main `DerivaDEX` proxy contract (`0xf5e334fb5cca9a0deb2abd974dd8650c2503bdec`).
 
 Note: Valid deposit collateral is curated by the smart contract and is managed by governance.
 
@@ -348,7 +351,7 @@ An example Python implementation is displayed on the right, but feel free to uti
 ```python
 from web3 import Web3
 from eth_account.messages import encode_defunct
-from eth_abi import encode_abi
+from eth_abi import encode_single
 import time
 
 def get_url(self) -> str:
@@ -357,35 +360,39 @@ def get_url(self) -> str:
     
     # Initialize a Web3 account from a private key
     web3_account = self.w3.eth.account.from_key("<private_key>")
-
+    
     # Retrieve current UNIX time in nanoseconds to derive a unique, monotonically-increasing nonce
-    nonce = time.time_ns()
+    nonce = str(time.time_ns())
 
-    # keccak256(abi.encode(['bytes32', 'uint256'], [bytes_encoded('DerivaDEX API'), nonce]))
-    connect_message = w3.keccak(
-        encode_abi(["bytes32", "uint256"], ["DerivaDEX API".encode("utf8"), nonce])
-    )
+    # abi.encode(['bytes32'], [nonce])
+    encoded_nonce = encode_single("bytes32", nonce.encode("utf8")).hex()
+    
+    # Hash bytes32 nonce without ETH prefix
+    intermediary_hash = self.w3.keccak(hexstr=encoded_nonce)
 
-    # Obtain signable message
-    encoded_message = encode_defunct(text=connect_message.hex())
+    # Prefix intermediary hash with ETH prefix to prepare for signing
+    prefixed_message = encode_defunct(hexstr=intermediary_hash.hex())
 
-    # Obtain signature
-    signature = web3_account.sign_message(encoded_message)
+    # Hash prefixed message and sign the result
+    signed_message = self.web3_account.sign_message(prefixed_message)
 
     # Construct WS connection url with format
-    return f"wss://alpha.derivadex.io/trader/v1?nonce={nonce}&signature={signature.signature.hex()}"
+    # f"wss://beta.derivadex.io/trader/v1?token=<encoded_nonce><signature>"
+    # encoded_nonce = 32-byte hexstr without 0x prefix (i.e. 64 chars)
+    # signature = 65-byte hexstr without 0x prefix (i.e. 130 chars)
+    return f"wss://beta.derivadex.io/trader/v1?token={encoded_nonce}{signed_message.signature.hex()[2:]}"
 ```
 
 Addresses used to connect to the websocket API must _already_ have funds deposited. If you haven't, [do that first](#Making-a-deposit).
 
 The steps to connect are:
 
-1. Generate a numeric value (`nonce`) that is greater than the last value used for this address. Typically, [Unix time](https://en.wikipedia.org/wiki/Unix_time) (either milliseconds or nanoseconds) is used, but users may opt to maintain their own sequence counter. Requests with a nonce that are less than or equal to the previous value will be rejected.
-2. `Keccak-256` hash the following ABI-encoded values with the specified types:
-    - "DerivaDEX API" encoded as bytes (`bytes32`) 
-    - `nonce` (`uint256`)
-3. Generate a `signature` of the hash using eth_sign or equivalent signer.
-4. Connect to the websocket with the url: `wss://api.derivadex.com?nonce=[nonce]&signature=[signature]`
+1. Generate a string (`nonce`) that is greater than the last value used for this address. Requests with a nonce less than or equal to the previous value will be rejected. For this reason, we **STRONGLY** recommend using [Unix time](https://en.wikipedia.org/wiki/Unix_time) in nanoseconds, but users may opt to maintain their own sequence counter if they really know what they are doing and are comfortable with the risk. 
+2. ABI encode the `nonce` to a 32-byte value ('bytes32').
+3. `keccak256` hash the encoded nonce without the ETH prefix.
+4. Prefix the hash from above with the ETH prefix.
+5. Generate a `signature` of the hash of the prefixed message from above using eth_sign or equivalent signer.
+6. Connect to the websocket with the url: `wss://beta.derivadex.io/trader/v1?token=[encoded_nonce][signature]`
 
 An example Python implementation is displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.
 
@@ -399,7 +406,8 @@ The websocket API offers commands for placing and canceling orders, as well as w
 > Request format (JSON)
 ```json
 {
-	"request": {
+	"t": "Request",
+	"c": {
 		"t": "Order",
 		"c": {
 			"traderAddress": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
@@ -407,11 +415,11 @@ The websocket API offers commands for placing and canceling orders, as well as w
 			"strategy": "main",
 			"side": "Bid",
 			"orderType": "Limit",
-			"requestId": "0x0000000000000000000000000000000000000000000000000000000000000001",
+			"nonce": "0x3136313839303336353634383833373230303000000000000000000000000000",
 			"amount": 10,
-			"price": 497.97,
+			"price": 487.50,
 			"stopPrice": 0,
-			"signature": "0x"
+			"signature": "0xd5a1ca6d40a030368710ab86d391e5d16164ea16d2c809894eefddd1658bb08c6898177aa492d4d45272ee41cb40f252327a23e8d1fc2af6904e8860d3f72b3b1b"
 		}
 	}
 }
@@ -426,7 +434,7 @@ string  | symbol | Name of the market to trade. Currently, this is limited to 'E
 string | strategy | Name of the cross-margined strategy this trade belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
 string | side | Side of trade, either `Bid` (buy/long) or an `Ask` (sell/short)
 string | orderType | Order type, either `Limit` or `Market`. Other order types coming soon!
-bytes32_s | requestId | An incrementing numeric identifier for this request that is unique per user for all time
+bytes32_s | nonce | An incrementing numeric identifier for this request that is unique per user for all time
 decimal | amount | The order amount/size requested
 decimal | price | The order price
 decimal | stopPrice | Currently, always 0 as stops are not implemented.
@@ -437,36 +445,33 @@ bytes_s | signature | EIP-712 signature of the order placement intent
 > Receipt (success) format (JSON)
 ```json
 {
-  "receipt": {
-    "t": "Received",
-    "c": {
-      "requestId": "0x0000000000000000000000000000000000000000000000000000000000000003",
-      "requestIndex": "0x5",
-      "enclaveSignature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-    }
-  }
+	"t": "Sequenced",
+	"c": {
+		"sender": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
+		"nonce": "0x3136313839303336353634383833373230303000000000000000000000000000",
+		"requestIndex": 13280,
+		"enclaveSignature": "0xd42d6ec7851ff6e0ebac80cd087c20b9e3c2df8ddbeeed59914bec25dec1091d7ed0551bc815af1c8fc1e7438f58121b2ce0aa23d1fba0cd2413a6b16a7c2cb11c"
+	}
 }
 ```
 
-A place order `command` returns a response receipt, which confirms that an Operator has received the request and has sequenced it for processing. The receipt `type` will be either `Received` or `Error`.
+A place order `command` returns a response receipt, which confirms that an Operator has received the request and has sequenced it for processing. The receipt `type` will be either `Sequenced` or `Error`.
  
-A successful `command` returns a `Received` receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the security guarantees associated with Intel SGX TEEs.
+A successful `command` returns a `Sequenced` receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the security guarantees associated with Intel SGX TEEs.
 
 type | field | description
 ------ | ---- | -----------
 bytes32_s | requestId | The requestId supplied in the initial request - can be used to correlate requests with receipts
-?? | requestIndex | A ticket number which guarantees fair sequencing
+int | requestIndex | A ticket number which guarantees fair sequencing
 bytes_s | enclaveSignature | An Operator's signature which proves secure handling of the request 
 
 > Receipt (error) format (JSON)
 ```json
 {
-  "receipt": {
-    "t": "Error",
-    "c": {
-      "msg": "Nonces cannot go backwards"
-    }
-  }
+	"t": "Error",
+	"c": {
+		"message": "Error: timeout of 2000ms exceeded"
+	}
 }
 ```
 An erroneous command returns an `Error` receipt from the Operator.
@@ -482,15 +487,16 @@ string | msg | Error message
 > Request format (JSON)
 ```json
 {
-  "request": {
-    "t": "CancelOrder",
-    "c": {
-      "symbol": "ETHPERP",
-      "orderHash": "0xa2e47f2d462c4368fdae25028447c78118ba349141d0ba945c6f100dfd149029",
-      "requestId": "0x0000000000000000000000000000000000000000000000000000000000000002",
-      "signature": "0x89fb49d2d125adfef56328ee7367d23d1642d2fb6cfdf8843fa94ae7eac9ab23"
-    }
-  }
+	"t": "Request",
+	"c": {
+		"t": "CancelOrder",
+		"c": {
+			"symbol": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
+			"orderHash": "ETHPERP",
+			"nonce": "0x3136313839303336353634383833373230303000000000000000000000000000",
+			"signature": "0xd5a1ca6d40a030368710ab86d391e5d16164ea16d2c809894eefddd1658bb08c6898177aa492d4d45272ee41cb40f252327a23e8d1fc2af6904e8860d3f72b3b1b"
+		}
+	}
 }
 ```
 
@@ -500,7 +506,7 @@ type | field | description
 -----|---- | -----------------------
 string | symbol | Currently always 'ETHPERP'. New symbols coming soon! 
 bytes32_s | orderHash| The hash of the order being canceled.
-bytes32_s | requestId | An incrementing numeric identifier for this request that is unique per user for all time
+bytes32_s | nonce | An incrementing numeric identifier for this request that is unique per user for all time
 bytes_s | signature | EIP-712 signature
 
 As described in the `Signatures & hashing` section, the `orderHash` is something that you construct client-side prior to submitting the order to the exchange. In this regard, you have the `orderHash` for each order you submit irrespective of acknowledgement from the exchange. You can determine which ones have actually been received by the exchange by filtering all the ones you have sent by using the `requestId` field in the successful/received responses from the place order `command`. As an alternate/additional reference, the `OrdersUpdate` `subscription` (see below for further information) includes the `orderHash` field for any open orders you have.
@@ -509,18 +515,17 @@ As described in the `Signatures & hashing` section, the `orderHash` is something
 > Receipt (success) format (JSON)
 ```json
 {
-  "receipt": {
-    "t": "Received",
-    "c": {
-      "requestId": "0x0000000000000000000000000000000000000000000000000000000000000003",
-      "requestIndex": "0x5",
-      "enclaveSignature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-    }
-  }
+	"t": "Sequenced",
+	"c": {
+		"sender": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
+		"nonce": "0x3136313839303336353634383833373230303000000000000000000000000000",
+		"requestIndex": 13280,
+		"enclaveSignature": "0xd42d6ec7851ff6e0ebac80cd087c20b9e3c2df8ddbeeed59914bec25dec1091d7ed0551bc815af1c8fc1e7438f58121b2ce0aa23d1fba0cd2413a6b16a7c2cb11c"
+	}
 }
 ```
 
-A cancel order `command` returns a response receipt, which confirms that an Operator has received the request and has sequenced it for processing. The receipt `type` will be either `Received` or `Error`.
+A cancel order `command` returns a response receipt, which confirms that an Operator has received the request and has sequenced it for processing. The receipt `type` will be either `Sequenced` or `Error`.
  
 A successful `command` returns a `Received` receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the security guarantees associated with Intel SGX TEEs.
 
@@ -533,12 +538,10 @@ bytes_s | enclaveSignature | An Operator's signature which proves secure handlin
 > Receipt (error) format (JSON)
 ```json
 {
-  "receipt": {
-    "t": "Error",
-    "c": {
-      "msg": "Nonces cannot go backwards"
-    }
-  }
+	"t": "Error",
+	"c": {
+		"message": "Error: timeout of 2000ms exceeded"
+	}
 }
 ```
 An erroneous command returns an `Error` receipt from the Operator.
@@ -554,17 +557,18 @@ string | msg | Error message
 > Request format (JSON)
 ```json
 {
-  "request": {
-    "t": "Withdraw",
-    "c": {
-      "traderAddress": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
-      "strategyId": "main",
-      "currency": "0x41082c820342539de44c1b404fead3b4b39e15d6",
-      "amount": 440.32,
-      "requestId": "0x0000000000000000000000000000000000000000000000000000000000000003",
-      "signature": "0x89fb49d2d125adfef56328ee7367d23d1642d2fb6cfdf8843fa94ae7eac9ab23"
-    }
-  }
+	"t": "Request",
+	"c": {
+		"t": "Withdraw",
+		"c": {
+			"traderAddress": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
+			"strategyId": "main",
+			"currency": "0x41082c820342539de44c1b404fead3b4b39e15d6",
+			"amount": 440.32,
+			"nonce": "0x3136313839303336353634383833373230303000000000000000000000000000",
+			"signature": "0xd5a1ca6d40a030368710ab86d391e5d16164ea16d2c809894eefddd1658bb08c6898177aa492d4d45272ee41cb40f252327a23e8d1fc2af6904e8860d3f72b3b1b"
+		}
+	}
 }
 ```
 
@@ -583,14 +587,13 @@ bytes_s | signature | EIP-712 signature
 > Receipt (success) format (JSON)
 ```json
 {
-  "receipt": {
-    "t": "Received",
-    "c": {
-      "requestId": "0x0000000000000000000000000000000000000000000000000000000000000003",
-      "requestIndex": "0x5",
-      "enclaveSignature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-    }
-  }
+	"t": "Sequenced",
+	"c": {
+		"sender": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
+		"nonce": "0x3136313839303336353634383833373230303000000000000000000000000000",
+		"requestIndex": 13280,
+		"enclaveSignature": "0xd42d6ec7851ff6e0ebac80cd087c20b9e3c2df8ddbeeed59914bec25dec1091d7ed0551bc815af1c8fc1e7438f58121b2ce0aa23d1fba0cd2413a6b16a7c2cb11c"
+	}
 }
 ```
 
@@ -601,20 +604,19 @@ A successful `command` returns a `Received` receipt from the Operator. DerivaDEX
 type | field | description
 ------ | ---- | -----------
 bytes32_s | requestId | The requestId supplied in the initial request - can be used to correlate requests with receipts
-?? | requestIndex | A ticket number which guarantees fair sequencing
+int | requestIndex | A ticket number which guarantees fair sequencing
 bytes_s | enclaveSignature | An Operator's signature which proves secure handling of the request 
 
 > Receipt (error) format (JSON)
 ```json
 {
-  "receipt": {
-    "t": "Error",
-    "c": {
-      "msg": "Nonces cannot go backwards"
-    }
-  }
+	"t": "Error",
+	"c": {
+		"message": "Error: timeout of 2000ms exceeded"
+	}
 }
 ```
+
 An erroneous command returns an `Error` receipt from the Operator.
 
 type | field | description
@@ -631,14 +633,12 @@ You can subscribe to two different kinds of feeds corresponding to a specific tr
 > Request format (JSON)
 ```json
 {
-  "request": {
-    "t": "SubscribeAccount",
-    "c": {
-      "trader": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
-      "strategies": ["main"],
-      "events": ["StrategyUpdate", "OrdersUpdate", "PositionUpdate"]
-    }
-  }
+	"t": "SubscribeAccount",
+	"c": {
+		"trader": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
+		"strategies": ["main"],
+		"events": ["StrategyUpdate", "OrdersUpdate", "PositionUpdate"]
+	}
 }
 ```
 
@@ -654,12 +654,10 @@ string[] | events | Events being subscribed to. This can be one or more of `Stra
 > Receipt (success) format (JSON)
 ```json
 {
-  "receipt": {
     "t": "Subscribed",
     "c": {
-      "msg": "Subscribed to [StrategyUpdate | OrdersUpdate | PositionUpdate] for ETHPERP"
+        "message": "Subscribed to [StrategyUpdate | OrdersUpdate | PositionUpdate] for 0x603699848c84529987E14Ba32C8a66DEF67E9eCE"
     }
-  }
 }
 ```
 
@@ -669,17 +667,15 @@ A successful `subscription` returns a `Subscribed` receipt from the Operator.
 
 type | field | description
 ------ | ---- | -----------
-string | msg | Success message 
+string | message | Success message 
 
 > Receipt (error) format (JSON)
 ```json
 {
-  "receipt": {
     "t": "Error",
     "c": {
-      "msg": "Invalid subscription"
+        "message": "Invalid subscription"
     }
-  }
 }
 ```
 
@@ -687,7 +683,7 @@ An erroneous `subscription` returns an `Error` receipt from the Operator.
 
 type | field | description
 ------ | ---- | -----------
-string | msg | Error message 
+string | message | Error message 
 
 ### Events
 
@@ -704,10 +700,10 @@ Each of the market `subscription` events will be discussed below individually.
 		"strategy": "main",
 		"maxLeverage": "20",
 		"freeCollateral": {
-          "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": "1000"
+            "0xc4f290a59d66a2e06677ed27422a1106049d9e72": "1000"
         },
 		"frozenCollateral": {
-          "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": "0"
+            "0xc4f290a59d66a2e06677ed27422a1106049d9e72": "0"
         },
 		"createdAt": "2021-03-23T20:03:45.850Z"
 	}]
@@ -724,10 +720,10 @@ Each of the market `subscription` events will be discussed below individually.
 		"strategy": "main",
 		"maxLeverage": "20",
 		"freeCollateral": {
-          "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": "2000"
+            "0xc4f290a59d66a2e06677ed27422a1106049d9e72": "2000"
         },
 		"frozenCollateral": {
-          "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": "0"
+            "0xc4f290a59d66a2e06677ed27422a1106049d9e72": "0"
         },
 		"frozen": false,
 		"createdAt": "2021-03-23T20:03:45.850Z"
@@ -760,9 +756,9 @@ bool     | frozen | Whether the account and its collateral is frozen or not
 		"orderHash": "0x946e4bedf2dd87e5380f32a18d1af19adb4d7ecec3a8a346cb641adc5201e53e",
 		"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
 		"symbol": "ETHPERP",
-		"side": "0",
-		"orderType": "0",
-		"requestId": "0x0000000000000000000000000000000000000000000000000000000000000001",
+		"side": 0,
+		"orderType": 0,
+		"nonce": "0x0000000000000000000000000000000000000000000000000000000000000001",
 		"amount": "10.000000000000000000",
 		"remainingAmount": "10.000000000000000000",
 		"price": "521.800000000000000000",
@@ -779,18 +775,19 @@ bool     | frozen | Whether the account and its collateral is frozen or not
 	"t": "OrdersUpdate",
 	"e": "Update",
 	"c": [{
-		"orderHash": "0x946e4bedf2dd87e5380f32a18d1af19adb4d7ecec3a8a346cb641adc5201e53e",
-		"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
+		"orderHash": "0x6ba227be1c689a978c30ef50196d6451b1e039cf64b22ce82b88f14a31d9da8a",
+		"makerAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
 		"symbol": "ETHPERP",
-		"side": "0",
-		"orderType": "0",
-		"requestId": "0x0000000000000000000000000000000000000000000000000000000000000001",
-		"amount": "10",
-		"remainingAmount": "0",
-		"price": "521.8",
+		"strategy": "main",
+		"side": "Ask",
+		"orderType": 0,
+		"nonce": "0x3136323130313431373537353037303130303000000000000000000000000000",
+		"amount": "7.51",
+		"remainingAmount": "7.51",
+		"price": "4165.16",
 		"stopPrice": "0",
-		"signature": "0x",
-		"createdAt": "2021-03-24T23:25:41.467Z"
+		"signature": "0x61d4e6f2c65cc21f5ace380d5f025c117841a92fbde3354802955f77372c709174cc3d31160fa0d4d0ff8a34bed80dfe99bd04bcee71308560314e0db509e0051b",
+		"createdAt": "2021-05-14T17:42:59.558Z"
 	}]
 }
 ```
@@ -808,7 +805,7 @@ address_s | traderAddress | Trader's Ethereum address associated with this order
 string  | symbol | Name of the market this order belongs to. Currently, this is limited to 'ETHPERP', but new symbols are coming soon! 
 string | strategy | Name of the cross-margined strategy this order belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
 int_s | side | Side of order, either `0` (`Bid`) or an `1` (`Ask`)
-int_s | orderType | Order type, either `0` (`Limit`) or `0` (`Market`). Other order types coming soon!
+int | orderType | Order type, either `0` (`Limit`) or `0` (`Market`). Other order types coming soon!
 bytes32_s | requestId | Numeric identifier for the order. To clarify, this is NOT an identifier relating to this particular subscription/response, but rather the `requestId` field associated with this order at the time of placement.
 decimal_s | amount | The original order amount/size requested
 decimal_s | remainingAmount | The order amount/size remaining on the order book
@@ -850,12 +847,10 @@ string[] | events | Events being subscribed to. This can be one or more of `Orde
 > Receipt (success) format (JSON)
 ```json
 {
-  "receipt": {
     "t": "Subscribed",
     "c": {
-      "msg": "Subscribed to [OrderBookUpdate | MarkPriceUpdate] for ETHPERP"
+        "message": "Subscribed to [OrderBookUpdate | MarkPriceUpdate] for ETHPERP"
     }
-  }
 }
 ```
 
@@ -865,17 +860,15 @@ A successful `subscription` returns a `Subscribed` receipt from the Operator.
 
 type | field | description
 ------ | ---- | -----------
-string | msg | Success message 
+string | message | Success message 
 
 > Receipt (error) format (JSON)
 ```json
 {
-  "receipt": {
     "t": "Error",
     "c": {
-      "msg": "Invalid subscription"
+        "message": "Invalid subscription"
     }
-  }
 }
 ```
 
@@ -883,7 +876,7 @@ An erroneous `subscription` returns an `Error` receipt from the Operator.
 
 type | field | description
 ------ | ---- | -----------
-string | msg | Error message 
+string | message | Error message 
 
 ### Events
 
@@ -913,7 +906,7 @@ Each of the market `subscription` events will be discussed below individually.
 ```json
 {
 	"t": "OrderBookUpdate",
-	"e": "Partial",
+	"e": "Update",
 	"c": [{
 		"bids": [
 			["516.58", "0"]
@@ -940,7 +933,7 @@ decimal_s[2][]  | bids | The price and corresponding updated aggregate quantity 
 decimal_s[2][]  | asks | The price and corresponding updated aggregate quantity for the asks
 timestamp_i  | timestamp | Timestamp of order book partial/update
 timestamp_s_i  | nonce | ???
-decimal_s   | aggregationType | ???
+decimal_s   | aggregationType | Precision used for the selected product
 
 ##### Maintaining local order book
 
@@ -959,7 +952,8 @@ To maintain a local order book, you can use a combination of the `Partial` snaps
 	"t": "MarkPriceUpdate",
 	"e": "Partial",
 	"c": [{
-		"price": "508.36236848846397",
+		"indexPrice": "4112.74",
+        "ema": "5.136686727099837573",
 		"symbol": "ETHPERP",
 		"createdAt": "2021-03-25T10:37:38.124Z",
 		"updatedAt": "2021-03-25T10:37:38.124Z"
@@ -973,10 +967,11 @@ To maintain a local order book, you can use a combination of the `Partial` snaps
 	"t": "MarkPriceUpdate",
 	"e": "Update",
 	"c": [{
-		"createdAt": "2021-03-25T10:38:09.503654+00:00",
-		"updatedAt": "2021-03-25T10:38:09.503654+00:00",
-		"price": "508.95189310211146",
-		"symbol": "ETHPERP"
+		"indexPrice": "4114.74",
+		"ema": "4.246686727099837573",
+		"symbol": "ETHPERP",
+		"createdAt": "2021-05-14T17:43:50.626201+00:00",
+		"updatedAt": "2021-05-14T17:43:50.626201+00:00"
 	}]
 }
 ```
