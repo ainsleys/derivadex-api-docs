@@ -1042,8 +1042,7 @@ type | field | description
 timestamp_s  | createdAt | Timestamp of original price checkpoint entry
 timestamp_s  | updatedAt | Timestamp of price checkpoint update
 decimal_s | indexPrice | Composite index price
-decimal_s | ema | Exponential moving average of the premium rate (essentially adjusting for the difference 
-between the composite index price and the DerivaDEX derivative product's order book)
+decimal_s | ema | Exponential moving average of the premium rate (essentially adjusting for the difference between the composite index price and the DerivaDEX derivative product's order book)
 string  | symbol | Market subscribed to
 
 
