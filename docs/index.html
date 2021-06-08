@@ -419,9 +419,9 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     trader_contract = w3.eth.contract(address=Web3.toChecksumAddress(<span class="hljs-string">&#x27;0x80ead6c2d69acc72dad76fb3151820a9b5d6a9e9&#x27;</span>), abi=trader_abi)
     
     <span class="hljs-comment"># Deposit 1000 USDC</span>
-    trader_contract.functions.deposit(<span class="hljs-string">&#x27;&lt;usdc_address&gt;&#x27;</span>, encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, <span class="hljs-string">&#x27;main&#x27;</span>.encode(<span class="hljs-string">&quot;utf8&quot;</span>)), <span class="hljs-number">1000000000</span>).transact()</code></pre>
+    trader_contract.functions.deposit(<span class="hljs-string">&#x27;0xc4f290a59d66a2e06677ed27422a1106049d9e72&#x27;</span>, encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, <span class="hljs-string">&#x27;main&#x27;</span>.encode(<span class="hljs-string">&quot;utf8&quot;</span>)), <span class="hljs-number">1000000000</span>).transact()</code></pre>
             <p>DerivaDEX is a decentralized exchange. As such, trading is non-custodial. Users are responsible for their own funds, which are deposited to the DerivaDEX smart contracts on Ethereum for trading. </p>
-            <p>To deposit funds on DerivaDEX, first ensure that you have created an Ethereum account. The deposit interaction is between a user and the DerivaDEX smart contracts. To be more explicit, you will not be utilizing the WebSocket API to facilitate a deposit. The DerivaDEX Solidity smart contracts adhere to the <a href="https://medium.com/derivadex/the-diamond-standard-a-new-paradigm-for-upgradeability-569121a08954">Diamond Standard</a>. The <code>deposit</code> smart contract function you will need to use is located in the <code>Trader</code> facet, at the address of the main <code>DerivaDEX</code> proxy contract (<code>0xf5e334fb5cca9a0deb2abd974dd8650c2503bdec</code>).</p>
+            <p>To deposit funds on DerivaDEX, first ensure that you have created an Ethereum account. The deposit interaction is between a user and the DerivaDEX smart contracts. To be more explicit, you will not be utilizing the WebSocket API to facilitate a deposit. The DerivaDEX Solidity smart contracts adhere to the <a href="https://medium.com/derivadex/the-diamond-standard-a-new-paradigm-for-upgradeability-569121a08954">Diamond Standard</a>. The <code>deposit</code> smart contract function you will need to use is located in the <code>Trader</code> facet, at the address of the main <code>DerivaDEX</code> proxy contract (<code>0x80ead6c2d69acc72dad76fb3151820a9b5d6a9e9</code>).</p>
             <p>Note: Valid deposit collateral is curated by the smart contract and is managed by governance.</p>
             <table>
                <thead>
@@ -450,17 +450,14 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             <blockquote>
                <p>Sample API URL connection generation (Python)</p>
             </blockquote>
-            <pre class="highlight python"><code><span class="hljs-keyword">from</span> web3 <span class="hljs-keyword">import</span> Web3
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> web3.auto <span class="hljs-keyword">import</span> w3
 <span class="hljs-keyword">from</span> eth_account.messages <span class="hljs-keyword">import</span> encode_defunct
 <span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single
 <span class="hljs-keyword">import</span> time
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">get_url</span>(<span class="hljs-params">self</span>) -&gt; str:</span>
-    <span class="hljs-comment"># A Web3 instance</span>
-    w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura.io/v3/&lt;your_api_key&gt;&quot;</span>))
-    
     <span class="hljs-comment"># Initialize a Web3 account from a private key</span>
-    web3_account = self.w3.eth.account.from_key(<span class="hljs-string">&quot;&lt;private_key&gt;&quot;</span>)
+    web3_account = w3.eth.account.from_key(<span class="hljs-string">&quot;&lt;private_key&gt;&quot;</span>)
     
     <span class="hljs-comment"># Retrieve current UNIX time in nanoseconds to derive a unique, monotonically-increasing nonce</span>
     nonce = <span class="hljs-built_in">str</span>(time.time_ns())
@@ -469,13 +466,13 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     encoded_nonce = encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, nonce.encode(<span class="hljs-string">&quot;utf8&quot;</span>)).<span class="hljs-built_in">hex</span>()
     
     <span class="hljs-comment"># Hash bytes32 nonce without ETH prefix</span>
-    intermediary_hash = self.w3.keccak(hexstr=encoded_nonce)
+    intermediary_hash = w3.keccak(hexstr=encoded_nonce)
 
     <span class="hljs-comment"># Prefix intermediary hash with ETH prefix to prepare for signing</span>
     prefixed_message = encode_defunct(hexstr=intermediary_hash.<span class="hljs-built_in">hex</span>())
 
     <span class="hljs-comment"># Hash prefixed message and sign the result</span>
-    signed_message = self.web3_account.sign_message(prefixed_message)
+    signed_message = web3_account.sign_message(prefixed_message)
 
     <span class="hljs-comment"># Construct WS connection url with format</span>
     <span class="hljs-comment"># f&quot;wss://beta.derivadex.io/trader/v1?token=&lt;encoded_nonce&gt;&lt;signature&gt;&quot;</span>
@@ -727,7 +724,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                      <td>The requestId supplied in the initial request - can be used to correlate requests with receipts</td>
                   </tr>
                   <tr>
-                     <td>??</td>
+                     <td>int</td>
                      <td>requestIndex</td>
                      <td>A ticket number which guarantees fair sequencing</td>
                   </tr>
@@ -907,7 +904,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-attr">&quot;events&quot;</span>: [<span class="hljs-string">&quot;StrategyUpdate&quot;</span>, <span class="hljs-string">&quot;OrdersUpdate&quot;</span>, <span class="hljs-string">&quot;PositionUpdate&quot;</span>]
     }
 }</code></pre>
-            <p>You can subscribe to data feeds corresponding to events for a particular trader&#39;s Ethereum address. The possible account events you can subscribe to are <code>StrategyUpdate</code>, <code>OrdersUpdate</code>, and <code>PositionUpdate</code>.</p>
+            <p>You can subscribe to data feeds corresponding to events for a particular trader&#39;s Ethereum address. The possible account events you can subscribe to are <code>StrategyUpdate</code>, <code>OrdersUpdate</code>, <code>TradeUpdate</code>, and <code>PositionUpdate</code>.</p>
             <table>
                <thead>
                   <tr>
@@ -930,7 +927,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>string[]</td>
                      <td>events</td>
-                     <td>Events being subscribed to. This can be one or more of <code>StrategyUpdate</code>, <code>OrdersUpdate</code>, and <code>PositionUpdate</code></td>
+                     <td>Events being subscribed to. This can be one or more of <code>StrategyUpdate</code>, <code>OrdersUpdate</code>, <code>TradeUpdate</code>, and <code>PositionUpdate</code></td>
                   </tr>
                </tbody>
             </table>
@@ -941,7 +938,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             <pre class="highlight json"><code>{
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Subscribed&quot;</span>,
     <span class="hljs-attr">&quot;c&quot;</span>: {
-        <span class="hljs-attr">&quot;message&quot;</span>: <span class="hljs-string">&quot;Subscribed to [StrategyUpdate | OrdersUpdate | PositionUpdate] for 0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>
+        <span class="hljs-attr">&quot;message&quot;</span>: <span class="hljs-string">&quot;Subscribed to [StrategyUpdate | OrdersUpdate | TradeUpdate | PositionUpdate ] for 0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>
     }
 }</code></pre>
             <p>Each <code>subscription</code> returns a receipt, which confirms that an Operator has received the <code>subscription</code> request. The receipt <code>type</code> will be either <code>Subscribed</code> or <code>Error</code>.</p>
@@ -1197,6 +1194,85 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
+            <h4 id="trade-update">Trade update</h4>
+            <blockquote>
+               <p>Partial response (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;TradeUpdate&quot;</span>,
+    <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Partial&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: [{
+        <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;1&quot;</span>,
+        <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-06-08T12:44:00.231Z&quot;</span>,
+        <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+        <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;2521.34&quot;</span>,
+        <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+        <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Ask&quot;</span>,
+        <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;Limit&quot;</span>,
+        <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x961cb97fde433e621ba4d37b4714df1a1c52e062a119a6af58fcca312a90c616&quot;</span>
+    }]
+}</code></pre>
+            <blockquote>
+               <p>Update response (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;TradeUpdate&quot;</span>,
+    <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Update&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: [{
+        <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;3.25&quot;</span>,
+        <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-06-08T12:47:09.133Z&quot;</span>,
+        <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+        <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;2515.46&quot;</span>,
+        <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+        <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x5648a591b5e2db72bd561197945e94ee2c1657527d85fccaeaf0d44d7daf94c1&quot;</span>
+    }]
+}</code></pre>
+            <p>You can subscribe to updates to your trades/fills with the <code>TradeUpdate</code> event. </p>
+            <p>Upon subscription, you will receive a <code>Partial</code> back, containing a snapshot of all of your prior trades. From then on, you will receive streaming/incremental <code>Update</code> messages with any partial/complete fills moving forward.</p>
+            <p>For the response, an array of trade update events is emitted, with each update defined as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>bytes32_s</td>
+                     <td>orderHash</td>
+                     <td>Hash of the order that has been filled</td>
+                  </tr>
+                  <tr>
+                     <td>decimal_s</td>
+                     <td>amount</td>
+                     <td>The amount/size filled</td>
+                  </tr>
+                  <tr>
+                     <td>decimal_s</td>
+                     <td>fee</td>
+                     <td>The fees paid as a result of this fill</td>
+                  </tr>
+                  <tr>
+                     <td>decimal_s</td>
+                     <td>price</td>
+                     <td>The fill price</td>
+                  </tr>
+                  <tr>
+                     <td>decimal_s</td>
+                     <td>realizedPnl</td>
+                     <td>The realized PNL as a result of this fill</td>
+                  </tr>
+                  <tr>
+                     <td>timestamp_s</td>
+                     <td>createdAt</td>
+                     <td>Timestamp when order was initially created</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h5 id="tracking-orders-and-fills">Tracking orders and fills</h5>
+            <p>To track your orders and fills, you can use a combination of the <code>OrdersUpdate</code> and <code>TradeUpdate</code> events. Keep in mind that the <code>OrdersUpdate</code> event emits data pertaining to your open orders, including but not limited to, the order&#39;s original amount (<code>amount</code>), price (<code>price</code>), and remaining amount (<code>remainingAmount</code>). The <code>remainingAmount</code> does not on its own indicate whether the reduced amount off of the original <code>amount</code> is a result of fills or cancellations. However, you can determine the filled vs. cancelled amounts by using the filled <code>amount</code> field from the <code>TradeEvent</code> and tying that back to the orders data with the <code>orderHash</code>. Additionally, the <code>price</code> field in the <code>TradeUpdate</code> event will help you determine the average fill price for any orders you may have.</p>
             <h4 id="positions-update">Positions update</h4>
             <p>TBD</p>
             <h2 id="market">Market</h2>
@@ -1205,13 +1281,11 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                <p>Request format (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
-  <span class="hljs-attr">&quot;request&quot;</span>: {
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;SubscribeMarket&quot;</span>,
     <span class="hljs-attr">&quot;c&quot;</span>: {
-      <span class="hljs-attr">&quot;symbols&quot;</span>: [<span class="hljs-string">&quot;ETHPERP&quot;</span>],
-      <span class="hljs-attr">&quot;events&quot;</span>: [<span class="hljs-string">&quot;OrderBookUpdate&quot;</span>, <span class="hljs-string">&quot;MarkPriceUpdate&quot;</span>]
+        <span class="hljs-attr">&quot;symbols&quot;</span>: [<span class="hljs-string">&quot;ETHPERP&quot;</span>],
+        <span class="hljs-attr">&quot;events&quot;</span>: [<span class="hljs-string">&quot;OrderBookUpdate&quot;</span>, <span class="hljs-string">&quot;MarkPriceUpdate&quot;</span>]
     }
-  }
 }</code></pre>
             <p>You can subscribe to data feeds corresponding to events for the broader market. The possible market events you can subscribe to at this time are <code>OrderBookUpdate</code> and <code>MarkPriceUpdate</code>. </p>
             <table>
@@ -1402,8 +1476,8 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-attr">&quot;updatedAt&quot;</span>: <span class="hljs-string">&quot;2021-05-14T17:43:50.626201+00:00&quot;</span>
     }]
 }</code></pre>
-            <p>You can subscribe to updates to the mark price for any given market with the <code>MarkPriceUpdate</code> event. The mark price is an important concept on DerivaDEX as it is the price at which positions are marked when displaying unrealized PNL. Consequently, the mark price helps determine a strategy&#39;s margin fraction, thereby triggering liquidations when appropriate. The mark price is computed based on a 30s exponential moving average (often referred to as a 30s EMA) of the spread between the underlying price (a composite of several spot price feeds for the underlying asset) and the DerivaDEX order book itself. </p>
-            <p>Upon subscription, you will receive a <code>Partial</code> back, containing a mark price snapshot at that moment in time. From then on, you will receive streaming/incremental <code>Update</code> messages as appropriate. </p>
+            <p>You can subscribe to updates to the price checkpoint (and thus, the mark price) for any given market with the <code>MarkPriceUpdate</code> event. The mark price is an important concept on DerivaDEX as it is the price at which positions are marked when displaying unrealized PNL. Consequently, the mark price helps determine a strategy&#39;s margin fraction, thereby triggering liquidations when appropriate. The mark price is computed based on a 30s exponential moving average (often referred to as a 30s EMA) of the spread between the underlying price (a composite of several spot price feeds for the underlying asset) and the DerivaDEX order book itself. The mark price can be computed as follows: <code>mark_price = index_price + ema</code>. </p>
+            <p>Upon subscription, you will receive a <code>Partial</code> back, containing a price checkpoint at that moment in time. From then on, you will receive streaming/incremental <code>Update</code> messages as appropriate. </p>
             <p>For the response, an array of updates per symbol is emitted, with each update defined as follows:</p>
             <table>
                <thead>
@@ -1417,17 +1491,27 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>timestamp_s</td>
                      <td>createdAt</td>
-                     <td>Timestamp of original mark price entry</td>
+                     <td>Timestamp of original price checkpoint entry</td>
                   </tr>
                   <tr>
                      <td>timestamp_s</td>
                      <td>updatedAt</td>
-                     <td>Timestamp of mark price update</td>
+                     <td>Timestamp of price checkpoint update</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
-                     <td>price</td>
-                     <td>Mark price for the market</td>
+                     <td>indexPrice</td>
+                     <td>Composite index price</td>
+                  </tr>
+                  <tr>
+                     <td>decimal_s</td>
+                     <td>ema</td>
+                     <td>Exponential moving average of the premium rate (essentially adjusting for the difference</td>
+                  </tr>
+                  <tr>
+                     <td>between the composite index price and the DerivaDEX derivative product&#39;s order book)</td>
+                     <td></td>
+                     <td></td>
                   </tr>
                   <tr>
                      <td>string</td>
@@ -1437,7 +1521,14 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                </tbody>
             </table>
             <h1 id="validation">Validation</h1>
-            <p>TBD</p>
+            <h2 id="order-notional">Order notional</h2>
+            <p>You will not be able to place orders exceeding $1,000,000 in notional. The notional value of an order is computed as follows: <code>notional = order_amount * mark_price</code>.</p>
+            <h2 id="omf--imf">OMF &lt; IMF</h2>
+            <p>You will not be able to place orders if the resulting open margin fraction (OMF) would become less than the initial margin fraction (IMF). </p>
+            <h2 id="max-taker-price-deviation">Max taker price deviation</h2>
+            <p>You will not be able to place a limit order at a price more than 2% through the best level on the other side of the book. In other words, you cannot place a limit buy order at a price greater than 2% higher than the lowest available offer. Conversely, you cannot place a limit sell order at a price less than 2% lower than the highest available bid. If there is no liquidity on the other side of the book, the mark price is used instead.</p>
+            <h2 id="self-match-prevention">Self-match prevention</h2>
+            <p>You will not be able to trade against yourself. Although this is technically not an API validation, it is worth mentioning here regardless. The self-match rules are such that the remainder of the incoming order will be canceled if it were to self-match. </p>
             <h1 id="rate-limits">Rate limits</h1>
             <p>The websocket API will (eventually) use tiers to determine rate limits for each ethereum account. Rate limits restrict the number of &quot;Commands&quot; an account can place per minute.</p>
             <p>Subscriptions are not rate limited.</p>
