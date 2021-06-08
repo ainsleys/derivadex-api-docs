@@ -328,12 +328,12 @@ with open('trader_abi.json') as f:
     trader_contract = w3.eth.contract(address=Web3.toChecksumAddress('0x80ead6c2d69acc72dad76fb3151820a9b5d6a9e9'), abi=trader_abi)
     
     # Deposit 1000 USDC
-    trader_contract.functions.deposit('<usdc_address>', encode_single("bytes32", 'main'.encode("utf8")), 1000000000).transact()
+    trader_contract.functions.deposit('0xc4f290a59d66a2e06677ed27422a1106049d9e72', encode_single("bytes32", 'main'.encode("utf8")), 1000000000).transact()
 ```
 
 DerivaDEX is a decentralized exchange. As such, trading is non-custodial. Users are responsible for their own funds, which are deposited to the DerivaDEX smart contracts on Ethereum for trading. 
 
-To deposit funds on DerivaDEX, first ensure that you have created an Ethereum account. The deposit interaction is between a user and the DerivaDEX smart contracts. To be more explicit, you will not be utilizing the WebSocket API to facilitate a deposit. The DerivaDEX Solidity smart contracts adhere to the [Diamond Standard](https://medium.com/derivadex/the-diamond-standard-a-new-paradigm-for-upgradeability-569121a08954). The `deposit` smart contract function you will need to use is located in the `Trader` facet, at the address of the main `DerivaDEX` proxy contract (`0xf5e334fb5cca9a0deb2abd974dd8650c2503bdec`).
+To deposit funds on DerivaDEX, first ensure that you have created an Ethereum account. The deposit interaction is between a user and the DerivaDEX smart contracts. To be more explicit, you will not be utilizing the WebSocket API to facilitate a deposit. The DerivaDEX Solidity smart contracts adhere to the [Diamond Standard](https://medium.com/derivadex/the-diamond-standard-a-new-paradigm-for-upgradeability-569121a08954). The `deposit` smart contract function you will need to use is located in the `Trader` facet, at the address of the main `DerivaDEX` proxy contract (`0x80ead6c2d69acc72dad76fb3151820a9b5d6a9e9`).
 
 Note: Valid deposit collateral is curated by the smart contract and is managed by governance.
 
@@ -349,17 +349,14 @@ An example Python implementation is displayed on the right, but feel free to uti
 
 > Sample API URL connection generation (Python)
 ```python
-from web3 import Web3
+from web3.auto import w3
 from eth_account.messages import encode_defunct
 from eth_abi import encode_single
 import time
 
 def get_url(self) -> str:
-    # A Web3 instance
-    w3 = Web3(Web3.HTTPProvider("https://kovan.infura.io/v3/<your_api_key>"))
-    
     # Initialize a Web3 account from a private key
-    web3_account = self.w3.eth.account.from_key("<private_key>")
+    web3_account = w3.eth.account.from_key("<private_key>")
     
     # Retrieve current UNIX time in nanoseconds to derive a unique, monotonically-increasing nonce
     nonce = str(time.time_ns())
@@ -368,13 +365,13 @@ def get_url(self) -> str:
     encoded_nonce = encode_single("bytes32", nonce.encode("utf8")).hex()
     
     # Hash bytes32 nonce without ETH prefix
-    intermediary_hash = self.w3.keccak(hexstr=encoded_nonce)
+    intermediary_hash = w3.keccak(hexstr=encoded_nonce)
 
     # Prefix intermediary hash with ETH prefix to prepare for signing
     prefixed_message = encode_defunct(hexstr=intermediary_hash.hex())
 
     # Hash prefixed message and sign the result
-    signed_message = self.web3_account.sign_message(prefixed_message)
+    signed_message = web3_account.sign_message(prefixed_message)
 
     # Construct WS connection url with format
     # f"wss://beta.derivadex.io/trader/v1?token=<encoded_nonce><signature>"
@@ -532,7 +529,7 @@ A successful `command` returns a `Received` receipt from the Operator. DerivaDEX
 type | field | description
 ------ | ---- | -----------
 bytes32_s | requestId | The requestId supplied in the initial request - can be used to correlate requests with receipts
-?? | requestIndex | A ticket number which guarantees fair sequencing
+int | requestIndex | A ticket number which guarantees fair sequencing
 bytes_s | enclaveSignature | An Operator's signature which proves secure handling of the request 
 
 > Receipt (error) format (JSON)
@@ -642,13 +639,13 @@ You can subscribe to two different kinds of feeds corresponding to a specific tr
 }
 ```
 
-You can subscribe to data feeds corresponding to events for a particular trader's Ethereum address. The possible account events you can subscribe to are `StrategyUpdate`, `OrdersUpdate`, and `PositionUpdate`.
+You can subscribe to data feeds corresponding to events for a particular trader's Ethereum address. The possible account events you can subscribe to are `StrategyUpdate`, `OrdersUpdate`, `TradeUpdate`, and `PositionUpdate`.
 
 type | field | description
 -----|----- | ---------------------
 address_s  | trader | Trader's Ethereum address (same as the one that facilitated the deposit)
 string[] | strategies | Strategies being subscribed to. Currently, the only supported strategy is `main`, but support for multiple strategies is coming soon!
-string[] | events | Events being subscribed to. This can be one or more of `StrategyUpdate`, `OrdersUpdate`, and `PositionUpdate` 
+string[] | events | Events being subscribed to. This can be one or more of `StrategyUpdate`, `OrdersUpdate`, `TradeUpdate`, and `PositionUpdate` 
 
 ### Response
 > Receipt (success) format (JSON)
@@ -656,7 +653,7 @@ string[] | events | Events being subscribed to. This can be one or more of `Stra
 {
     "t": "Subscribed",
     "c": {
-        "message": "Subscribed to [StrategyUpdate | OrdersUpdate | PositionUpdate] for 0x603699848c84529987E14Ba32C8a66DEF67E9eCE"
+        "message": "Subscribed to [StrategyUpdate | OrdersUpdate | TradeUpdate | PositionUpdate ] for 0x603699848c84529987E14Ba32C8a66DEF67E9eCE"
     }
 }
 ```
@@ -815,6 +812,65 @@ bytes_s   | signature | EIP-712 signature
 timestamp_s  | createdAt | Timestamp when order was initially created
 
 
+#### Trade update
+> Partial response (JSON)
+```json
+{
+	"t": "TradeUpdate",
+	"e": "Partial",
+	"c": [{
+		"amount": "1",
+		"createdAt": "2021-06-08T12:44:00.231Z",
+		"fee": "0",
+		"price": "2521.34",
+		"realizedPnl": "0",
+		"side": "Ask",
+		"type": "Limit",
+		"orderHash": "0x961cb97fde433e621ba4d37b4714df1a1c52e062a119a6af58fcca312a90c616"
+	}]
+}
+```
+
+> Update response (JSON)
+```json
+{
+	"t": "TradeUpdate",
+	"e": "Update",
+	"c": [{
+		"amount": "3.25",
+		"createdAt": "2021-06-08T12:47:09.133Z",
+		"fee": "0",
+		"price": "2515.46",
+		"realizedPnl": "0",
+		"orderHash": "0x5648a591b5e2db72bd561197945e94ee2c1657527d85fccaeaf0d44d7daf94c1"
+	}]
+}
+```
+
+You can subscribe to updates to your trades/fills with the `TradeUpdate` event. 
+
+Upon subscription, you will receive a `Partial` back, containing a snapshot of all of your prior trades. From then on, you will receive streaming/incremental `Update` messages with any partial/complete fills moving forward.
+
+For the response, an array of trade update events is emitted, with each update defined as follows:
+
+type | field | description 
+------ | ---- | -------
+bytes32_s | orderHash | Hash of the order that has been filled
+decimal_s | amount | The amount/size filled
+decimal_s | fee | The fees paid as a result of this fill
+decimal_s | price | The fill price
+decimal_s | realizedPnl | The realized PNL as a result of this fill
+timestamp_s  | createdAt | Timestamp when order was initially created
+
+##### Tracking orders and fills
+
+To track your orders and fills, you can use a combination of the `OrdersUpdate` and `TradeUpdate` events. Keep in mind that the `OrdersUpdate` event 
+emits data pertaining to your open orders, including but not limited to, the order's original amount (`amount`), price (`price`), and remaining amount (`remainingAmount`). 
+The `remainingAmount` does not on its own indicate whether the reduced amount off of the original `amount` is a result of fills or cancellations. 
+However, you can determine the filled vs. cancelled amounts by using the filled `amount` field from the `TradeEvent` and tying that back to the orders data with the `orderHash`. Additionally, the 
+`price` field in the `TradeUpdate` event will help you determine the average fill price for any orders you may have.
+
+
 #### Positions update
 
 TBD
@@ -826,13 +882,11 @@ TBD
 > Request format (JSON)
 ```json
 {
-  "request": {
     "t": "SubscribeMarket",
     "c": {
-      "symbols": ["ETHPERP"],
-      "events": ["OrderBookUpdate", "MarkPriceUpdate"]
+        "symbols": ["ETHPERP"],
+        "events": ["OrderBookUpdate", "MarkPriceUpdate"]
     }
-  }
 }
 ```
 
@@ -976,23 +1030,46 @@ To maintain a local order book, you can use a combination of the `Partial` snaps
 }
 ```
 
-You can subscribe to updates to the mark price for any given market with the `MarkPriceUpdate` event. The mark price is an important concept on DerivaDEX as it is the price at which positions are marked when displaying unrealized PNL. Consequently, the mark price helps determine a strategy's margin fraction, thereby triggering liquidations when appropriate. The mark price is computed based on a 30s exponential moving average (often referred to as a 30s EMA) of the spread between the underlying price (a composite of several spot price feeds for the underlying asset) and the DerivaDEX order book itself. 
+You can subscribe to updates to the price checkpoint (and thus, the mark price) for any given market with the `MarkPriceUpdate` event. The mark price is an important concept on DerivaDEX as it is the price at which positions are marked when displaying unrealized PNL. Consequently, the mark price helps determine a strategy's margin fraction, thereby triggering liquidations when appropriate. The mark price is computed based on a 30s exponential moving average (often referred to as a 30s EMA) of the spread between the underlying price (a composite of several spot price feeds for the underlying asset) and the DerivaDEX order book itself. 
+The mark price can be computed as follows: `mark_price = index_price + ema`. 
 
-Upon subscription, you will receive a `Partial` back, containing a mark price snapshot at that moment in time. From then on, you will receive streaming/incremental `Update` messages as appropriate. 
+Upon subscription, you will receive a `Partial` back, containing a price checkpoint at that moment in time. From then on, you will receive streaming/incremental `Update` messages as appropriate. 
 
 For the response, an array of updates per symbol is emitted, with each update defined as follows:
 
 type | field | description
 -----|----- | ---------------------
-timestamp_s  | createdAt | Timestamp of original mark price entry
-timestamp_s  | updatedAt | Timestamp of mark price update
-decimal_s | price | Mark price for the market
+timestamp_s  | createdAt | Timestamp of original price checkpoint entry
+timestamp_s  | updatedAt | Timestamp of price checkpoint update
+decimal_s | indexPrice | Composite index price
+decimal_s | ema | Exponential moving average of the premium rate (essentially adjusting for the difference 
+between the composite index price and the DerivaDEX derivative product's order book)
 string  | symbol | Market subscribed to
 
 
 # Validation
 
-TBD
+## Order notional
+
+You will not be able to place orders exceeding $1,000,000 in notional. The notional value of an order 
+is computed as follows: `notional = order_amount * mark_price`.
+
+## OMF < IMF
+
+You will not be able to place orders if the resulting open margin fraction (OMF) would become less 
+than the initial margin fraction (IMF). 
+
+## Max taker price deviation
+
+You will not be able to place a limit order at a price more than 2% through the best level on the other side of the 
+book. In other words, you cannot place a limit buy order at a price greater than 2% higher than the lowest available offer. 
+Conversely, you cannot place a limit sell order at a price less than 2% lower than the highest available bid. If there 
+is no liquidity on the other side of the book, the mark price is used instead.
+
+## Self-match prevention
+
+You will not be able to trade against yourself. Although this is technically not an API validation, it is worth mentioning here 
+regardless. The self-match rules are such that the remainder of the incoming order will be canceled if it were to self-match. 
 
 
 # Rate limits
