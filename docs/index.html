@@ -465,11 +465,8 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     <span class="hljs-comment"># abi.encode([&#x27;bytes32&#x27;], [nonce])</span>
     encoded_nonce = encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, nonce.encode(<span class="hljs-string">&quot;utf8&quot;</span>)).<span class="hljs-built_in">hex</span>()
     
-    <span class="hljs-comment"># Hash bytes32 nonce without ETH prefix</span>
-    intermediary_hash = w3.keccak(hexstr=encoded_nonce)
-
-    <span class="hljs-comment"># Prefix intermediary hash with ETH prefix to prepare for signing</span>
-    prefixed_message = encode_defunct(hexstr=intermediary_hash.<span class="hljs-built_in">hex</span>())
+    <span class="hljs-comment"># Prefix the encoded nonce with ETH prefix to prepare for signing</span>
+    prefixed_message = encode_defunct(hexstr=encoded_nonce)
 
     <span class="hljs-comment"># Hash prefixed message and sign the result</span>
     signed_message = web3_account.sign_message(prefixed_message)
@@ -563,12 +560,12 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>decimal</td>
                      <td>price</td>
-                     <td>The order price</td>
+                     <td>The order price (If <code>orderType</code> is <code>Market</code>, this must be set to <code>0</code>)</td>
                   </tr>
                   <tr>
                      <td>decimal</td>
                      <td>stopPrice</td>
-                     <td>Currently, always 0 as stops are not implemented.</td>
+                     <td>Currently, always set to <code>0</code> as stops are not implemented.</td>
                   </tr>
                   <tr>
                      <td>bytes_s</td>
@@ -577,6 +574,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
+            <p>To be more explicit, all of these fields must be passed in, even if not all of the fields apply due to certain functionalities not currently implemented (i.e. stops) or the fact that prices aren&#39;t applicable in the case of market orders. Please follow the guidelines specified in the table above around these conditions.</p>
             <h3 id="response">Response</h3>
             <blockquote>
                <p>Receipt (success) format (JSON)</p>
@@ -654,8 +652,8 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     <span class="hljs-attr">&quot;c&quot;</span>: {
         <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;CancelOrder&quot;</span>,
         <span class="hljs-attr">&quot;c&quot;</span>: {
-            <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>,
-            <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
+            <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
+            <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>,
             <span class="hljs-attr">&quot;nonce&quot;</span>: <span class="hljs-string">&quot;0x3136313839303336353634383833373230303000000000000000000000000000&quot;</span>,
             <span class="hljs-attr">&quot;signature&quot;</span>: <span class="hljs-string">&quot;0xd5a1ca6d40a030368710ab86d391e5d16164ea16d2c809894eefddd1658bb08c6898177aa492d4d45272ee41cb40f252327a23e8d1fc2af6904e8860d3f72b3b1b&quot;</span>
         }
@@ -1082,14 +1080,14 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x946e4bedf2dd87e5380f32a18d1af19adb4d7ecec3a8a346cb641adc5201e53e&quot;</span>,
         <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0xe36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
         <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
-        <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-number">0</span>,
-        <span class="hljs-attr">&quot;orderType&quot;</span>: <span class="hljs-number">0</span>,
-        <span class="hljs-attr">&quot;nonce&quot;</span>: <span class="hljs-string">&quot;0x0000000000000000000000000000000000000000000000000000000000000001&quot;</span>,
+        <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Ask&quot;</span>,
+        <span class="hljs-attr">&quot;orderType&quot;</span>: <span class="hljs-string">&quot;Limit&quot;</span>,
+        <span class="hljs-attr">&quot;nonce&quot;</span>: <span class="hljs-string">&quot;0x3136323334303630353437323034353030303000000000000000000000000000&quot;</span>,
         <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;10.000000000000000000&quot;</span>,
         <span class="hljs-attr">&quot;remainingAmount&quot;</span>: <span class="hljs-string">&quot;10.000000000000000000&quot;</span>,
-        <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;521.800000000000000000&quot;</span>,
+        <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;2473.620000000000000000&quot;</span>,
         <span class="hljs-attr">&quot;stopPrice&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
-        <span class="hljs-attr">&quot;signature&quot;</span>: <span class="hljs-string">&quot;0x&quot;</span>,
+        <span class="hljs-attr">&quot;signature&quot;</span>: <span class="hljs-string">&quot;0x87b20c98f21a988737ad4e1820f66a96acf9eba979bfc51c84f3b5b6519815d13f67f07b18cb78d9f30395b80370c6af4a705e9fed0b671858dd7714d8c663f81c&quot;</span>,
         <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-03-24T23:25:41.467Z&quot;</span>
     }]
 }</code></pre>
@@ -1105,10 +1103,10 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
         <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
         <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Ask&quot;</span>,
-        <span class="hljs-attr">&quot;orderType&quot;</span>: <span class="hljs-number">0</span>,
+        <span class="hljs-attr">&quot;orderType&quot;</span>: <span class="hljs-string">&quot;Limit&quot;</span>,
         <span class="hljs-attr">&quot;nonce&quot;</span>: <span class="hljs-string">&quot;0x3136323130313431373537353037303130303000000000000000000000000000&quot;</span>,
         <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;7.51&quot;</span>,
-        <span class="hljs-attr">&quot;remainingAmount&quot;</span>: <span class="hljs-string">&quot;7.51&quot;</span>,
+        <span class="hljs-attr">&quot;remainingAmount&quot;</span>: <span class="hljs-string">&quot;5.51&quot;</span>,
         <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;4165.16&quot;</span>,
         <span class="hljs-attr">&quot;stopPrice&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
         <span class="hljs-attr">&quot;signature&quot;</span>: <span class="hljs-string">&quot;0x61d4e6f2c65cc21f5ace380d5f025c117841a92fbde3354802955f77372c709174cc3d31160fa0d4d0ff8a34bed80dfe99bd04bcee71308560314e0db509e0051b&quot;</span>,
@@ -1148,14 +1146,14 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                      <td>Name of the cross-margined strategy this order belongs to. Currently, this is limited to the default <code>main</code> strategy, but support for multiple strategies is coming soon!</td>
                   </tr>
                   <tr>
-                     <td>int_s</td>
+                     <td>string</td>
                      <td>side</td>
-                     <td>Side of order, either <code>0</code> (<code>Bid</code>) or an <code>1</code> (<code>Ask</code>)</td>
+                     <td>Side of order, either <code>Bid</code> or <code>Ask</code></td>
                   </tr>
                   <tr>
-                     <td>int</td>
+                     <td>string</td>
                      <td>orderType</td>
-                     <td>Order type, either <code>0</code> (<code>Limit</code>) or <code>0</code> (<code>Market</code>). Other order types coming soon!</td>
+                     <td>Order type, either <code>Limit</code> or <code>Market</code>. Other order types coming soon!</td>
                   </tr>
                   <tr>
                      <td>bytes32_s</td>
@@ -1219,11 +1217,11 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;TradeUpdate&quot;</span>,
     <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Update&quot;</span>,
     <span class="hljs-attr">&quot;c&quot;</span>: [{
-        <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;3.25&quot;</span>,
-        <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-06-08T12:47:09.133Z&quot;</span>,
-        <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
-        <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;2515.46&quot;</span>,
-        <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+        <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;9.8&quot;</span>,
+        <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-06-11T10:36:52.844Z&quot;</span>,
+        <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;48.62662&quot;</span>,
+        <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;2480.95&quot;</span>,
+        <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;-105.574444971899599047&quot;</span>,
         <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x5648a591b5e2db72bd561197945e94ee2c1657527d85fccaeaf0d44d7daf94c1&quot;</span>
     }]
 }</code></pre>
@@ -1252,7 +1250,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>decimal_s</td>
                      <td>fee</td>
-                     <td>The fees paid as a result of this fill</td>
+                     <td>The fees paid as a result of this fill (the fees paid are always presented as a positive number for the purposes of this field&#39;s value)</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
@@ -1262,7 +1260,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>decimal_s</td>
                      <td>realizedPnl</td>
-                     <td>The realized PNL as a result of this fill</td>
+                     <td>The realized PNL as a result of this fill (to be explicit, fees are not a component of this realized PNL as they are presented in their own dedicated field)</td>
                   </tr>
                   <tr>
                      <td>timestamp_s</td>
@@ -1429,9 +1427,9 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                      <td>Timestamp of order book partial/update</td>
                   </tr>
                   <tr>
-                     <td>timestamp_s_i</td>
+                     <td>bytes32_s</td>
                      <td>nonce</td>
-                     <td>???</td>
+                     <td>Disregard for time being......</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
@@ -1455,7 +1453,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;MarkPriceUpdate&quot;</span>,
     <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Partial&quot;</span>,
     <span class="hljs-attr">&quot;c&quot;</span>: [{
-        <span class="hljs-attr">&quot;indexPrice&quot;</span>: <span class="hljs-string">&quot;4112.74&quot;</span>,
+        <span class="hljs-attr">&quot;indexPrice&quot;</span>: <span class="hljs-string">&quot;2471.07238095238095238&quot;</span>,
         <span class="hljs-attr">&quot;ema&quot;</span>: <span class="hljs-string">&quot;5.136686727099837573&quot;</span>,
         <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
         <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-03-25T10:37:38.124Z&quot;</span>,
@@ -1469,11 +1467,11 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;MarkPriceUpdate&quot;</span>,
     <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Update&quot;</span>,
     <span class="hljs-attr">&quot;c&quot;</span>: [{
-        <span class="hljs-attr">&quot;indexPrice&quot;</span>: <span class="hljs-string">&quot;4114.74&quot;</span>,
+        <span class="hljs-attr">&quot;indexPrice&quot;</span>: <span class="hljs-string">&quot;2471.354761904761904761&quot;</span>,
         <span class="hljs-attr">&quot;ema&quot;</span>: <span class="hljs-string">&quot;4.246686727099837573&quot;</span>,
         <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
-        <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-05-14T17:43:50.626201+00:00&quot;</span>,
-        <span class="hljs-attr">&quot;updatedAt&quot;</span>: <span class="hljs-string">&quot;2021-05-14T17:43:50.626201+00:00&quot;</span>
+        <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-06-11T20:12:09.132Z&quot;</span>,
+        <span class="hljs-attr">&quot;updatedAt&quot;</span>: <span class="hljs-string">&quot;2021-06-11T20:12:09.132Z&quot;</span>
     }]
 }</code></pre>
             <p>You can subscribe to updates to the price checkpoint (and thus, the mark price) for any given market with the <code>MarkPriceUpdate</code> event. The mark price is an important concept on DerivaDEX as it is the price at which positions are marked when displaying unrealized PNL. Consequently, the mark price helps determine a strategy&#39;s margin fraction, thereby triggering liquidations when appropriate. The mark price is computed based on a 30s exponential moving average (often referred to as a 30s EMA) of the spread between the underlying price (a composite of several spot price feeds for the underlying asset) and the DerivaDEX order book itself. The mark price can be computed as follows: <code>mark_price = index_price + ema</code>. </p>

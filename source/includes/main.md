@@ -364,11 +364,8 @@ def get_url(self) -> str:
     # abi.encode(['bytes32'], [nonce])
     encoded_nonce = encode_single("bytes32", nonce.encode("utf8")).hex()
     
-    # Hash bytes32 nonce without ETH prefix
-    intermediary_hash = w3.keccak(hexstr=encoded_nonce)
-
-    # Prefix intermediary hash with ETH prefix to prepare for signing
-    prefixed_message = encode_defunct(hexstr=intermediary_hash.hex())
+    # Prefix the encoded nonce with ETH prefix to prepare for signing
+    prefixed_message = encode_defunct(hexstr=encoded_nonce)
 
     # Hash prefixed message and sign the result
     signed_message = web3_account.sign_message(prefixed_message)
@@ -433,9 +430,11 @@ string | side | Side of trade, either `Bid` (buy/long) or an `Ask` (sell/short)
 string | orderType | Order type, either `Limit` or `Market`. Other order types coming soon!
 bytes32_s | nonce | An incrementing numeric identifier for this request that is unique per user for all time
 decimal | amount | The order amount/size requested
-decimal | price | The order price
-decimal | stopPrice | Currently, always 0 as stops are not implemented.
+decimal | price | The order price (If `orderType` is `Market`, this must be set to `0`)
+decimal | stopPrice | Currently, always set to `0` as stops are not implemented.
 bytes_s | signature | EIP-712 signature of the order placement intent
+
+To be more explicit, all of these fields must be passed in, even if not all of the fields apply due to certain functionalities not currently implemented (i.e. stops) or the fact that prices aren't applicable in the case of market orders. Please follow the guidelines specified in the table above around these conditions.
 
 
 ### Response
@@ -488,8 +487,8 @@ string | msg | Error message
 	"c": {
 		"t": "CancelOrder",
 		"c": {
-			"symbol": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
-			"orderHash": "ETHPERP",
+			"symbol": "ETHPERP",
+			"orderHash": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
 			"nonce": "0x3136313839303336353634383833373230303000000000000000000000000000",
 			"signature": "0xd5a1ca6d40a030368710ab86d391e5d16164ea16d2c809894eefddd1658bb08c6898177aa492d4d45272ee41cb40f252327a23e8d1fc2af6904e8860d3f72b3b1b"
 		}
@@ -753,14 +752,14 @@ bool     | frozen | Whether the account and its collateral is frozen or not
 		"orderHash": "0x946e4bedf2dd87e5380f32a18d1af19adb4d7ecec3a8a346cb641adc5201e53e",
 		"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
 		"symbol": "ETHPERP",
-		"side": 0,
-		"orderType": 0,
-		"nonce": "0x0000000000000000000000000000000000000000000000000000000000000001",
+		"side": "Ask",
+		"orderType": "Limit",
+		"nonce": "0x3136323334303630353437323034353030303000000000000000000000000000",
 		"amount": "10.000000000000000000",
 		"remainingAmount": "10.000000000000000000",
-		"price": "521.800000000000000000",
+		"price": "2473.620000000000000000",
 		"stopPrice": "0",
-		"signature": "0x",
+		"signature": "0x87b20c98f21a988737ad4e1820f66a96acf9eba979bfc51c84f3b5b6519815d13f67f07b18cb78d9f30395b80370c6af4a705e9fed0b671858dd7714d8c663f81c",
 		"createdAt": "2021-03-24T23:25:41.467Z"
 	}]
 }
@@ -777,10 +776,10 @@ bool     | frozen | Whether the account and its collateral is frozen or not
 		"symbol": "ETHPERP",
 		"strategy": "main",
 		"side": "Ask",
-		"orderType": 0,
+		"orderType": "Limit",
 		"nonce": "0x3136323130313431373537353037303130303000000000000000000000000000",
 		"amount": "7.51",
-		"remainingAmount": "7.51",
+		"remainingAmount": "5.51",
 		"price": "4165.16",
 		"stopPrice": "0",
 		"signature": "0x61d4e6f2c65cc21f5ace380d5f025c117841a92fbde3354802955f77372c709174cc3d31160fa0d4d0ff8a34bed80dfe99bd04bcee71308560314e0db509e0051b",
@@ -801,8 +800,8 @@ bytes32_s | orderHash | Hash of the order that has changed or is new
 address_s | traderAddress | Trader's Ethereum address associated with this order
 string  | symbol | Name of the market this order belongs to. Currently, this is limited to 'ETHPERP', but new symbols are coming soon! 
 string | strategy | Name of the cross-margined strategy this order belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
-int_s | side | Side of order, either `0` (`Bid`) or an `1` (`Ask`)
-int | orderType | Order type, either `0` (`Limit`) or `0` (`Market`). Other order types coming soon!
+string | side | Side of order, either `Bid` or `Ask`
+string | orderType | Order type, either `Limit` or `Market`. Other order types coming soon!
 bytes32_s | requestId | Numeric identifier for the order. To clarify, this is NOT an identifier relating to this particular subscription/response, but rather the `requestId` field associated with this order at the time of placement.
 decimal_s | amount | The original order amount/size requested
 decimal_s | remainingAmount | The order amount/size remaining on the order book
@@ -837,11 +836,11 @@ timestamp_s  | createdAt | Timestamp when order was initially created
 	"t": "TradeUpdate",
 	"e": "Update",
 	"c": [{
-		"amount": "3.25",
-		"createdAt": "2021-06-08T12:47:09.133Z",
-		"fee": "0",
-		"price": "2515.46",
-		"realizedPnl": "0",
+		"amount": "9.8",
+		"createdAt": "2021-06-11T10:36:52.844Z",
+		"fee": "48.62662",
+		"price": "2480.95",
+		"realizedPnl": "-105.574444971899599047",
 		"orderHash": "0x5648a591b5e2db72bd561197945e94ee2c1657527d85fccaeaf0d44d7daf94c1"
 	}]
 }
@@ -857,9 +856,9 @@ type | field | description
 ------ | ---- | -------
 bytes32_s | orderHash | Hash of the order that has been filled
 decimal_s | amount | The amount/size filled
-decimal_s | fee | The fees paid as a result of this fill
+decimal_s | fee | The fees paid as a result of this fill (the fees paid are always presented as a positive number for the purposes of this field's value)
 decimal_s | price | The fill price
-decimal_s | realizedPnl | The realized PNL as a result of this fill
+decimal_s | realizedPnl | The realized PNL as a result of this fill (to be explicit, fees are not a component of this realized PNL as they are presented in their own dedicated field)
 timestamp_s  | createdAt | Timestamp when order was initially created
 
 ##### Tracking orders and fills
@@ -986,7 +985,7 @@ type | field | description
 decimal_s[2][]  | bids | The price and corresponding updated aggregate quantity for the bids
 decimal_s[2][]  | asks | The price and corresponding updated aggregate quantity for the asks
 timestamp_i  | timestamp | Timestamp of order book partial/update
-timestamp_s_i  | nonce | ???
+bytes32_s  | nonce | Disregard for time being......
 decimal_s   | aggregationType | Precision used for the selected product
 
 ##### Maintaining local order book
@@ -1006,7 +1005,7 @@ To maintain a local order book, you can use a combination of the `Partial` snaps
 	"t": "MarkPriceUpdate",
 	"e": "Partial",
 	"c": [{
-		"indexPrice": "4112.74",
+		"indexPrice": "2471.07238095238095238",
         "ema": "5.136686727099837573",
 		"symbol": "ETHPERP",
 		"createdAt": "2021-03-25T10:37:38.124Z",
@@ -1021,11 +1020,11 @@ To maintain a local order book, you can use a combination of the `Partial` snaps
 	"t": "MarkPriceUpdate",
 	"e": "Update",
 	"c": [{
-		"indexPrice": "4114.74",
+		"indexPrice": "2471.354761904761904761",
 		"ema": "4.246686727099837573",
 		"symbol": "ETHPERP",
-		"createdAt": "2021-05-14T17:43:50.626201+00:00",
-		"updatedAt": "2021-05-14T17:43:50.626201+00:00"
+		"createdAt": "2021-06-11T20:12:09.132Z",
+		"updatedAt": "2021-06-11T20:12:09.132Z"
 	}]
 }
 ```
