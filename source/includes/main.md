@@ -134,11 +134,11 @@ The `message` field varies depending on the typed data you are signing, and is i
 
 #### Place order
 
-> Sample computation of order struct hash
+> Sample computation of place order message struct hash
 ```solidity
-function compute_eip712_order_struct_hash(address _traderAddress, bytes32 _symbol, bytes32 _strategy, uint256 _side, uint256 _orderType, bytes32 _nonce, uint256 _amount, uint256 _price, uint256 _stopPrice) public view returns (bytes32) {
+function compute_eip712_message_struct_hash(address _traderAddress, bytes32 _symbol, bytes32 _strategy, uint256 _side, uint256 _orderType, bytes32 _nonce, uint256 _amount, uint256 _price, uint256 _stopPrice) public view returns (bytes32) {
     // keccak-256 hash of the encoded schema for the order params struct
-    bytes32 orderSchemaHash = keccak256(abi.encodePacked(
+    bytes32 eip712SchemaHash = keccak256(abi.encodePacked(
         "OrderParams(",
         "address traderAddress,",
         "bytes32 symbol,",
@@ -152,8 +152,8 @@ function compute_eip712_order_struct_hash(address _traderAddress, bytes32 _symbo
         ")"
     ));
     
-    bytes32 orderStructHash = keccak256(abi.encodePacked(
-        orderSchemaHash,
+    bytes32 messageStructHash = keccak256(abi.encodePacked(
+        eip712SchemaHash,
         uint256(_traderAddress),
         _symbol,
         _strategy,
@@ -165,7 +165,7 @@ function compute_eip712_order_struct_hash(address _traderAddress, bytes32 _symbo
         _stopPrice
     ));
     
-    return orderStructHash;
+    return messageStructHash;
 }
 ```
 
@@ -174,9 +174,9 @@ from eth_abi import encode_single
 from eth_utils.crypto import keccak
 from decimal import Decimal, ROUND_DOWN
 
-def compute_eip712_order_struct_hash(trader_address: str, symbol: str, strategy: str, side: str, order_type: str, nonce: str, amount: Decimal, price: Decimal, stop_price: Decimal) -> bytes:
+def compute_eip712_message_struct_hash(trader_address: str, symbol: str, strategy: str, side: str, order_type: str, nonce: str, amount: Decimal, price: Decimal, stop_price: Decimal) -> bytes:
     # keccak-256 hash of the encoded schema for the place order command
-    eip712_order_params_schema_hash = keccak(
+    eip712_schema_hash = keccak(
         b"OrderParams("
         + b"address traderAddress,"
         + b"bytes32 symbol,"
@@ -213,7 +213,7 @@ def compute_eip712_order_struct_hash(trader_address: str, symbol: str, strategy:
         return 2
 
     return keccak(
-        eip712_order_params_schema_hash
+        eip712_schema_hash
         + encode_single('address', trader_address)
         + len(symbol).to_bytes(1, byteorder="little")
         + encode_single("bytes32", symbol.encode("utf8"))[:-1]
@@ -245,15 +245,73 @@ stopPrice | uint256 | Stop price (scaled up by 18 decimals). The `stopPrice` of 
 **Take special note of the transformations done on several fields as described in the table above. In other words, the order intent you submit to the API will have different representations for some fields than the order intent you hash.** You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. Example Solidity and Python reference implementations are displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.
 
 
+#### Cancel order
+
+> Sample computation of cancel order message struct hash
+```solidity
+function compute_eip712_message_struct_hash(bytes32 _symbol, bytes32 _orderHash, bytes32 _nonce) public view returns (bytes32) {
+    // keccak-256 hash of the encoded schema for the cancel order params struct
+    bytes32 eip712SchemaHash = keccak256(abi.encodePacked(
+        "CancelOrderParams(",
+        "bytes32 symbol,",
+        "bytes32 orderHash,",
+        "bytes32 nonce",
+        ")"
+    ));
+    
+    bytes32 messageStructHash = keccak256(abi.encodePacked(
+        eip712SchemaHash,
+        _symbol,
+        _orderHash,
+        _nonce,
+    ));
+    
+    return messageStructHash;
+}
+```
+
+```python
+from eth_abi import encode_single
+from eth_utils.crypto import keccak
+from decimal import Decimal, ROUND_DOWN
+
+def compute_eip712_message_struct_hash(symbol: str, order_hash: str, nonce: str) -> bytes:
+    # keccak-256 hash of the encoded schema for the cancel order command
+    eip712_schema_hash = keccak(
+        b"CancelOrderParams("
+        + b"bytes32 symbol,"
+        + b"bytes32 orderHash,"
+        + b"bytes32 nonce"
+        + b")"
+    )
+    
+    return keccak(
+        eip712_schema_hash
+        + len(symbol).to_bytes(1, byteorder="little")
+        + encode_single("bytes32", symbol.encode("utf8"))[:-1]
+        + encode_single("bytes32", bytes.fromhex(order_hash[2:]))
+        + encode_single("bytes32", bytes.fromhex(nonce[2:]))
+    )
+```
+
+The parameters that comprise the `message` for the `command` to cancel an order are as follows:
+
+type | field | description
+-----|----- | ---------------------
+symbol  | bytes32 | 32-byte encoding of the symbol length and symbol this order is for. The `symbol` of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly.
+orderHash | bytes32 | 32-byte EIP-712 hash of the order at the time of placement
+nonce | bytes32 | 32-byte value (an incrementing numeric identifier that is unique per user for all time) resulting in uniqueness of order cancellation
+
+
 ### Tying it all together
 
 > Computing the final EIP-712 hash
 ```solidity
-function compute_eip712_hash(bytes2 _eip191_header, bytes32 _domainStructHash, bytes32 _orderStructHash) public view returns (bytes32) {
+function compute_eip712_hash(bytes2 _eip191_header, bytes32 _domainStructHash, bytes32 _messageStructHash) public view returns (bytes32) {
     return keccak256(abi.encodePacked(
         _eip191_header,
         _domainStructHash,
-        _orderStructHash
+        _messageStructHash
     ));
 }
 ```
@@ -271,6 +329,36 @@ def compute_eip712_hash(eip191_header: bytes, eip712_domain_struct_hash: bytes, 
 ```
 
 To derive the final EIP-712 hash of the typed data you will sign, you will need to `keccak256` hash the `header`, `eip712_domain_struct_hash`, and `eip712_message_struct_hash` (will vary depending on which `command` specifically you are sending). You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. Example Solidity and Python reference implementations are displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.
+
+### Samples
+
+**Please feel free to use these ground truth samples to validate your EIP-712 hashing implementation for correctness.** For the following samples, assume a `chainId = 42` and `verifyingContract = 0x80ead6c2d69acc72dad76fb3151820a9b5d6a9e9`.
+
+#### Place order
+
+The following sample order placement data results in an EIP-712 hash of: `0xe1eaae57e5c637b25e588c7e6b92f34288a989e6a5cb6deab44db297d12fb852`.
+
+field | value
+-----|------
+traderAddress  |  "0x4DbaEb213F91B022D0f238a2510380BE149b091a"
+symbol  |  "ETHPERP"
+strategy |  "main"
+side |  "Bid"
+orderType |  "Limit"
+nonce |  "0x3136323338333730373432343739363630303000000000000000000000000000"
+amount |  7.11
+price |  2497.69
+stopPrice |  0
+
+#### Cancel order
+
+The following sample cancellation data results in an EIP-712 hash of: `0x1eb6b329caf5f45b2402453f713c016abee1fa8a4df722ee5bafce58f0b8d053`.
+
+field | value
+-----|------
+symbol  |  "ETHPERP"
+orderHash |  "0xbc9ea45d017a031120db603f40ff3dc6003f41e531e69a7fdfe2ebc438032b7d"
+nonce |  "0x3136323338333734323633363939323230303000000000000000000000000000"
 
 
 ## Making a deposit
@@ -984,7 +1072,7 @@ type | field | description
 -----|----- | ---------------------
 decimal_s[2][]  | bids | The price and corresponding updated aggregate quantity for the bids
 decimal_s[2][]  | asks | The price and corresponding updated aggregate quantity for the asks
-timestamp_i  | timestamp | Timestamp of order book partial/update
+timestamp_s_i  | timestamp | Timestamp of order book partial/update
 bytes32_s  | nonce | Disregard for time being......
 decimal_s   | aggregationType | Precision used for the selected product
 

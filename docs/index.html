@@ -200,11 +200,11 @@
             <p>The <code>message</code> field varies depending on the typed data you are signing, and is illustrated on a case-by-case basis below.</p>
             <h4 id="place-order">Place order</h4>
             <blockquote>
-               <p>Sample computation of order struct hash</p>
+               <p>Sample computation of place order message struct hash</p>
             </blockquote>
-            <pre class="highlight solidity"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">compute_eip712_order_struct_hash</span>(<span class="hljs-params"><span class="hljs-keyword">address</span> _traderAddress, <span class="hljs-keyword">bytes32</span> _symbol, <span class="hljs-keyword">bytes32</span> _strategy, <span class="hljs-keyword">uint256</span> _side, <span class="hljs-keyword">uint256</span> _orderType, <span class="hljs-keyword">bytes32</span> _nonce, <span class="hljs-keyword">uint256</span> _amount, <span class="hljs-keyword">uint256</span> _price, <span class="hljs-keyword">uint256</span> _stopPrice</span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> <span class="hljs-title"><span class="hljs-keyword">view</span></span> <span class="hljs-title"><span class="hljs-keyword">returns</span></span> (<span class="hljs-params"><span class="hljs-keyword">bytes32</span></span>) </span>{
+            <pre class="highlight solidity"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">compute_eip712_message_struct_hash</span>(<span class="hljs-params"><span class="hljs-keyword">address</span> _traderAddress, <span class="hljs-keyword">bytes32</span> _symbol, <span class="hljs-keyword">bytes32</span> _strategy, <span class="hljs-keyword">uint256</span> _side, <span class="hljs-keyword">uint256</span> _orderType, <span class="hljs-keyword">bytes32</span> _nonce, <span class="hljs-keyword">uint256</span> _amount, <span class="hljs-keyword">uint256</span> _price, <span class="hljs-keyword">uint256</span> _stopPrice</span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> <span class="hljs-title"><span class="hljs-keyword">view</span></span> <span class="hljs-title"><span class="hljs-keyword">returns</span></span> (<span class="hljs-params"><span class="hljs-keyword">bytes32</span></span>) </span>{
     <span class="hljs-comment">// keccak-256 hash of the encoded schema for the order params struct</span>
-    <span class="hljs-keyword">bytes32</span> orderSchemaHash = <span class="hljs-built_in">keccak256</span>(<span class="hljs-built_in">abi</span>.<span class="hljs-built_in">encodePacked</span>(
+    <span class="hljs-keyword">bytes32</span> eip712SchemaHash = <span class="hljs-built_in">keccak256</span>(<span class="hljs-built_in">abi</span>.<span class="hljs-built_in">encodePacked</span>(
         <span class="hljs-string">&quot;OrderParams(&quot;</span>,
         <span class="hljs-string">&quot;address traderAddress,&quot;</span>,
         <span class="hljs-string">&quot;bytes32 symbol,&quot;</span>,
@@ -218,8 +218,8 @@
         <span class="hljs-string">&quot;)&quot;</span>
     ));
     
-    <span class="hljs-keyword">bytes32</span> orderStructHash = <span class="hljs-built_in">keccak256</span>(<span class="hljs-built_in">abi</span>.<span class="hljs-built_in">encodePacked</span>(
-        orderSchemaHash,
+    <span class="hljs-keyword">bytes32</span> messageStructHash = <span class="hljs-built_in">keccak256</span>(<span class="hljs-built_in">abi</span>.<span class="hljs-built_in">encodePacked</span>(
+        eip712SchemaHash,
         <span class="hljs-keyword">uint256</span>(_traderAddress),
         _symbol,
         _strategy,
@@ -231,14 +231,14 @@
         _stopPrice
     ));
     
-    <span class="hljs-keyword">return</span> orderStructHash;
+    <span class="hljs-keyword">return</span> messageStructHash;
 }</code></pre><pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single
 <span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
 <span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
 
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">compute_eip712_order_struct_hash</span>(<span class="hljs-params">trader_address: <span class="hljs-built_in">str</span>, symbol: <span class="hljs-built_in">str</span>, strategy: <span class="hljs-built_in">str</span>, side: <span class="hljs-built_in">str</span>, order_type: <span class="hljs-built_in">str</span>, nonce: <span class="hljs-built_in">str</span>, amount: Decimal, price: Decimal, stop_price: Decimal</span>) -&gt; bytes:</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">compute_eip712_message_struct_hash</span>(<span class="hljs-params">trader_address: <span class="hljs-built_in">str</span>, symbol: <span class="hljs-built_in">str</span>, strategy: <span class="hljs-built_in">str</span>, side: <span class="hljs-built_in">str</span>, order_type: <span class="hljs-built_in">str</span>, nonce: <span class="hljs-built_in">str</span>, amount: Decimal, price: Decimal, stop_price: Decimal</span>) -&gt; bytes:</span>
     <span class="hljs-comment"># keccak-256 hash of the encoded schema for the place order command</span>
-    eip712_order_params_schema_hash = keccak(
+    eip712_schema_hash = keccak(
         <span class="hljs-string">b&quot;OrderParams(&quot;</span>
         + <span class="hljs-string">b&quot;address traderAddress,&quot;</span>
         + <span class="hljs-string">b&quot;bytes32 symbol,&quot;</span>
@@ -275,7 +275,7 @@
         <span class="hljs-keyword">return</span> <span class="hljs-number">2</span>
 
     <span class="hljs-keyword">return</span> keccak(
-        eip712_order_params_schema_hash
+        eip712_schema_hash
         + encode_single(<span class="hljs-string">&#x27;address&#x27;</span>, trader_address)
         + <span class="hljs-built_in">len</span>(symbol).to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
         + encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, symbol.encode(<span class="hljs-string">&quot;utf8&quot;</span>))[:-<span class="hljs-number">1</span>]
@@ -346,15 +346,85 @@
                </tbody>
             </table>
             <p><strong>Take special note of the transformations done on several fields as described in the table above. In other words, the order intent you submit to the API will have different representations for some fields than the order intent you hash.</strong> You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. Example Solidity and Python reference implementations are displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.</p>
+            <h4 id="cancel-order">Cancel order</h4>
+            <blockquote>
+               <p>Sample computation of cancel order message struct hash</p>
+            </blockquote>
+            <pre class="highlight solidity"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">compute_eip712_message_struct_hash</span>(<span class="hljs-params"><span class="hljs-keyword">bytes32</span> _symbol, <span class="hljs-keyword">bytes32</span> _orderHash, <span class="hljs-keyword">bytes32</span> _nonce</span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> <span class="hljs-title"><span class="hljs-keyword">view</span></span> <span class="hljs-title"><span class="hljs-keyword">returns</span></span> (<span class="hljs-params"><span class="hljs-keyword">bytes32</span></span>) </span>{
+    <span class="hljs-comment">// keccak-256 hash of the encoded schema for the cancel order params struct</span>
+    <span class="hljs-keyword">bytes32</span> eip712SchemaHash = <span class="hljs-built_in">keccak256</span>(<span class="hljs-built_in">abi</span>.<span class="hljs-built_in">encodePacked</span>(
+        <span class="hljs-string">&quot;CancelOrderParams(&quot;</span>,
+        <span class="hljs-string">&quot;bytes32 symbol,&quot;</span>,
+        <span class="hljs-string">&quot;bytes32 orderHash,&quot;</span>,
+        <span class="hljs-string">&quot;bytes32 nonce&quot;</span>,
+        <span class="hljs-string">&quot;)&quot;</span>
+    ));
+    
+    <span class="hljs-keyword">bytes32</span> messageStructHash = <span class="hljs-built_in">keccak256</span>(<span class="hljs-built_in">abi</span>.<span class="hljs-built_in">encodePacked</span>(
+        eip712SchemaHash,
+        _symbol,
+        _orderHash,
+        _nonce,
+    ));
+    
+    <span class="hljs-keyword">return</span> messageStructHash;
+}</code></pre><pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single
+<span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
+<span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">compute_eip712_message_struct_hash</span>(<span class="hljs-params">symbol: <span class="hljs-built_in">str</span>, order_hash: <span class="hljs-built_in">str</span>, nonce: <span class="hljs-built_in">str</span></span>) -&gt; bytes:</span>
+    <span class="hljs-comment"># keccak-256 hash of the encoded schema for the cancel order command</span>
+    eip712_schema_hash = keccak(
+        <span class="hljs-string">b&quot;CancelOrderParams(&quot;</span>
+        + <span class="hljs-string">b&quot;bytes32 symbol,&quot;</span>
+        + <span class="hljs-string">b&quot;bytes32 orderHash,&quot;</span>
+        + <span class="hljs-string">b&quot;bytes32 nonce&quot;</span>
+        + <span class="hljs-string">b&quot;)&quot;</span>
+    )
+    
+    <span class="hljs-keyword">return</span> keccak(
+        eip712_schema_hash
+        + <span class="hljs-built_in">len</span>(symbol).to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
+        + encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, symbol.encode(<span class="hljs-string">&quot;utf8&quot;</span>))[:-<span class="hljs-number">1</span>]
+        + encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, <span class="hljs-built_in">bytes</span>.fromhex(order_hash[<span class="hljs-number">2</span>:]))
+        + encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, <span class="hljs-built_in">bytes</span>.fromhex(nonce[<span class="hljs-number">2</span>:]))
+    )</code></pre>
+            <p>The parameters that comprise the <code>message</code> for the <code>command</code> to cancel an order are as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>symbol</td>
+                     <td>bytes32</td>
+                     <td>32-byte encoding of the symbol length and symbol this order is for. The <code>symbol</code> of the order you send to the API is a string, however for signing purposes, you must bytes-encode and pad accordingly.</td>
+                  </tr>
+                  <tr>
+                     <td>orderHash</td>
+                     <td>bytes32</td>
+                     <td>32-byte EIP-712 hash of the order at the time of placement</td>
+                  </tr>
+                  <tr>
+                     <td>nonce</td>
+                     <td>bytes32</td>
+                     <td>32-byte value (an incrementing numeric identifier that is unique per user for all time) resulting in uniqueness of order cancellation</td>
+                  </tr>
+               </tbody>
+            </table>
             <h3 id="tying-it-all-together">Tying it all together</h3>
             <blockquote>
                <p>Computing the final EIP-712 hash</p>
             </blockquote>
-            <pre class="highlight solidity"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">compute_eip712_hash</span>(<span class="hljs-params"><span class="hljs-keyword">bytes2</span> _eip191_header, <span class="hljs-keyword">bytes32</span> _domainStructHash, <span class="hljs-keyword">bytes32</span> _orderStructHash</span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> <span class="hljs-title"><span class="hljs-keyword">view</span></span> <span class="hljs-title"><span class="hljs-keyword">returns</span></span> (<span class="hljs-params"><span class="hljs-keyword">bytes32</span></span>) </span>{
+            <pre class="highlight solidity"><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">compute_eip712_hash</span>(<span class="hljs-params"><span class="hljs-keyword">bytes2</span> _eip191_header, <span class="hljs-keyword">bytes32</span> _domainStructHash, <span class="hljs-keyword">bytes32</span> _messageStructHash</span>) <span class="hljs-title"><span class="hljs-keyword">public</span></span> <span class="hljs-title"><span class="hljs-keyword">view</span></span> <span class="hljs-title"><span class="hljs-keyword">returns</span></span> (<span class="hljs-params"><span class="hljs-keyword">bytes32</span></span>) </span>{
     <span class="hljs-keyword">return</span> <span class="hljs-built_in">keccak256</span>(<span class="hljs-built_in">abi</span>.<span class="hljs-built_in">encodePacked</span>(
         _eip191_header,
         _domainStructHash,
-        _orderStructHash
+        _messageStructHash
     ));
 }</code></pre><pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
 
@@ -366,6 +436,80 @@
         + eip712_message_struct_hash
     ).<span class="hljs-built_in">hex</span>()</code></pre>
             <p>To derive the final EIP-712 hash of the typed data you will sign, you will need to <code>keccak256</code> hash the <code>header</code>, <code>eip712_domain_struct_hash</code>, and <code>eip712_message_struct_hash</code> (will vary depending on which <code>command</code> specifically you are sending). You are welcome to do this however you like, but it must adhere to the standard eventually, otherwise the signature will not ultimately successfully recover. Example Solidity and Python reference implementations are displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.</p>
+            <h3 id="samples">Samples</h3>
+            <p><strong>Please feel free to use these ground truth samples to validate your EIP-712 hashing implementation for correctness.</strong> For the following samples, assume a <code>chainId = 42</code> and <code>verifyingContract = 0x80ead6c2d69acc72dad76fb3151820a9b5d6a9e9</code>.</p>
+            <h4 id="place-order-1">Place order</h4>
+            <p>The following sample order placement data results in an EIP-712 hash of: <code>0xe1eaae57e5c637b25e588c7e6b92f34288a989e6a5cb6deab44db297d12fb852</code>.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>field</th>
+                     <th>value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>traderAddress</td>
+                     <td>&quot;0x4DbaEb213F91B022D0f238a2510380BE149b091a&quot;</td>
+                  </tr>
+                  <tr>
+                     <td>symbol</td>
+                     <td>&quot;ETHPERP&quot;</td>
+                  </tr>
+                  <tr>
+                     <td>strategy</td>
+                     <td>&quot;main&quot;</td>
+                  </tr>
+                  <tr>
+                     <td>side</td>
+                     <td>&quot;Bid&quot;</td>
+                  </tr>
+                  <tr>
+                     <td>orderType</td>
+                     <td>&quot;Limit&quot;</td>
+                  </tr>
+                  <tr>
+                     <td>nonce</td>
+                     <td>&quot;0x3136323338333730373432343739363630303000000000000000000000000000&quot;</td>
+                  </tr>
+                  <tr>
+                     <td>amount</td>
+                     <td>7.11</td>
+                  </tr>
+                  <tr>
+                     <td>price</td>
+                     <td>2497.69</td>
+                  </tr>
+                  <tr>
+                     <td>stopPrice</td>
+                     <td>0</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h4 id="cancel-order-1">Cancel order</h4>
+            <p>The following sample cancellation data results in an EIP-712 hash of: <code>0x1eb6b329caf5f45b2402453f713c016abee1fa8a4df722ee5bafce58f0b8d053</code>.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>field</th>
+                     <th>value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>symbol</td>
+                     <td>&quot;ETHPERP&quot;</td>
+                  </tr>
+                  <tr>
+                     <td>orderHash</td>
+                     <td>&quot;0xbc9ea45d017a031120db603f40ff3dc6003f41e531e69a7fdfe2ebc438032b7d&quot;</td>
+                  </tr>
+                  <tr>
+                     <td>nonce</td>
+                     <td>&quot;0x3136323338333734323633363939323230303000000000000000000000000000&quot;</td>
+                  </tr>
+               </tbody>
+            </table>
             <h2 id="making-a-deposit">Making a deposit</h2>
             <blockquote>
                <p>Deposit ABI (JSON)</p>
@@ -489,7 +633,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             <p>An example Python implementation is displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.</p>
             <h1 id="commands">Commands</h1>
             <p>The websocket API offers commands for placing and canceling orders, as well as withdrawals. Since commands modify system state, these requests must include an <a href="https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md">EIP-712 signature</a>. Examples are included in the <a href="samples.md">sample code</a>.</p>
-            <h2 id="place-order-1">Place order</h2>
+            <h2 id="place-order-2">Place order</h2>
             <h3 id="request">Request</h3>
             <blockquote>
                <p>Request format (JSON)</p>
@@ -642,7 +786,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
-            <h2 id="cancel-order">Cancel order</h2>
+            <h2 id="cancel-order-2">Cancel order</h2>
             <h3 id="request-1">Request</h3>
             <blockquote>
                <p>Request format (JSON)</p>
@@ -1422,7 +1566,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                      <td>The price and corresponding updated aggregate quantity for the asks</td>
                   </tr>
                   <tr>
-                     <td>timestamp_i</td>
+                     <td>timestamp_s_i</td>
                      <td>timestamp</td>
                      <td>Timestamp of order book partial/update</td>
                   </tr>
