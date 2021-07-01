@@ -1259,7 +1259,7 @@ capitalization  |  {}
 
 ### Stats
 
-An `Stats` contains data such as volume info for trade mining for any given trader.
+A `Stats` contains data such as volume info for trade mining for any given trader.
 
 #### Key encoding / decoding
 
