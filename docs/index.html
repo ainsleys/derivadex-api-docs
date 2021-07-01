@@ -36,7 +36,7 @@
          <div class=content>
             <h1 id="derivadex-api">DerivaDEX API</h1>
             <p>DerivaDEX is a decentralized derivatives exchange that combines the performance of centralized exchanges with the security of decentralized exchanges.</p>
-            <p>DerivaDEX currently offers a public WebSocket API for traders and developers. The API will enable you to open and manage your positions via commands, and subscribe to market data via <code>subscriptions</code>. </p>
+            <p>DerivaDEX currently offers a public WebSocket API for traders and developers. The API will enable you to open and manage your positions via <code>commands</code>, and subscribe to market data via <code>subscriptions</code>. </p>
             <p>Find us online <a href="https://discord.gg/a54BWuG">Discord</a> | <a href="https://t.me/DerivaDEX">Telegram</a> | <a href="https://medium.com/derivadex">Medium</a></p>
             <h1 id="getting-started">Getting started</h1>
             <p>To begin interacting with the DerivaDEX ecosystem programmatically, you generally will want to follow these steps:</p>
@@ -44,7 +44,7 @@
                <li>Deposit funds via Ethereum via an Ethereum client</li>
                <li>Authenticate and connect to the websocket API</li>
                <li>Submit and cancel orders via <code>commands</code></li>
-               <li>Subscribe to market and account data feeds via <code>subscriptions</code></li>
+               <li>Subscribe to the DerivaDEX state snapshot and transaction log</li>
             </ol>
             <p>Additionally, you should familiarize yourself with the <a href="#Types">DerivaDEX types terminology</a> and [hashing &amp; signing schemes](#Signatures &amp; hashing). </p>
             <h2 id="types">Types</h2>
@@ -96,7 +96,7 @@
                   <tr>
                      <td>timestamp_s</td>
                      <td>String representation representing the ISO 8601 UTC timestamp</td>
-                     <td>&quot;2021-03-25T10:38:09.503654+00:00&quot;</td>
+                     <td>&quot;2021-03-25T10:38:09.503654&quot;</td>
                   </tr>
                </tbody>
             </table>
@@ -510,6 +510,1367 @@
                   </tr>
                </tbody>
             </table>
+            <h2 id="sparse-merkle-tree-state">Sparse merkle tree (state)</h2>
+            <p>DerivaDEX utilizes a <a href="https://medium.com/@kelvinfichter/whats-a-sparse-merkle-tree-acda70aeb837">Sparse Merkle Tree (SMT)</a> in order to efficiently maintain the state of the exchange at all times. Storing data on-chain (such as user&#39;s balances and positions), something most decentralized exchanges do, is very costly and one that is usually passed on to the user, making exchange use prohibitively expensive to most. An SMT, however, allows the system to only store a single root hash (the root of the tree) on-chain, while still allowing for any one to verify the integrity of the data (leaves) through inclusion (or non-inclusion) proofs.</p>
+            <p>So what kind of data is stored and where in the SMT? The short answer is - everything. This means any data pertaining to a trader (their account-level data, strategy-level data, positions, and volume statistics), to a given market (the various open orders and the price feed information), and to the system (the insurance fund capitalization) is stored as individual leaf entries in the SMT. The DerivaDEX SMT consists of 2^256 possible leaves, each uniquely located at a specific leaf location (as indicated by its <code>key</code>, which is a 32-byte value). As you might surmise, the <em>vast</em> majority of the SMT will be empty (2^256 is very, <em>very</em>, <em><strong>very</strong></em> large number), but the data that does exist can exist at a location anywhere within these large bounds. For efficient querying and data management (while maintaining practical collision-resistance), the various types of leaf items are prefixed to reside in the same general vicinity as one another. Each leaf item type is described in detail below. The full set of leaf types can be seen in the following table, along with their corresponding numeric discriminants.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>Item</th>
+                     <th>Discriminant</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>Trader</td>
+                     <td>0</td>
+                  </tr>
+                  <tr>
+                     <td>Strategy</td>
+                     <td>1</td>
+                  </tr>
+                  <tr>
+                     <td>Position</td>
+                     <td>2</td>
+                  </tr>
+                  <tr>
+                     <td>BookOrder</td>
+                     <td>3</td>
+                  </tr>
+                  <tr>
+                     <td>Price</td>
+                     <td>4</td>
+                  </tr>
+                  <tr>
+                     <td>InsuranceFund</td>
+                     <td>5</td>
+                  </tr>
+                  <tr>
+                     <td>Stats</td>
+                     <td>6</td>
+                  </tr>
+                  <tr>
+                     <td>Empty</td>
+                     <td>7</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>Each item type is described in detail below.</p>
+            <h3 id="trader">Trader</h3>
+            <p>A <code>Trader</code> contains information pertaining to a trader&#39;s free and frozen DDX balances, and referral address.</p>
+            <h4 id="key-encoding--decoding">Key encoding / decoding</h4>
+            <blockquote>
+               <p>Key encoding / decoding (Python)</p>
+            </blockquote>
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi.utils.padding <span class="hljs-keyword">import</span> zpad32_right
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">encode_key</span>(<span class="hljs-params">trader_address: <span class="hljs-built_in">str</span>, chain_discriminant: <span class="hljs-built_in">int</span></span>):</span>
+    <span class="hljs-comment"># ItemType.TRADER == 0</span>
+    <span class="hljs-keyword">return</span> zpad32_right(
+        ItemType.TRADER.to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
+        + chain_discriminant.to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
+        + <span class="hljs-built_in">bytes</span>.fromhex(trader_address[<span class="hljs-number">2</span>:])
+    )
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">decode_key</span>(<span class="hljs-params">trader_key: <span class="hljs-built_in">bytes</span></span>):</span>
+    <span class="hljs-comment"># chain_discriminant, trader_address</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>.from_bytes(trader_key[<span class="hljs-number">1</span>:<span class="hljs-number">2</span>], <span class="hljs-string">&quot;little&quot;</span>), <span class="hljs-string">f&quot;0x<span class="hljs-subst">{trader_key[<span class="hljs-number">2</span>:<span class="hljs-number">22</span>].<span class="hljs-built_in">hex</span>()}</span>&quot;</span></code></pre>
+            <p>The location of a <code>Trader</code> leaf is determined by its key, which is encoded as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>Bytes</th>
+                     <th>Value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>0</td>
+                     <td>Trader discriminant</td>
+                  </tr>
+                  <tr>
+                     <td>1</td>
+                     <td>Blockchain discriminant</td>
+                  </tr>
+                  <tr>
+                     <td>[2, 21]</td>
+                     <td>Trader&#39;s Ethereum address</td>
+                  </tr>
+                  <tr>
+                     <td>[22, 31]</td>
+                     <td>Zero-padding</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>The following sample <code>Trader</code> materials generates the following encoded key: <code>0x0000603699848c84529987e14ba32c8a66def67e9ece00000000000000000000</code>.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>field</th>
+                     <th>value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>trader_address</td>
+                     <td>&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</td>
+                  </tr>
+                  <tr>
+                     <td>chain_discriminant</td>
+                     <td>0</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h4 id="value-definition">Value definition</h4>
+            <blockquote>
+               <p>Value encoding / decoding (Python)</p>
+            </blockquote>
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
+<span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single, decode_single
+<span class="hljs-keyword">from</span> web3.auto <span class="hljs-keyword">import</span> w3
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">round_to_unit</span>(<span class="hljs-params">val</span>):</span>
+    <span class="hljs-keyword">return</span> val.quantize(Decimal(<span class="hljs-string">&quot;.000000000000000001&quot;</span>), rounding=ROUND_DOWN)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(round_to_unit(val) * <span class="hljs-number">10</span> ** decimals)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
+    <span class="hljs-keyword">return</span> Decimal(<span class="hljs-built_in">str</span>(val)) / <span class="hljs-number">10</span> ** decimals
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_encoded_value</span>(<span class="hljs-params">self, free_ddx_balance: Decimal, frozen_ddx_balance: Decimal, referral_address: <span class="hljs-built_in">str</span></span>):</span>
+    <span class="hljs-comment"># Trader item discriminant</span>
+    item_type = <span class="hljs-number">0</span>
+
+    <span class="hljs-comment"># Scale collateral amounts to DDX grains (to_base_unit_amount</span>
+    <span class="hljs-keyword">return</span> encode_single(
+        <span class="hljs-string">&quot;(uint8,(uint128,uint128,address))&quot;</span>,
+        [
+            self.item_type,
+            [
+                to_base_unit_amount(free_ddx_balance, <span class="hljs-number">18</span>),
+                to_base_unit_amount(frozen_ddx_balance, <span class="hljs-number">18</span>),
+                self.referral_address,
+            ],
+        ],
+    )
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_decoded_value</span>(<span class="hljs-params">abi_encoded_value: <span class="hljs-built_in">str</span></span>):</span>
+    (
+        item_type,
+        (free_ddx_balance, frozen_ddx_balance, referral_address),
+    ) = decode_single(
+        <span class="hljs-string">&quot;(uint8,(uint128,uint128,address))&quot;</span>, w3.toBytes(hexstr=abi_encoded_value),
+    )
+
+    <span class="hljs-comment"># Scale collateral amounts from DDX grains</span>
+    <span class="hljs-keyword">return</span> (
+        to_unit_amount(free_ddx_balance, <span class="hljs-number">18</span>),
+        to_unit_amount(frozen_ddx_balance, <span class="hljs-number">18</span>),
+        referral_address,
+    )</code></pre>
+            <p>A <code>Trader</code> leaf holds the following data:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>decimal</td>
+                     <td>free_ddx_balance</td>
+                     <td>DDX collateral available for staking/fees</td>
+                  </tr>
+                  <tr>
+                     <td>decimal</td>
+                     <td>frozen_ddx_balance</td>
+                     <td>DDX collateral available for on-chain withdrawal</td>
+                  </tr>
+                  <tr>
+                     <td>address_s</td>
+                     <td>referral_address</td>
+                     <td>Referral address pertaining to the Ethereum address who referred this trader (if applicable)</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>These contents are always stored in the tree in ABI-encoded form: <code>(uint8,(uint128,uint128,address))</code>. Meaning, you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree. A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain variables, is shown on the right.</p>
+            <p>The following sample <code>Trader</code> materials generates the following ABI-encoded value: <code>0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003635c9adc5dea000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a8dda8d7f5310e4a9e24f8eba77e091ac264f872</code>.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>field</th>
+                     <th>value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>free_ddx_balance</td>
+                     <td>1000</td>
+                  </tr>
+                  <tr>
+                     <td>frozen_ddx_balance</td>
+                     <td>0</td>
+                  </tr>
+                  <tr>
+                     <td>referral_address</td>
+                     <td>&quot;0xA8dDa8d7F5310E4A9E24F8eBA77E091Ac264f872&quot;</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h3 id="strategy">Strategy</h3>
+            <p>A <code>Strategy</code> contains information pertaining to a trader&#39;s cross-margined strategy, such as their free and frozen collaterals and max leverage.</p>
+            <h4 id="key-encoding--decoding-1">Key encoding / decoding</h4>
+            <blockquote>
+               <p>Key encoding / decoding (Python)</p>
+            </blockquote>
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi.utils.padding <span class="hljs-keyword">import</span> zpad32_right, encode_single, decode_single
+<span class="hljs-keyword">from</span> web3.auto <span class="hljs-keyword">import</span> w3
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">generate_strategy_id_hash</span>(<span class="hljs-params">strategy_id: <span class="hljs-built_in">str</span></span>) -&gt; bytes:</span>
+    <span class="hljs-comment"># Get the last 4 bytes of the hash of the strategy id</span>
+    <span class="hljs-keyword">return</span> w3.keccak(
+        <span class="hljs-built_in">len</span>(strategy_id).to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
+        + encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, strategy_id.encode(<span class="hljs-string">&quot;utf8&quot;</span>))[:-<span class="hljs-number">1</span>]
+    )[:<span class="hljs-number">4</span>]
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">encode_key</span>(<span class="hljs-params">trader_address: <span class="hljs-built_in">str</span>, strategy_id: <span class="hljs-built_in">str</span>, chain_discriminant: <span class="hljs-built_in">int</span></span>):</span>
+    <span class="hljs-comment"># ItemType.STRATEGY == 1</span>
+    <span class="hljs-keyword">return</span> zpad32_right(
+            ItemType.STRATEGY.to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
+            + chain_discriminant.to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
+            + <span class="hljs-built_in">bytes</span>.fromhex(trader_address[<span class="hljs-number">2</span>:])
+            + generate_strategy_id_hash(strategy_id)
+        )
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">decode_key</span>(<span class="hljs-params">strategy_key: <span class="hljs-built_in">bytes</span></span>):</span>
+    <span class="hljs-comment"># chain_discriminant, trader_address, strategy_id_hash</span>
+    <span class="hljs-keyword">return</span> (
+            <span class="hljs-built_in">int</span>.from_bytes(strategy_key[<span class="hljs-number">1</span>:<span class="hljs-number">2</span>], <span class="hljs-string">&quot;little&quot;</span>),
+            <span class="hljs-string">f&quot;0x<span class="hljs-subst">{strategy_key[<span class="hljs-number">2</span>:<span class="hljs-number">22</span>].<span class="hljs-built_in">hex</span>()}</span>&quot;</span>,
+            <span class="hljs-string">f&quot;0x<span class="hljs-subst">{strategy_key[<span class="hljs-number">22</span>:<span class="hljs-number">26</span>].<span class="hljs-built_in">hex</span>()}</span>&quot;</span>,
+        )</code></pre>
+            <p>The location of a <code>Strategy</code> leaf is determined by its key, which is encoded as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>Bytes</th>
+                     <th>Value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>0</td>
+                     <td>Strategy discriminant</td>
+                  </tr>
+                  <tr>
+                     <td>1</td>
+                     <td>Blockchain discriminant</td>
+                  </tr>
+                  <tr>
+                     <td>[2, 21]</td>
+                     <td>Trader&#39;s Ethereum address</td>
+                  </tr>
+                  <tr>
+                     <td>[22, 25]</td>
+                     <td>Abbreviated hash of strategy ID</td>
+                  </tr>
+                  <tr>
+                     <td>[26, 25]</td>
+                     <td>Zero-padding</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>The following sample <code>Strategy</code> materials generates the following encoded key: <code>0x0100603699848c84529987e14ba32c8a66def67e9ece2576ebd1000000000000</code>.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>field</th>
+                     <th>value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>trader_address</td>
+                     <td>&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</td>
+                  </tr>
+                  <tr>
+                     <td>strategy_id</td>
+                     <td>&quot;main&quot;</td>
+                  </tr>
+                  <tr>
+                     <td>chain_discriminant</td>
+                     <td>0</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h4 id="value-definition-1">Value definition</h4>
+            <blockquote>
+               <p>Value encoding / decoding (Python)</p>
+            </blockquote>
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> Dict
+<span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
+<span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single, decode_single
+<span class="hljs-keyword">from</span> web3.auto <span class="hljs-keyword">import</span> w3
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">round_to_unit</span>(<span class="hljs-params">val</span>):</span>
+    <span class="hljs-keyword">return</span> val.quantize(Decimal(<span class="hljs-string">&quot;.000000000000000001&quot;</span>), rounding=ROUND_DOWN)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(round_to_unit(val) * <span class="hljs-number">10</span> ** decimals)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount_list</span>(<span class="hljs-params">vals, decimals</span>):</span>
+    <span class="hljs-keyword">return</span> [to_base_unit_amount(val, decimals) <span class="hljs-keyword">for</span> val <span class="hljs-keyword">in</span> vals]
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
+    <span class="hljs-keyword">return</span> Decimal(<span class="hljs-built_in">str</span>(val)) / <span class="hljs-number">10</span> ** decimals
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_unit_amount_list</span>(<span class="hljs-params">vals, decimals</span>):</span>
+    <span class="hljs-keyword">return</span> [to_unit_amount(val, decimals) <span class="hljs-keyword">for</span> val <span class="hljs-keyword">in</span> vals]
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_encoded_value</span>(<span class="hljs-params">self, strategy_id: <span class="hljs-built_in">str</span>, free_collateral: Dict[<span class="hljs-built_in">str</span>, Decimal], frozen_collateral: Dict[<span class="hljs-built_in">str</span>, Decimal], max_leverage: <span class="hljs-built_in">int</span>, frozen: <span class="hljs-built_in">bool</span></span>):</span>
+    <span class="hljs-comment"># Strategy item discriminant</span>
+    item_type = <span class="hljs-number">1</span>
+
+    <span class="hljs-comment"># Scale collateral amounts to DDX grains</span>
+    <span class="hljs-keyword">return</span> encode_single(
+        <span class="hljs-string">&quot;((uint8,(bytes32,(address[],uint128[]),(address[],uint128[]),uint64,bool)))&quot;</span>,
+        [
+            [
+                item_type,
+                [
+                    <span class="hljs-built_in">len</span>(strategy_id).to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
+                    + encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, strategy_id.encode(<span class="hljs-string">&quot;utf8&quot;</span>))[
+                        :-<span class="hljs-number">1</span>
+                    ],
+                    [
+                        <span class="hljs-built_in">list</span>(free_collateral.keys()),
+                        to_base_unit_amount_list(
+                            <span class="hljs-built_in">list</span>(free_collateral.values()), <span class="hljs-number">18</span>
+                        ),
+                    ],
+                    [
+                        <span class="hljs-built_in">list</span>(frozen_collateral.keys()),
+                        to_base_unit_amount_list(
+                            <span class="hljs-built_in">list</span>(frozen_collateral.values()), <span class="hljs-number">18</span>
+                        ),
+                    ],
+                    max_leverage,
+                    frozen,
+                ],
+            ]
+        ],
+    )
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_decoded_value</span>(<span class="hljs-params">abi_encoded_value: <span class="hljs-built_in">str</span></span>):</span>
+    (
+        (
+            item_type,
+            (
+                strategy_id,
+                (free_collateral_tokens, free_collateral_amounts),
+                (frozen_collateral_tokens, frozen_collateral_amounts),
+                max_leverage,
+                frozen,
+            ),
+        ),
+    ) = decode_single(
+        <span class="hljs-string">&quot;((uint8,(bytes32,(address[],uint128[]),(address[],uint128[]),uint64,bool)))&quot;</span>,
+        w3.toBytes(hexstr=abi_encoded_value),
+    )
+
+    <span class="hljs-comment"># Scale collateral amounts from DDX grains</span>
+    <span class="hljs-keyword">return</span> (
+        strategy_id[<span class="hljs-number">1</span> : <span class="hljs-number">1</span> + strategy_id[<span class="hljs-number">0</span>]].decode(<span class="hljs-string">&quot;utf8&quot;</span>),
+        {
+            k: to_unit_amount(v, <span class="hljs-number">18</span>)
+            <span class="hljs-keyword">for</span> k, v <span class="hljs-keyword">in</span> <span class="hljs-built_in">zip</span>(
+                <span class="hljs-built_in">list</span>(free_collateral_tokens), <span class="hljs-built_in">list</span>(free_collateral_amounts)
+            )
+        },
+        {
+            k: to_unit_amount(v, <span class="hljs-number">18</span>)
+            <span class="hljs-keyword">for</span> k, v <span class="hljs-keyword">in</span> <span class="hljs-built_in">zip</span>(
+                <span class="hljs-built_in">list</span>(frozen_collateral_tokens), <span class="hljs-built_in">list</span>(frozen_collateral_amounts)
+            )
+        },
+        max_leverage,
+        frozen,
+    )</code></pre>
+            <p>A <code>Strategy</code> leaf holds the following data:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>string</td>
+                     <td>strategy_id</td>
+                     <td>Identifier for strategy (e.g. &quot;main&quot;)</td>
+                  </tr>
+                  <tr>
+                     <td>dict&lt;address_s, decimal&gt;</td>
+                     <td>free_collateral</td>
+                     <td>Mapping of collateral address to free collateral amount</td>
+                  </tr>
+                  <tr>
+                     <td>dict&lt;address_s, decimal&gt;</td>
+                     <td>frozen_collateral</td>
+                     <td>Mapping of collateral address to frozen collateral amount</td>
+                  </tr>
+                  <tr>
+                     <td>int</td>
+                     <td>max_leverage</td>
+                     <td>Maximum leverage strategy can take</td>
+                  </tr>
+                  <tr>
+                     <td>bool</td>
+                     <td>frozen</td>
+                     <td>Whether the strategy is frozen or not (relevant for tokenization)</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>These contents are always stored in the tree in ABI-encoded form: <code>((uint8,(bytes32,(address[],uint128[]),(address[],uint128[]),uint64,bool)))</code>. Meaning, you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree. A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain variables, is shown on the right.</p>
+            <p>The following sample <code>Strategy</code> materials generates the following ABI-encoded value: <code>0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040046d61696e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000016000000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000001000000000000000000000000b69e673309512a9d726f87304c6984054f87a93b0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000002a58743747cf74b400000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000</code>.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>field</th>
+                     <th>value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>strategy_id</td>
+                     <td>&quot;main&quot;</td>
+                  </tr>
+                  <tr>
+                     <td>free_collateral</td>
+                     <td>{&quot;0xb69e673309512a9d726f87304c6984054f87a93b&quot;: 199971.08}</td>
+                  </tr>
+                  <tr>
+                     <td>frozen_collateral</td>
+                     <td>{}</td>
+                  </tr>
+                  <tr>
+                     <td>max_leverage</td>
+                     <td>20</td>
+                  </tr>
+                  <tr>
+                     <td>frozen</td>
+                     <td>False</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h3 id="position">Position</h3>
+            <p>A <code>Position</code> contains information pertaining to an open position.</p>
+            <h4 id="key-encoding--decoding-2">Key encoding / decoding</h4>
+            <blockquote>
+               <p>Key encoding / decoding (Python)</p>
+            </blockquote>
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi.utils.padding <span class="hljs-keyword">import</span> zpad32_right, encode_single, decode_single
+<span class="hljs-keyword">from</span> web3.auto <span class="hljs-keyword">import</span> w3
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">generate_strategy_id_hash</span>(<span class="hljs-params">strategy_id: <span class="hljs-built_in">str</span></span>) -&gt; bytes:</span>
+    <span class="hljs-comment"># Get the last 4 bytes of the hash of the strategy id</span>
+    <span class="hljs-keyword">return</span> w3.keccak(
+        <span class="hljs-built_in">len</span>(strategy_id).to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
+        + encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, strategy_id.encode(<span class="hljs-string">&quot;utf8&quot;</span>))[:-<span class="hljs-number">1</span>]
+    )[:<span class="hljs-number">4</span>]
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">pack_bytes</span>(<span class="hljs-params">text: <span class="hljs-built_in">str</span></span>):</span>
+    charset = <span class="hljs-string">&quot;0ABCDEFGHIJKLMNOPQRSTUVWXYZ&quot;</span>
+    symbol_bits = <span class="hljs-string">&quot;&quot;</span>
+    <span class="hljs-keyword">for</span> letter <span class="hljs-keyword">in</span> text:
+        <span class="hljs-keyword">for</span> i, char <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(charset):
+            <span class="hljs-keyword">if</span> char == letter:
+                bits = <span class="hljs-built_in">format</span>(i, <span class="hljs-string">&quot;08b&quot;</span>)[::-<span class="hljs-number">1</span>]
+                symbol_bits += bits[:<span class="hljs-number">5</span>]
+
+    symbol_bytes = <span class="hljs-built_in">int</span>(symbol_bits[::-<span class="hljs-number">1</span>], <span class="hljs-number">2</span>).to_bytes(
+        (<span class="hljs-built_in">len</span>(symbol_bits) + <span class="hljs-number">7</span>) // <span class="hljs-number">8</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>
+    )
+    <span class="hljs-keyword">return</span> zpad_right(symbol_bytes, <span class="hljs-number">6</span>)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">unpack_bytes</span>(<span class="hljs-params">packed_text: <span class="hljs-built_in">bytes</span></span>):</span>
+    charset = <span class="hljs-string">&quot;0ABCDEFGHIJKLMNOPQRSTUVWXYZ&quot;</span>
+    symbol_bits = <span class="hljs-built_in">format</span>(<span class="hljs-built_in">int</span>.from_bytes(packed_text, <span class="hljs-string">&quot;little&quot;</span>), <span class="hljs-string">&quot;030b&quot;</span>)[::-<span class="hljs-number">1</span>]
+    symbol_char_bit_chunks = [
+        symbol_bits[i : i + <span class="hljs-number">5</span>] <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">0</span>, <span class="hljs-built_in">len</span>(symbol_bits), <span class="hljs-number">5</span>)
+    ]
+    symbol = <span class="hljs-string">&quot;&quot;</span>
+    <span class="hljs-keyword">for</span> symbol_char_bit_chunk <span class="hljs-keyword">in</span> symbol_char_bit_chunks:
+        reversed_bit_chunk = symbol_char_bit_chunk[::-<span class="hljs-number">1</span>]
+        char_index = <span class="hljs-built_in">int</span>(reversed_bit_chunk, <span class="hljs-number">2</span>)
+        symbol += charset[char_index]
+    <span class="hljs-keyword">return</span> symbol
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">encode_key</span>(<span class="hljs-params">trader_address: <span class="hljs-built_in">str</span>, strategy_id: <span class="hljs-built_in">str</span>, symbol: <span class="hljs-built_in">str</span>, chain_discriminant: <span class="hljs-built_in">int</span></span>):</span>
+    <span class="hljs-comment"># ItemType.POSITION == 2</span>
+    <span class="hljs-keyword">return</span> (
+            ItemType.POSITION.to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
+            + pack_bytes(symbol)
+            + chain_discriminant.to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
+            + <span class="hljs-built_in">bytes</span>.fromhex(trader_address[<span class="hljs-number">2</span>:])
+            + generate_strategy_id_hash(strategy_id)
+        )
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">decode_key</span>(<span class="hljs-params">position_key: <span class="hljs-built_in">bytes</span></span>):</span>
+    <span class="hljs-comment"># symbol, chain_discriminant, trader_address, strategy_id_hash</span>
+    <span class="hljs-keyword">return</span> (
+            unpack_bytes(position_key[<span class="hljs-number">1</span>:<span class="hljs-number">7</span>]),
+            <span class="hljs-built_in">int</span>.from_bytes(position_key[<span class="hljs-number">7</span>:<span class="hljs-number">8</span>], <span class="hljs-string">&quot;little&quot;</span>),
+            <span class="hljs-string">f&quot;0x<span class="hljs-subst">{position_key[<span class="hljs-number">8</span>:<span class="hljs-number">28</span>].<span class="hljs-built_in">hex</span>()}</span>&quot;</span>,
+            <span class="hljs-string">f&quot;0x<span class="hljs-subst">{position_key[<span class="hljs-number">28</span>:].<span class="hljs-built_in">hex</span>()}</span>&quot;</span>,
+        )</code></pre>
+            <p>The location of a <code>Position</code> leaf is determined by its key, which is encoded as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>Bytes</th>
+                     <th>Value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>0</td>
+                     <td>Position discriminant</td>
+                  </tr>
+                  <tr>
+                     <td>[1, 6]</td>
+                     <td>Symbol (5-bit encoded/packed)</td>
+                  </tr>
+                  <tr>
+                     <td>7</td>
+                     <td>Blockchain discriminant</td>
+                  </tr>
+                  <tr>
+                     <td>[8, 27]</td>
+                     <td>Trader&#39;s Ethereum address</td>
+                  </tr>
+                  <tr>
+                     <td>[28, 31]</td>
+                     <td>Abbreviated hash of strategy ID</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>The following sample <code>Position</code> materials generates the following encoded key: <code>0x0285225824040000603699848c84529987e14ba32c8a66def67e9ece2576ebd1</code>.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>field</th>
+                     <th>value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>trader_address</td>
+                     <td>&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</td>
+                  </tr>
+                  <tr>
+                     <td>strategy_id</td>
+                     <td>&quot;main&quot;</td>
+                  </tr>
+                  <tr>
+                     <td>symbol</td>
+                     <td>&quot;ETHPERP&quot;</td>
+                  </tr>
+                  <tr>
+                     <td>chain_discriminant</td>
+                     <td>0</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h4 id="value-definition-2">Value definition</h4>
+            <blockquote>
+               <p>Value encoding / decoding (Python)</p>
+            </blockquote>
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> Dict
+<span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
+<span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single, decode_single
+<span class="hljs-keyword">from</span> web3.auto <span class="hljs-keyword">import</span> w3
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">round_to_unit</span>(<span class="hljs-params">val</span>):</span>
+    <span class="hljs-keyword">return</span> val.quantize(Decimal(<span class="hljs-string">&quot;.000000000000000001&quot;</span>), rounding=ROUND_DOWN)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(round_to_unit(val) * <span class="hljs-number">10</span> ** decimals)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
+    <span class="hljs-keyword">return</span> Decimal(<span class="hljs-built_in">str</span>(val)) / <span class="hljs-number">10</span> ** decimals
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_encoded_value</span>(<span class="hljs-params">self, side: <span class="hljs-built_in">int</span>, balance: Decimal, avg_entry_price: Decimal</span>):</span>
+    <span class="hljs-comment"># Position item discriminant</span>
+    item_type = <span class="hljs-number">2</span>
+
+    <span class="hljs-comment"># Scale balance and average entry price to DDX grains</span>
+    <span class="hljs-keyword">return</span> encode_single(
+        <span class="hljs-string">&quot;(uint8,(uint8,uint128,uint128))&quot;</span>,
+        [
+            item_type,
+            [
+                side,
+                to_base_unit_amount(balance, <span class="hljs-number">18</span>),
+                to_base_unit_amount(avg_entry_price, <span class="hljs-number">18</span>),
+            ],
+        ],
+    )
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_decoded_value</span>(<span class="hljs-params">abi_encoded_value: <span class="hljs-built_in">str</span></span>):</span>
+    (item_type, (side, balance, avg_entry_price)) = decode_single(
+        <span class="hljs-string">&quot;(uint8,(uint8,uint128,uint128))&quot;</span>, w3.toBytes(hexstr=abi_encoded_value),
+    )
+
+    <span class="hljs-comment"># Scale balance and average entry price from DDX grains</span>
+    <span class="hljs-keyword">return</span> (
+        side, to_unit_amount(balance, <span class="hljs-number">18</span>), to_unit_amount(avg_entry_price, <span class="hljs-number">18</span>)
+    )</code></pre>
+            <p>A <code>Position</code> leaf holds the following data:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>int</td>
+                     <td>side</td>
+                     <td>Side of position (<code>Long=1</code>, <code>Short=2</code>)</td>
+                  </tr>
+                  <tr>
+                     <td>decimal</td>
+                     <td>balance</td>
+                     <td>Size of the position</td>
+                  </tr>
+                  <tr>
+                     <td>decimal</td>
+                     <td>average_entry_price</td>
+                     <td>Average entry price of the position</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>These contents are always stored in the tree in ABI-encoded form: <code>(uint8,(uint8,uint128,uint128))</code>. Meaning, you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree. A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain variables, is shown on the right.</p>
+            <p>The following sample <code>Position</code> materials generates the following ABI-encoded value: <code>0x000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000068155a43676e0000000000000000000000000000000000000000000000000000d4eff354906660000</code>.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>field</th>
+                     <th>value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>side</td>
+                     <td>1</td>
+                  </tr>
+                  <tr>
+                     <td>balance</td>
+                     <td>120</td>
+                  </tr>
+                  <tr>
+                     <td>avg_entry_price</td>
+                     <td>245.5</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h3 id="book-order">Book order</h3>
+            <p>A <code>BookOrder</code> contains information pertaining to a maker order in the order book.</p>
+            <h4 id="key-encoding--decoding-3">Key encoding / decoding</h4>
+            <blockquote>
+               <p>Key encoding / decoding (Python)</p>
+            </blockquote>
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi.utils.padding <span class="hljs-keyword">import</span> zpad32_right, encode_single, decode_single
+<span class="hljs-keyword">from</span> web3.auto <span class="hljs-keyword">import</span> w3
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">generate_strategy_id_hash</span>(<span class="hljs-params">strategy_id: <span class="hljs-built_in">str</span></span>) -&gt; bytes:</span>
+    <span class="hljs-comment"># Get the last 4 bytes of the hash of the strategy id</span>
+    <span class="hljs-keyword">return</span> w3.keccak(
+        <span class="hljs-built_in">len</span>(strategy_id).to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
+        + encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, strategy_id.encode(<span class="hljs-string">&quot;utf8&quot;</span>))[:-<span class="hljs-number">1</span>]
+    )[:<span class="hljs-number">4</span>]
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">pack_bytes</span>(<span class="hljs-params">text: <span class="hljs-built_in">str</span></span>):</span>
+    charset = <span class="hljs-string">&quot;0ABCDEFGHIJKLMNOPQRSTUVWXYZ&quot;</span>
+    symbol_bits = <span class="hljs-string">&quot;&quot;</span>
+    <span class="hljs-keyword">for</span> letter <span class="hljs-keyword">in</span> text:
+        <span class="hljs-keyword">for</span> i, char <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(charset):
+            <span class="hljs-keyword">if</span> char == letter:
+                bits = <span class="hljs-built_in">format</span>(i, <span class="hljs-string">&quot;08b&quot;</span>)[::-<span class="hljs-number">1</span>]
+                symbol_bits += bits[:<span class="hljs-number">5</span>]
+
+    symbol_bytes = <span class="hljs-built_in">int</span>(symbol_bits[::-<span class="hljs-number">1</span>], <span class="hljs-number">2</span>).to_bytes(
+        (<span class="hljs-built_in">len</span>(symbol_bits) + <span class="hljs-number">7</span>) // <span class="hljs-number">8</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>
+    )
+    <span class="hljs-keyword">return</span> zpad_right(symbol_bytes, <span class="hljs-number">6</span>)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">unpack_bytes</span>(<span class="hljs-params">packed_text: <span class="hljs-built_in">bytes</span></span>):</span>
+    charset = <span class="hljs-string">&quot;0ABCDEFGHIJKLMNOPQRSTUVWXYZ&quot;</span>
+    symbol_bits = <span class="hljs-built_in">format</span>(<span class="hljs-built_in">int</span>.from_bytes(packed_text, <span class="hljs-string">&quot;little&quot;</span>), <span class="hljs-string">&quot;030b&quot;</span>)[::-<span class="hljs-number">1</span>]
+    symbol_char_bit_chunks = [
+        symbol_bits[i : i + <span class="hljs-number">5</span>] <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">0</span>, <span class="hljs-built_in">len</span>(symbol_bits), <span class="hljs-number">5</span>)
+    ]
+    symbol = <span class="hljs-string">&quot;&quot;</span>
+    <span class="hljs-keyword">for</span> symbol_char_bit_chunk <span class="hljs-keyword">in</span> symbol_char_bit_chunks:
+        reversed_bit_chunk = symbol_char_bit_chunk[::-<span class="hljs-number">1</span>]
+        char_index = <span class="hljs-built_in">int</span>(reversed_bit_chunk, <span class="hljs-number">2</span>)
+        symbol += charset[char_index]
+    <span class="hljs-keyword">return</span> symbol
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">encode_key</span>(<span class="hljs-params">symbol: <span class="hljs-built_in">str</span>, order_hash: <span class="hljs-built_in">str</span></span>):</span>
+    <span class="hljs-comment"># ItemType.BOOK_ORDER == 3</span>
+    <span class="hljs-keyword">return</span> (
+            ItemType.BOOK_ORDER.to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
+            + pack_bytes(symbol)
+            + <span class="hljs-built_in">bytes</span>.fromhex(order_hash[<span class="hljs-number">2</span>:<span class="hljs-number">52</span>])
+        )
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">decode_key</span>(<span class="hljs-params">book_order_key: <span class="hljs-built_in">bytes</span></span>):</span>
+    <span class="hljs-comment"># symbol, first 25 bytes of order_hash</span>
+    <span class="hljs-keyword">return</span> (
+            unpack_bytes(book_order_key[<span class="hljs-number">1</span>:<span class="hljs-number">7</span>]),
+            <span class="hljs-string">f&quot;0x<span class="hljs-subst">{book_order_key[<span class="hljs-number">7</span>:].<span class="hljs-built_in">hex</span>()}</span>&quot;</span>,
+        )</code></pre>
+            <p>The location of a <code>BookOrder</code> leaf is determined by its key, which is encoded as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>Bytes</th>
+                     <th>Value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>0</td>
+                     <td>Book order discriminant</td>
+                  </tr>
+                  <tr>
+                     <td>[1, 6]</td>
+                     <td>Symbol (5-bit encoded/packed)</td>
+                  </tr>
+                  <tr>
+                     <td>[7, 31]</td>
+                     <td>First 25 bytes of order&#39;s unique hash</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>The following sample <code>BookOrder</code> materials generates the following encoded key: <code>0x038522582404003d940b7e18acdf6c6f4740f7226245a796d53b6f2ffb9a8ca4</code>.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>field</th>
+                     <th>value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>symbol</td>
+                     <td>&quot;ETHPERP&quot;</td>
+                  </tr>
+                  <tr>
+                     <td>order_hash</td>
+                     <td>&quot;0x3d940b7e18acdf6c6f4740f7226245a796d53b6f2ffb9a8ca4ABABABABABABAB&quot;</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h4 id="value-definition-3">Value definition</h4>
+            <blockquote>
+               <p>Value encoding / decoding (Python)</p>
+            </blockquote>
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> Dict
+<span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
+<span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single, decode_single
+<span class="hljs-keyword">from</span> web3.auto <span class="hljs-keyword">import</span> w3
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">round_to_unit</span>(<span class="hljs-params">val</span>):</span>
+    <span class="hljs-keyword">return</span> val.quantize(Decimal(<span class="hljs-string">&quot;.000000000000000001&quot;</span>), rounding=ROUND_DOWN)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(round_to_unit(val) * <span class="hljs-number">10</span> ** decimals)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
+    <span class="hljs-keyword">return</span> Decimal(<span class="hljs-built_in">str</span>(val)) / <span class="hljs-number">10</span> ** decimals
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_encoded_value</span>(<span class="hljs-params">self, side: <span class="hljs-built_in">int</span>, amount: Decimal, price: Decimal, trader_address: <span class="hljs-built_in">str</span>, strategy_id_hash: <span class="hljs-built_in">bytes</span></span>):</span>
+    <span class="hljs-comment"># BookOrder item discriminant</span>
+    item_type = <span class="hljs-number">3</span>
+
+    <span class="hljs-comment"># Scale amount and price to DDX grains</span>
+    <span class="hljs-keyword">return</span> encode_single(
+        <span class="hljs-string">&quot;(uint8,(uint8,uint128,uint128,address,bytes32))&quot;</span>,
+        [
+            self.item_type,
+            [
+                side,
+                to_base_unit_amount(amount, <span class="hljs-number">18</span>),
+                to_base_unit_amount(price, <span class="hljs-number">18</span>),
+                trader_address,
+                strategy_id_hash,
+            ],
+        ],
+    )
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_decoded_value</span>(<span class="hljs-params">abi_encoded_value: <span class="hljs-built_in">str</span></span>):</span>
+    (
+        item_type,
+        (side, amount, price, trader_address, strategy_id_hash),
+    ) = decode_single(
+        <span class="hljs-string">&quot;(uint8,(uint8,uint128,uint128,address,bytes32))&quot;</span>,
+        w3.toBytes(hexstr=abi_encoded_value),
+    )
+    
+    <span class="hljs-comment"># Scale amount and price from DDX grains</span>
+    <span class="hljs-keyword">return</span> (
+        side,
+        to_unit_amount(amount, <span class="hljs-number">18</span>),
+        to_unit_amount(price, <span class="hljs-number">18</span>),
+        trader_address,
+        strategy_id_hash[:<span class="hljs-number">4</span>],
+    )</code></pre>
+            <p>A <code>BookOrder</code> leaf holds the following data:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>int</td>
+                     <td>side</td>
+                     <td>Side of order (<code>Bid=0</code>, <code>Ask=1</code>)</td>
+                  </tr>
+                  <tr>
+                     <td>decimal</td>
+                     <td>amount</td>
+                     <td>Amount/size of order</td>
+                  </tr>
+                  <tr>
+                     <td>decimal</td>
+                     <td>price</td>
+                     <td>Price the order has been placed at</td>
+                  </tr>
+                  <tr>
+                     <td>address_s</td>
+                     <td>trader_address</td>
+                     <td>The order creator&#39;s Ethereum address</td>
+                  </tr>
+                  <tr>
+                     <td>bytes</td>
+                     <td>strategy_id_hash</td>
+                     <td>First 4 bytes of strategy ID hash this order belongs to</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>These contents are always stored in the tree in ABI-encoded form: <code>(uint8,(uint8,uint128,uint128,address,bytes32))</code>. Meaning, you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree. A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain variables, is shown on the right.</p>
+            <p>The following sample <code>BookOrder</code> materials generates the following ABI-encoded value: <code>0x00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001158e460913d0000000000000000000000000000000000000000000000000000d8d726b7177a80000000000000000000000000000603699848c84529987e14ba32c8a66def67e9ece2576ebd100000000000000000000000000000000000000000000000000000000</code>.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>field</th>
+                     <th>value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>side</td>
+                     <td>0</td>
+                  </tr>
+                  <tr>
+                     <td>amount</td>
+                     <td>20</td>
+                  </tr>
+                  <tr>
+                     <td>price</td>
+                     <td>250</td>
+                  </tr>
+                  <tr>
+                     <td>trader_address</td>
+                     <td>&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</td>
+                  </tr>
+                  <tr>
+                     <td>strategy_id_hash</td>
+                     <td>&quot;0x2576ebd1&quot;</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h3 id="price">Price</h3>
+            <p>A <code>Price</code> contains information pertaining to a market&#39;s price checkpoint.</p>
+            <h4 id="key-encoding--decoding-4">Key encoding / decoding</h4>
+            <blockquote>
+               <p>Key encoding / decoding (Python)</p>
+            </blockquote>
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi.utils.padding <span class="hljs-keyword">import</span> zpad32_right, encode_single, decode_single
+<span class="hljs-keyword">from</span> web3.auto <span class="hljs-keyword">import</span> w3
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">pack_bytes</span>(<span class="hljs-params">text: <span class="hljs-built_in">str</span></span>):</span>
+    charset = <span class="hljs-string">&quot;0ABCDEFGHIJKLMNOPQRSTUVWXYZ&quot;</span>
+    symbol_bits = <span class="hljs-string">&quot;&quot;</span>
+    <span class="hljs-keyword">for</span> letter <span class="hljs-keyword">in</span> text:
+        <span class="hljs-keyword">for</span> i, char <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(charset):
+            <span class="hljs-keyword">if</span> char == letter:
+                bits = <span class="hljs-built_in">format</span>(i, <span class="hljs-string">&quot;08b&quot;</span>)[::-<span class="hljs-number">1</span>]
+                symbol_bits += bits[:<span class="hljs-number">5</span>]
+
+    symbol_bytes = <span class="hljs-built_in">int</span>(symbol_bits[::-<span class="hljs-number">1</span>], <span class="hljs-number">2</span>).to_bytes(
+        (<span class="hljs-built_in">len</span>(symbol_bits) + <span class="hljs-number">7</span>) // <span class="hljs-number">8</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>
+    )
+    <span class="hljs-keyword">return</span> zpad_right(symbol_bytes, <span class="hljs-number">6</span>)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">unpack_bytes</span>(<span class="hljs-params">packed_text: <span class="hljs-built_in">bytes</span></span>):</span>
+    charset = <span class="hljs-string">&quot;0ABCDEFGHIJKLMNOPQRSTUVWXYZ&quot;</span>
+    symbol_bits = <span class="hljs-built_in">format</span>(<span class="hljs-built_in">int</span>.from_bytes(packed_text, <span class="hljs-string">&quot;little&quot;</span>), <span class="hljs-string">&quot;030b&quot;</span>)[::-<span class="hljs-number">1</span>]
+    symbol_char_bit_chunks = [
+        symbol_bits[i : i + <span class="hljs-number">5</span>] <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">0</span>, <span class="hljs-built_in">len</span>(symbol_bits), <span class="hljs-number">5</span>)
+    ]
+    symbol = <span class="hljs-string">&quot;&quot;</span>
+    <span class="hljs-keyword">for</span> symbol_char_bit_chunk <span class="hljs-keyword">in</span> symbol_char_bit_chunks:
+        reversed_bit_chunk = symbol_char_bit_chunk[::-<span class="hljs-number">1</span>]
+        char_index = <span class="hljs-built_in">int</span>(reversed_bit_chunk, <span class="hljs-number">2</span>)
+        symbol += charset[char_index]
+    <span class="hljs-keyword">return</span> symbol
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">encode_key</span>(<span class="hljs-params">symbol: <span class="hljs-built_in">str</span>, index_price_hash: <span class="hljs-built_in">str</span></span>):</span>
+    <span class="hljs-comment"># ItemType.PRICE == 4</span>
+    <span class="hljs-keyword">return</span> zpad32_right(
+            ItemType.PRICE.to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
+            + pack_bytes(symbol)
+            <span class="hljs-comment"># TODO (apalepu): Uncomment once this is added on Rust side</span>
+            <span class="hljs-comment"># + index_price_hash[:26]</span>
+        )
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">decode_key</span>(<span class="hljs-params">price_key: <span class="hljs-built_in">bytes</span></span>):</span>
+    <span class="hljs-comment"># symbol</span>
+    <span class="hljs-keyword">return</span> unpack_bytes(price_key[<span class="hljs-number">1</span>:<span class="hljs-number">7</span>])</code></pre>
+            <p>The location of a <code>Price</code> leaf is determined by its key, which is encoded as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>Bytes</th>
+                     <th>Value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>0</td>
+                     <td>Price discriminant</td>
+                  </tr>
+                  <tr>
+                     <td>[1, 6]</td>
+                     <td>Symbol (5-bit encoded/packed)</td>
+                  </tr>
+                  <tr>
+                     <td>[7, 31]</td>
+                     <td>25 bytes of index price&#39;s unique hash</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>The following sample <code>Price</code> materials generates the following encoded key: <code>0x0485225824040000000000000000000000000000000000000000000000000000</code>.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>field</th>
+                     <th>value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>symbol</td>
+                     <td>&quot;ETHPERP&quot;</td>
+                  </tr>
+                  <tr>
+                     <td>index_price_hash</td>
+                     <td>&quot;0x3d940b7e18acdf6c6f4740f7226245a796d53b6f2ffb9a8ca4ABABABABABABAB&quot;</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h4 id="value-definition-4">Value definition</h4>
+            <blockquote>
+               <p>Value encoding / decoding (Python)</p>
+            </blockquote>
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> Dict
+<span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
+<span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single, decode_single
+<span class="hljs-keyword">from</span> web3.auto <span class="hljs-keyword">import</span> w3
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">round_to_unit</span>(<span class="hljs-params">val</span>):</span>
+    <span class="hljs-keyword">return</span> val.quantize(Decimal(<span class="hljs-string">&quot;.000000000000000001&quot;</span>), rounding=ROUND_DOWN)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(round_to_unit(val) * <span class="hljs-number">10</span> ** decimals)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
+    <span class="hljs-keyword">return</span> Decimal(<span class="hljs-built_in">str</span>(val)) / <span class="hljs-number">10</span> ** decimals
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_encoded_value</span>(<span class="hljs-params">self, index_price: Decimal, index_price_hash: <span class="hljs-built_in">bytes</span>, ema: Decimal</span>):</span>
+    <span class="hljs-comment"># Price item discriminant</span>
+    item_type = <span class="hljs-number">4</span>
+
+    <span class="hljs-comment"># Scale index price and ema to DDX grains</span>
+    price_encoding = encode_single(
+        <span class="hljs-string">&quot;(uint8,(uint128,bytes32,uint128))&quot;</span>,
+        [
+            self.item_type,
+            [
+                to_base_unit_amount(index_price, <span class="hljs-number">18</span>),
+                index_price_hash,
+                to_base_unit_amount(<span class="hljs-built_in">abs</span>(ema), <span class="hljs-number">18</span>),
+            ],
+        ],
+    )
+    <span class="hljs-keyword">if</span> self.ema &lt; <span class="hljs-number">0</span>:
+        price_encoding_byte_array = <span class="hljs-built_in">bytearray</span>(price_encoding)
+        price_encoding_byte_array[-<span class="hljs-number">17</span>] = <span class="hljs-number">1</span>
+        price_encoding = <span class="hljs-built_in">bytes</span>(price_encoding_byte_array)
+
+    <span class="hljs-keyword">return</span> price_encoding
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_decoded_value</span>(<span class="hljs-params">abi_encoded_value: <span class="hljs-built_in">str</span></span>):</span>
+    price_encoding_byte_array = <span class="hljs-built_in">bytearray</span>(<span class="hljs-built_in">bytes</span>.fromhex(abi_encoded_value[<span class="hljs-number">2</span>:]))
+    multiplier = -<span class="hljs-number">1</span> <span class="hljs-keyword">if</span> price_encoding_byte_array[-<span class="hljs-number">17</span>] == <span class="hljs-number">1</span> <span class="hljs-keyword">else</span> <span class="hljs-number">1</span>
+    price_encoding_byte_array[-<span class="hljs-number">17</span>] = <span class="hljs-number">0</span>
+    abi_encoded_value = <span class="hljs-built_in">bytes</span>(price_encoding_byte_array).<span class="hljs-built_in">hex</span>()
+
+    (item_type, (index_price, index_price_hash, ema)) = decode_single(
+        <span class="hljs-string">&quot;(uint8,(uint128,bytes32,uint128))&quot;</span>, w3.toBytes(hexstr=abi_encoded_value),
+    )
+
+    <span class="hljs-comment"># Scale index price and ema from DDX grains</span>
+    <span class="hljs-keyword">return</span> (
+        to_unit_amount(index_price, <span class="hljs-number">18</span>),
+        index_price_hash,
+        to_unit_amount(ema * multiplier, <span class="hljs-number">18</span>),
+    )</code></pre>
+            <p>A <code>Price</code> leaf holds the following data:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>decimal</td>
+                     <td>index_price</td>
+                     <td>Composite index price perpetual is tracking</td>
+                  </tr>
+                  <tr>
+                     <td>bytes</td>
+                     <td>index_price_hash</td>
+                     <td>Unique hash of index price</td>
+                  </tr>
+                  <tr>
+                     <td>decimal</td>
+                     <td>ema</td>
+                     <td>EMA component of price, tracking the difference between the DerivaDEX order book price and the underlying</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>These contents are always stored in the tree in ABI-encoded form: <code>(uint8,(uint128,bytes32,uint128))</code>. Meaning, you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree. A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain variables, is shown on the right. It&#39;s demonstrated in the code sample, but it&#39;s worth highlighting that the <code>ema</code> component, which can be a negative value, is ABI-encoded to a 32-byte value where the first 16 bytes will either be <code>0x00000000000000000000000000000000</code> (positive) or <code>0x00000000000000000000000000000001</code> (negative), and the next 16 bytes is the absolute value of the <code>ema</code>.</p>
+            <p>The following sample <code>Price</code> materials generates the following ABI-encoded value: <code>0x000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000d8d726b7177a800003ad520dd6051f521d43b7b834450b663b7782df758823a8e6a9845cdc86139690000000000000000000000000000000000000000000000000000000000000000</code>.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>field</th>
+                     <th>value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>index_price</td>
+                     <td>250</td>
+                  </tr>
+                  <tr>
+                     <td>index_price_hash</td>
+                     <td>&#39;0x3ad520dd6051f521d43b7b834450b663b7782df758823a8e6a9845cdc8613969&#39;</td>
+                  </tr>
+                  <tr>
+                     <td>ema</td>
+                     <td>0</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h3 id="insurance-fund">Insurance fund</h3>
+            <p>An <code>InsuranceFund</code> contains information pertaining to the insurance fund&#39;s capitalization.</p>
+            <h4 id="key-encoding--decoding-5">Key encoding / decoding</h4>
+            <blockquote>
+               <p>Key encoding / decoding (Python)</p>
+            </blockquote>
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi.utils.padding <span class="hljs-keyword">import</span> zpad32_right
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">encode_key</span>():</span>
+    <span class="hljs-comment"># ItemType.INSURANCE_FUND == 5</span>
+    <span class="hljs-keyword">return</span> zpad32_right(
+        ItemType.INSURANCE_FUND.to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
+        + <span class="hljs-string">&quot;OrganicInsuranceFund&quot;</span>.encode(<span class="hljs-string">&quot;utf8&quot;</span>)
+    )</code></pre>
+            <p>The location of an <code>InsuranceFund</code> leaf is determined by its key, which is encoded as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>Bytes</th>
+                     <th>Value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>0</td>
+                     <td>Insurance fund discriminant</td>
+                  </tr>
+                  <tr>
+                     <td>[1, 20]</td>
+                     <td>&quot;OrganicInsuranceFund&quot; bytes-encoded</td>
+                  </tr>
+                  <tr>
+                     <td>[21, 31]</td>
+                     <td>Zero-padding</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>The <code>InsuranceFund</code> leaf is located at the encoded key: <code>0x054f7267616e6963496e737572616e636546756e640000000000000000000000</code>.</p>
+            <h4 id="value-definition-5">Value definition</h4>
+            <blockquote>
+               <p>Value encoding / decoding (Python)</p>
+            </blockquote>
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> Dict
+<span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
+<span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single, decode_single
+<span class="hljs-keyword">from</span> web3.auto <span class="hljs-keyword">import</span> w3
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">round_to_unit</span>(<span class="hljs-params">val</span>):</span>
+    <span class="hljs-keyword">return</span> val.quantize(Decimal(<span class="hljs-string">&quot;.000000000000000001&quot;</span>), rounding=ROUND_DOWN)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(round_to_unit(val) * <span class="hljs-number">10</span> ** decimals)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
+    <span class="hljs-keyword">return</span> Decimal(<span class="hljs-built_in">str</span>(val)) / <span class="hljs-number">10</span> ** decimals
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_encoded_value</span>(<span class="hljs-params">self, capitalization: Dict[<span class="hljs-built_in">str</span>, Decimal]</span>):</span>
+    <span class="hljs-comment"># InsuranceFund item discriminant</span>
+    item_type = <span class="hljs-number">5</span>
+
+    <span class="hljs-comment"># Scale collateral amounts to DDX grains</span>
+    <span class="hljs-keyword">return</span> encode_single(
+        <span class="hljs-string">&quot;((uint8,(address[],uint128[])))&quot;</span>,
+        [
+            [
+                self.item_type,
+                [
+                    <span class="hljs-built_in">list</span>(capitalization.keys()),
+                    to_base_unit_amount_list(
+                        <span class="hljs-built_in">list</span>(capitalization.values()), <span class="hljs-number">18</span>
+                    ),
+                ],
+            ]
+        ],
+    )
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_decoded_value</span>(<span class="hljs-params">abi_encoded_value: <span class="hljs-built_in">str</span></span>):</span>
+    (
+        (item_type, (capitalization_tokens, capitalization_amounts,),),
+    ) = decode_single(
+        <span class="hljs-string">&quot;((uint8,(address[],uint128[])))&quot;</span>, w3.toBytes(hexstr=abi_encoded_value),
+    )
+
+    <span class="hljs-comment"># Scale collateral amounts from DDX grains</span>
+    <span class="hljs-keyword">return</span> cls(
+        {
+            k: to_unit_amount(v, <span class="hljs-number">18</span>)
+            <span class="hljs-keyword">for</span> k, v <span class="hljs-keyword">in</span> <span class="hljs-built_in">zip</span>(
+                <span class="hljs-built_in">list</span>(capitalization_tokens), <span class="hljs-built_in">list</span>(capitalization_amounts)
+            )
+        },
+    )</code></pre>
+            <p>An <code>InsuranceFund</code> leaf holds the following data:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>dict&lt;address_s, decimal&gt;</td>
+                     <td>capitalization</td>
+                     <td>Mapping of collateral address to organic insurance fund capitalization</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>These contents are always stored in the tree in ABI-encoded form: <code>((uint8,(address[],uint128[])))</code>. Meaning, you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree. A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain variables, is shown on the right.</p>
+            <p>The following sample <code>InsuranceFund</code> materials generates the following ABI-encoded value: <code>0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000500000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000</code>.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>field</th>
+                     <th>value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>capitalization</td>
+                     <td>{}</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h3 id="stats">Stats</h3>
+            <p>An <code>Stats</code> contains data such as volume info for trade mining for any given trader.</p>
+            <h4 id="key-encoding--decoding-6">Key encoding / decoding</h4>
+            <blockquote>
+               <p>Key encoding / decoding (Python)</p>
+            </blockquote>
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi.utils.padding <span class="hljs-keyword">import</span> zpad32_right
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">encode_key</span>(<span class="hljs-params">trader_address: <span class="hljs-built_in">str</span></span>):</span>
+    <span class="hljs-comment"># ItemType.STATS == 6</span>
+    <span class="hljs-keyword">return</span> zpad32_right(
+            ItemType.STATS.to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
+            + chain_discriminant.to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
+            + <span class="hljs-built_in">bytes</span>.fromhex(trader_address[<span class="hljs-number">2</span>:])
+        )
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">decode_key</span>(<span class="hljs-params">book_order_key: <span class="hljs-built_in">bytes</span></span>):</span>
+    <span class="hljs-comment"># chain_discriminant, trader_address</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>.from_bytes(stats_key[<span class="hljs-number">1</span>:<span class="hljs-number">2</span>], <span class="hljs-string">&quot;little&quot;</span>), <span class="hljs-string">f&quot;0x<span class="hljs-subst">{stats_key[<span class="hljs-number">2</span>:<span class="hljs-number">22</span>].<span class="hljs-built_in">hex</span>()}</span>&quot;</span></code></pre>
+            <p>The location of a <code>Stats</code> leaf is determined by its key, which is encoded as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>Bytes</th>
+                     <th>Value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>0</td>
+                     <td>Stats discriminant</td>
+                  </tr>
+                  <tr>
+                     <td>1</td>
+                     <td>Blockchain discriminant</td>
+                  </tr>
+                  <tr>
+                     <td>[2, 21]</td>
+                     <td>Trader&#39;s Ethereum address</td>
+                  </tr>
+                  <tr>
+                     <td>[22, 31]</td>
+                     <td>Zero-padding</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>The following sample <code>Stats</code> materials generates the following encoded key: <code>0x0600603699848c84529987e14ba32c8a66def67e9ece00000000000000000000</code>.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>field</th>
+                     <th>value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>trader_address</td>
+                     <td>&quot;0x0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h4 id="value-definition-6">Value definition</h4>
+            <blockquote>
+               <p>Value encoding / decoding (Python)</p>
+            </blockquote>
+            <pre class="highlight python"><code><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> Dict
+<span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
+<span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single, decode_single
+<span class="hljs-keyword">from</span> web3.auto <span class="hljs-keyword">import</span> w3
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">round_to_unit</span>(<span class="hljs-params">val</span>):</span>
+    <span class="hljs-keyword">return</span> val.quantize(Decimal(<span class="hljs-string">&quot;.000000000000000001&quot;</span>), rounding=ROUND_DOWN)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(round_to_unit(val) * <span class="hljs-number">10</span> ** decimals)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
+    <span class="hljs-keyword">return</span> Decimal(<span class="hljs-built_in">str</span>(val)) / <span class="hljs-number">10</span> ** decimals
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_encoded_value</span>(<span class="hljs-params">self, maker_volume: Decimal, taker_volume: Decimal</span>):</span>
+    <span class="hljs-comment"># Stats item discriminant</span>
+    item_type = <span class="hljs-number">6</span>
+
+    <span class="hljs-comment"># Scale volume amounts to DDX grains</span>
+    <span class="hljs-keyword">return</span> encode_single(
+        <span class="hljs-string">&quot;(uint8,(uint128,uint128))&quot;</span>,
+        [
+            item_type,
+            [
+                to_base_unit_amount(maker_volume, <span class="hljs-number">18</span>),
+                to_base_unit_amount(taker_volume, <span class="hljs-number">18</span>),
+            ],
+        ],
+    )
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_decoded_value</span>(<span class="hljs-params">abi_encoded_value: <span class="hljs-built_in">str</span></span>):</span>
+    (item_type, (maker_volume, taker_volume)) = decode_single(
+        <span class="hljs-string">&quot;(uint8,(uint128,uint128))&quot;</span>, w3.toBytes(hexstr=abi_encoded_value),
+    )
+
+    <span class="hljs-comment"># Scale volumes from DDX grains</span>
+    <span class="hljs-keyword">return</span> (to_unit_amount(maker_volume, <span class="hljs-number">18</span>), to_unit_amount(taker_volume, <span class="hljs-number">18</span>))</code></pre>
+            <p>A <code>Stats</code> leaf holds the following data:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>decimal</td>
+                     <td>maker_volume</td>
+                     <td>Maker volume of trader during this trade mining epoch</td>
+                  </tr>
+                  <tr>
+                     <td>decimal</td>
+                     <td>taker_volume</td>
+                     <td>Taker volume of trader during this trade mining epoch</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>These contents are always stored in the tree in ABI-encoded form: <code>(uint8,(uint128,uint128))</code>. Meaning, you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree. A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain variables, is shown on the right.</p>
+            <p>The following sample <code>Stats</code> materials generates the following ABI-encoded value: <code>0x000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000340aad21b3b70000000000000000000000000000000000000000000000000000340aad21b3b700000</code>.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>field</th>
+                     <th>value</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>maker_volume</td>
+                     <td>60</td>
+                  </tr>
+                  <tr>
+                     <td>capitalization</td>
+                     <td>60</td>
+                  </tr>
+               </tbody>
+            </table>
             <h2 id="making-a-deposit">Making a deposit</h2>
             <blockquote>
                <p>Deposit ABI (JSON)</p>
@@ -835,7 +2196,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
-            <p>As described in the <code>Signatures &amp; hashing</code> section, the <code>orderHash</code> is something that you construct client-side prior to submitting the order to the exchange. In this regard, you have the <code>orderHash</code> for each order you submit irrespective of acknowledgement from the exchange. You can determine which ones have actually been received by the exchange by filtering all the ones you have sent by using the <code>requestId</code> field in the successful/received responses from the place order <code>command</code>. As an alternate/additional reference, the <code>OrdersUpdate</code> <code>subscription</code> (see below for further information) includes the <code>orderHash</code> field for any open orders you have.</p>
+            <p>As described in the <code>Signatures &amp; hashing</code> section, the <code>orderHash</code> is something that you construct client-side prior to submitting the order to the exchange. In this regard, you have the <code>orderHash</code> for each order you submit irrespective of acknowledgement from the exchange. You can determine which ones have actually been received by the exchange by filtering all the ones you have sent by using the <code>nonce</code> field in the successful/received responses from the place order <code>command</code>.</p>
             <h3 id="response-1">Response</h3>
             <blockquote>
                <p>Receipt (success) format (JSON)</p>
@@ -1032,404 +2393,23 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                </tbody>
             </table>
             <h1 id="subscriptions">Subscriptions</h1>
-            <p>You can subscribe to two different kinds of feeds corresponding to a specific trader&#39;s account or market data with <code>SubscribeAccount</code> or <code>SubscribeMarket</code> requests, respectively.</p>
-            <h2 id="account">Account</h2>
-            <h3 id="request-3">Request</h3>
-            <blockquote>
-               <p>Request format (JSON)</p>
-            </blockquote>
-            <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;SubscribeAccount&quot;</span>,
-    <span class="hljs-attr">&quot;c&quot;</span>: {
-        <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>,
-        <span class="hljs-attr">&quot;strategies&quot;</span>: [<span class="hljs-string">&quot;main&quot;</span>],
-        <span class="hljs-attr">&quot;events&quot;</span>: [<span class="hljs-string">&quot;StrategyUpdate&quot;</span>, <span class="hljs-string">&quot;OrdersUpdate&quot;</span>, <span class="hljs-string">&quot;PositionUpdate&quot;</span>]
-    }
-}</code></pre>
-            <p>You can subscribe to data feeds corresponding to events for a particular trader&#39;s Ethereum address. The possible account events you can subscribe to are <code>StrategyUpdate</code>, <code>OrdersUpdate</code>, <code>TradeUpdate</code>, and <code>PositionUpdate</code>.</p>
-            <table>
-               <thead>
-                  <tr>
-                     <th>type</th>
-                     <th>field</th>
-                     <th>description</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>address_s</td>
-                     <td>trader</td>
-                     <td>Trader&#39;s Ethereum address (same as the one that facilitated the deposit)</td>
-                  </tr>
-                  <tr>
-                     <td>string[]</td>
-                     <td>strategies</td>
-                     <td>Strategies being subscribed to. Currently, the only supported strategy is <code>main</code>, but support for multiple strategies is coming soon!</td>
-                  </tr>
-                  <tr>
-                     <td>string[]</td>
-                     <td>events</td>
-                     <td>Events being subscribed to. This can be one or more of <code>StrategyUpdate</code>, <code>OrdersUpdate</code>, <code>TradeUpdate</code>, and <code>PositionUpdate</code></td>
-                  </tr>
-               </tbody>
-            </table>
-            <h3 id="response-3">Response</h3>
-            <blockquote>
-               <p>Receipt (success) format (JSON)</p>
-            </blockquote>
-            <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Subscribed&quot;</span>,
-    <span class="hljs-attr">&quot;c&quot;</span>: {
-        <span class="hljs-attr">&quot;message&quot;</span>: <span class="hljs-string">&quot;Subscribed to [StrategyUpdate | OrdersUpdate | TradeUpdate | PositionUpdate ] for 0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>
-    }
-}</code></pre>
-            <p>Each <code>subscription</code> returns a receipt, which confirms that an Operator has received the <code>subscription</code> request. The receipt <code>type</code> will be either <code>Subscribed</code> or <code>Error</code>.</p>
-            <p>A successful <code>subscription</code> returns a <code>Subscribed</code> receipt from the Operator.</p>
-            <table>
-               <thead>
-                  <tr>
-                     <th>type</th>
-                     <th>field</th>
-                     <th>description</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>string</td>
-                     <td>message</td>
-                     <td>Success message</td>
-                  </tr>
-               </tbody>
-            </table>
-            <blockquote>
-               <p>Receipt (error) format (JSON)</p>
-            </blockquote>
-            <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Error&quot;</span>,
-    <span class="hljs-attr">&quot;c&quot;</span>: {
-        <span class="hljs-attr">&quot;message&quot;</span>: <span class="hljs-string">&quot;Invalid subscription&quot;</span>
-    }
-}</code></pre>
-            <p>An erroneous <code>subscription</code> returns an <code>Error</code> receipt from the Operator.</p>
-            <table>
-               <thead>
-                  <tr>
-                     <th>type</th>
-                     <th>field</th>
-                     <th>description</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>string</td>
-                     <td>message</td>
-                     <td>Error message</td>
-                  </tr>
-               </tbody>
-            </table>
-            <h3 id="events">Events</h3>
-            <p>Each of the market <code>subscription</code> events will be discussed below individually. </p>
-            <h4 id="strategy-update">Strategy update</h4>
-            <blockquote>
-               <p>Partial response (JSON)</p>
-            </blockquote>
-            <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;StrategyUpdate&quot;</span>,
-    <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Partial&quot;</span>,
-    <span class="hljs-attr">&quot;c&quot;</span>: [{
-        <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0xe36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
-        <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
-        <span class="hljs-attr">&quot;maxLeverage&quot;</span>: <span class="hljs-string">&quot;20&quot;</span>,
-        <span class="hljs-attr">&quot;freeCollateral&quot;</span>: {
-            <span class="hljs-attr">&quot;0xc4f290a59d66a2e06677ed27422a1106049d9e72&quot;</span>: <span class="hljs-string">&quot;1000&quot;</span>
-        },
-        <span class="hljs-attr">&quot;frozenCollateral&quot;</span>: {
-            <span class="hljs-attr">&quot;0xc4f290a59d66a2e06677ed27422a1106049d9e72&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>
-        },
-        <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-03-23T20:03:45.850Z&quot;</span>
-    }]
-}</code></pre>
-            <blockquote>
-               <p>Update response (JSON)</p>
-            </blockquote>
-            <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;StrategyUpdate&quot;</span>,
-    <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Update&quot;</span>,
-    <span class="hljs-attr">&quot;c&quot;</span>: [{
-        <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0xe36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
-        <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
-        <span class="hljs-attr">&quot;maxLeverage&quot;</span>: <span class="hljs-string">&quot;20&quot;</span>,
-        <span class="hljs-attr">&quot;freeCollateral&quot;</span>: {
-            <span class="hljs-attr">&quot;0xc4f290a59d66a2e06677ed27422a1106049d9e72&quot;</span>: <span class="hljs-string">&quot;2000&quot;</span>
-        },
-        <span class="hljs-attr">&quot;frozenCollateral&quot;</span>: {
-            <span class="hljs-attr">&quot;0xc4f290a59d66a2e06677ed27422a1106049d9e72&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>
-        },
-        <span class="hljs-attr">&quot;frozen&quot;</span>: <span class="hljs-literal">false</span>,
-        <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-03-23T20:03:45.850Z&quot;</span>
-    }]
-}</code></pre>
-            <p>You can subscribe to updates to their strategy with the <code>StrategyUpdate</code> event. A strategy is a cross-margined account in which you can deposit/withdraw collateral and make trades. Strategies are siloed off from one another. Any updates to the free or frozen collaterals you have (whether it&#39;s from deposits, withdrawals, or realized PNL) will be registered in this feed.</p>
-            <p>Upon subscription, you will receive a <code>Partial</code> back, containing a snapshot of your strategy at that moment in time. From then on, you will receive streaming <code>Update</code> messages as appropriate. </p>
-            <p>For the response, an array of updates per strategy you have subscribed to is emitted, with each update defined as follows:</p>
-            <table>
-               <thead>
-                  <tr>
-                     <th>type</th>
-                     <th>field</th>
-                     <th>description</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>address_s</td>
-                     <td>trader</td>
-                     <td>Trader&#39;s Ethereum address (same as the one requested)</td>
-                  </tr>
-                  <tr>
-                     <td>string_s</td>
-                     <td>strategy</td>
-                     <td>Strategy being subscribed to. Currently, the only supported strategy is <code>main</code>, but support for multiple strategies is coming soon!</td>
-                  </tr>
-                  <tr>
-                     <td>int_s</td>
-                     <td>maxLeverage</td>
-                     <td>Maximum leverage for strategy, which impacts the maintenance margin ratio associated to any given trader</td>
-                  </tr>
-                  <tr>
-                     <td>&lt;address_s, decimal_s&gt;</td>
-                     <td>freeCollateral</td>
-                     <td>Collateral (on a per token basis) available for trading (not to be confused with the <code>Free Collateral</code> displayed on the UI, which is the collateral available to a trader wishing to signal a withdraw intent)</td>
-                  </tr>
-                  <tr>
-                     <td>&lt;address_s, decimal_s&gt;</td>
-                     <td>frozenCollateral</td>
-                     <td>Collateral (on a per token basis) available for a smart contract withdrawal, but not for trading, since the Operators have received the withdraw intent)</td>
-                  </tr>
-                  <tr>
-                     <td>bool</td>
-                     <td>frozen</td>
-                     <td>Whether the account and its collateral is frozen or not</td>
-                  </tr>
-               </tbody>
-            </table>
-            <h4 id="orders-update">Orders update</h4>
-            <blockquote>
-               <p>Partial response (JSON)</p>
-            </blockquote>
-            <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;OrdersUpdate&quot;</span>,
-    <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Partial&quot;</span>,
-    <span class="hljs-attr">&quot;c&quot;</span>: [{
-        <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x946e4bedf2dd87e5380f32a18d1af19adb4d7ecec3a8a346cb641adc5201e53e&quot;</span>,
-        <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0xe36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
-        <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
-        <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Ask&quot;</span>,
-        <span class="hljs-attr">&quot;orderType&quot;</span>: <span class="hljs-string">&quot;Limit&quot;</span>,
-        <span class="hljs-attr">&quot;nonce&quot;</span>: <span class="hljs-string">&quot;0x3136323334303630353437323034353030303000000000000000000000000000&quot;</span>,
-        <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;10.000000000000000000&quot;</span>,
-        <span class="hljs-attr">&quot;remainingAmount&quot;</span>: <span class="hljs-string">&quot;10.000000000000000000&quot;</span>,
-        <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;2473.620000000000000000&quot;</span>,
-        <span class="hljs-attr">&quot;stopPrice&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
-        <span class="hljs-attr">&quot;signature&quot;</span>: <span class="hljs-string">&quot;0x87b20c98f21a988737ad4e1820f66a96acf9eba979bfc51c84f3b5b6519815d13f67f07b18cb78d9f30395b80370c6af4a705e9fed0b671858dd7714d8c663f81c&quot;</span>,
-        <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-03-24T23:25:41.467Z&quot;</span>
-    }]
-}</code></pre>
-            <blockquote>
-               <p>Update response (JSON)</p>
-            </blockquote>
-            <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;OrdersUpdate&quot;</span>,
-    <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Update&quot;</span>,
-    <span class="hljs-attr">&quot;c&quot;</span>: [{
-        <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x6ba227be1c689a978c30ef50196d6451b1e039cf64b22ce82b88f14a31d9da8a&quot;</span>,
-        <span class="hljs-attr">&quot;makerAddress&quot;</span>: <span class="hljs-string">&quot;0xe36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
-        <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
-        <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
-        <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Ask&quot;</span>,
-        <span class="hljs-attr">&quot;orderType&quot;</span>: <span class="hljs-string">&quot;Limit&quot;</span>,
-        <span class="hljs-attr">&quot;nonce&quot;</span>: <span class="hljs-string">&quot;0x3136323130313431373537353037303130303000000000000000000000000000&quot;</span>,
-        <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;7.51&quot;</span>,
-        <span class="hljs-attr">&quot;remainingAmount&quot;</span>: <span class="hljs-string">&quot;5.51&quot;</span>,
-        <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;4165.16&quot;</span>,
-        <span class="hljs-attr">&quot;stopPrice&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
-        <span class="hljs-attr">&quot;signature&quot;</span>: <span class="hljs-string">&quot;0x61d4e6f2c65cc21f5ace380d5f025c117841a92fbde3354802955f77372c709174cc3d31160fa0d4d0ff8a34bed80dfe99bd04bcee71308560314e0db509e0051b&quot;</span>,
-        <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-05-14T17:42:59.558Z&quot;</span>
-    }]
-}</code></pre>
-            <p>You can subscribe to updates to your open orders with the <code>OrdersUpdate</code> event. </p>
-            <p>Upon subscription, you will receive a <code>Partial</code> back, containing a snapshot of all of your open orders at that moment in time. From then on, you will receive streaming/incremental <code>Update</code> messages with any changes to these orders (due to posting new orders, canceling existing orders, or orders that have been matched in partial or in full).</p>
-            <p>For the response, an array of updates per order is emitted, with each update defined as follows:</p>
-            <table>
-               <thead>
-                  <tr>
-                     <th>type</th>
-                     <th>field</th>
-                     <th>description</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>bytes32_s</td>
-                     <td>orderHash</td>
-                     <td>Hash of the order that has changed or is new</td>
-                  </tr>
-                  <tr>
-                     <td>address_s</td>
-                     <td>traderAddress</td>
-                     <td>Trader&#39;s Ethereum address associated with this order</td>
-                  </tr>
-                  <tr>
-                     <td>string</td>
-                     <td>symbol</td>
-                     <td>Name of the market this order belongs to. Currently, this is limited to &#39;ETHPERP&#39;, but new symbols are coming soon!</td>
-                  </tr>
-                  <tr>
-                     <td>string</td>
-                     <td>strategy</td>
-                     <td>Name of the cross-margined strategy this order belongs to. Currently, this is limited to the default <code>main</code> strategy, but support for multiple strategies is coming soon!</td>
-                  </tr>
-                  <tr>
-                     <td>string</td>
-                     <td>side</td>
-                     <td>Side of order, either <code>Bid</code> or <code>Ask</code></td>
-                  </tr>
-                  <tr>
-                     <td>string</td>
-                     <td>orderType</td>
-                     <td>Order type, either <code>Limit</code> or <code>Market</code>. Other order types coming soon!</td>
-                  </tr>
-                  <tr>
-                     <td>bytes32_s</td>
-                     <td>requestId</td>
-                     <td>Numeric identifier for the order. To clarify, this is NOT an identifier relating to this particular subscription/response, but rather the <code>requestId</code> field associated with this order at the time of placement.</td>
-                  </tr>
-                  <tr>
-                     <td>decimal_s</td>
-                     <td>amount</td>
-                     <td>The original order amount/size requested</td>
-                  </tr>
-                  <tr>
-                     <td>decimal_s</td>
-                     <td>remainingAmount</td>
-                     <td>The order amount/size remaining on the order book</td>
-                  </tr>
-                  <tr>
-                     <td>decimal_s</td>
-                     <td>price</td>
-                     <td>The order price</td>
-                  </tr>
-                  <tr>
-                     <td>decimal_s</td>
-                     <td>stopPrice</td>
-                     <td>Currently, always 0 as stops are not implemented.</td>
-                  </tr>
-                  <tr>
-                     <td>bytes_s</td>
-                     <td>signature</td>
-                     <td>EIP-712 signature</td>
-                  </tr>
-                  <tr>
-                     <td>timestamp_s</td>
-                     <td>createdAt</td>
-                     <td>Timestamp when order was initially created</td>
-                  </tr>
-               </tbody>
-            </table>
-            <h4 id="trade-update">Trade update</h4>
-            <blockquote>
-               <p>Partial response (JSON)</p>
-            </blockquote>
-            <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;TradeUpdate&quot;</span>,
-    <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Partial&quot;</span>,
-    <span class="hljs-attr">&quot;c&quot;</span>: [{
-        <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;1&quot;</span>,
-        <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-06-08T12:44:00.231Z&quot;</span>,
-        <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
-        <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;2521.34&quot;</span>,
-        <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
-        <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Ask&quot;</span>,
-        <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;Limit&quot;</span>,
-        <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x961cb97fde433e621ba4d37b4714df1a1c52e062a119a6af58fcca312a90c616&quot;</span>
-    }]
-}</code></pre>
-            <blockquote>
-               <p>Update response (JSON)</p>
-            </blockquote>
-            <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;TradeUpdate&quot;</span>,
-    <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Update&quot;</span>,
-    <span class="hljs-attr">&quot;c&quot;</span>: [{
-        <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;9.8&quot;</span>,
-        <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-06-11T10:36:52.844Z&quot;</span>,
-        <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;48.62662&quot;</span>,
-        <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;2480.95&quot;</span>,
-        <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;-105.574444971899599047&quot;</span>,
-        <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x5648a591b5e2db72bd561197945e94ee2c1657527d85fccaeaf0d44d7daf94c1&quot;</span>
-    }]
-}</code></pre>
-            <p>You can subscribe to updates to your trades/fills with the <code>TradeUpdate</code> event. </p>
-            <p>Upon subscription, you will receive a <code>Partial</code> back, containing a snapshot of all of your prior trades. From then on, you will receive streaming/incremental <code>Update</code> messages with any partial/complete fills moving forward.</p>
-            <p>For the response, an array of trade update events is emitted, with each update defined as follows:</p>
-            <table>
-               <thead>
-                  <tr>
-                     <th>type</th>
-                     <th>field</th>
-                     <th>description</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>bytes32_s</td>
-                     <td>orderHash</td>
-                     <td>Hash of the order that has been filled</td>
-                  </tr>
-                  <tr>
-                     <td>decimal_s</td>
-                     <td>amount</td>
-                     <td>The amount/size filled</td>
-                  </tr>
-                  <tr>
-                     <td>decimal_s</td>
-                     <td>fee</td>
-                     <td>The fees paid as a result of this fill (the fees paid are always presented as a positive number for the purposes of this field&#39;s value)</td>
-                  </tr>
-                  <tr>
-                     <td>decimal_s</td>
-                     <td>price</td>
-                     <td>The fill price</td>
-                  </tr>
-                  <tr>
-                     <td>decimal_s</td>
-                     <td>realizedPnl</td>
-                     <td>The realized PNL as a result of this fill (to be explicit, fees are not a component of this realized PNL as they are presented in their own dedicated field)</td>
-                  </tr>
-                  <tr>
-                     <td>timestamp_s</td>
-                     <td>createdAt</td>
-                     <td>Timestamp when order was initially created</td>
-                  </tr>
-               </tbody>
-            </table>
-            <h5 id="tracking-orders-and-fills">Tracking orders and fills</h5>
-            <p>To track your orders and fills, you can use a combination of the <code>OrdersUpdate</code> and <code>TradeUpdate</code> events. Keep in mind that the <code>OrdersUpdate</code> event emits data pertaining to your open orders, including but not limited to, the order&#39;s original amount (<code>amount</code>), price (<code>price</code>), and remaining amount (<code>remainingAmount</code>). The <code>remainingAmount</code> does not on its own indicate whether the reduced amount off of the original <code>amount</code> is a result of fills or cancellations. However, you can determine the filled vs. cancelled amounts by using the filled <code>amount</code> field from the <code>TradeEvent</code> and tying that back to the orders data with the <code>orderHash</code>. Additionally, the <code>price</code> field in the <code>TradeUpdate</code> event will help you determine the average fill price for any orders you may have.</p>
-            <h4 id="positions-update">Positions update</h4>
-            <p>TBD</p>
-            <h2 id="market">Market</h2>
-            <h3 id="request-4">Request</h3>
+            <p>You can subscribe to the whole DerivaDEX state and all of the data via a subscription request.</p>
+            <h2 id="state-and-transaction-log">State and transaction log</h2>
+            <p>DerivaDEX maintains its state in a Sparse Merkle Tree (SMT), which consists of leaves of various types. The SMT is updated when any state-changing transaction takes place. Any client that subscribes to this state and transaction log can efficiently track everything that happens on the exchange in full. This is an exceptionally powerful subscription endpoint, allowing consumers to:</p>
+            <ol>
+               <li>validate the honesty and integrity of the exchange&#39;s operations</li>
+               <li>ensure they are verifiably up-to-date with the latest exchange data</li>
+            </ol>
+            <h3 id="subscription-request">Subscription request</h3>
             <blockquote>
                <p>Request format (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;SubscribeMarket&quot;</span>,
     <span class="hljs-attr">&quot;c&quot;</span>: {
-        <span class="hljs-attr">&quot;symbols&quot;</span>: [<span class="hljs-string">&quot;ETHPERP&quot;</span>],
-        <span class="hljs-attr">&quot;events&quot;</span>: [<span class="hljs-string">&quot;OrderBookUpdate&quot;</span>, <span class="hljs-string">&quot;MarkPriceUpdate&quot;</span>]
+        <span class="hljs-attr">&quot;events&quot;</span>: [<span class="hljs-string">&quot;TxLogUpdate&quot;</span>]
     }
 }</code></pre>
-            <p>You can subscribe to data feeds corresponding to events for the broader market. The possible market events you can subscribe to at this time are <code>OrderBookUpdate</code> and <code>MarkPriceUpdate</code>. </p>
             <table>
                <thead>
                   <tr>
@@ -1441,24 +2421,19 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                <tbody>
                   <tr>
                      <td>string[]</td>
-                     <td>symbols</td>
-                     <td>Symbols being subscribed to. Currently, the only supported symbol is <code>ETHPERP</code>, but support for more symbols is coming soon!</td>
-                  </tr>
-                  <tr>
-                     <td>string[]</td>
                      <td>events</td>
-                     <td>Events being subscribed to. This can be one or more of <code>OrderBookUpdate</code> and <code>MarkPriceUpdate</code></td>
+                     <td>Events being subscribed to. There is only one event that can be subscribed to, the <code>TxLogUpdate</code> event.</td>
                   </tr>
                </tbody>
             </table>
-            <h3 id="response-4">Response</h3>
+            <h3 id="subscription-response">Subscription response</h3>
             <blockquote>
                <p>Receipt (success) format (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
     <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Subscribed&quot;</span>,
     <span class="hljs-attr">&quot;c&quot;</span>: {
-        <span class="hljs-attr">&quot;message&quot;</span>: <span class="hljs-string">&quot;Subscribed to [OrderBookUpdate | MarkPriceUpdate] for ETHPERP&quot;</span>
+        <span class="hljs-attr">&quot;message&quot;</span>: <span class="hljs-string">&quot;Subscribed to [TxLogUpdate] for 0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</span>
     }
 }</code></pre>
             <p>Each <code>subscription</code> returns a receipt, which confirms that an Operator has received the <code>subscription</code> request. The receipt <code>type</code> will be either <code>Subscribed</code> or <code>Error</code>.</p>
@@ -1505,47 +2480,53 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
-            <h3 id="events-1">Events</h3>
-            <p>Each of the market <code>subscription</code> events will be discussed below individually. </p>
-            <h4 id="order-book-update">Order book update</h4>
+            <h3 id="event-response">Event response</h3>
             <blockquote>
                <p>Partial response (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;OrderBookUpdate&quot;</span>,
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;TxLogUpdate&quot;</span>,
     <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Partial&quot;</span>,
-    <span class="hljs-attr">&quot;c&quot;</span>: [{
-        <span class="hljs-attr">&quot;bids&quot;</span>: [
-            [<span class="hljs-string">&quot;516.58&quot;</span>, <span class="hljs-string">&quot;10&quot;</span>],
-            [<span class="hljs-string">&quot;511.36&quot;</span>, <span class="hljs-string">&quot;10&quot;</span>]
-        ],
-        <span class="hljs-attr">&quot;asks&quot;</span>: [],
-        <span class="hljs-attr">&quot;timestamp&quot;</span>: <span class="hljs-string">&quot;1616664308163&quot;</span>,
-        <span class="hljs-attr">&quot;nonce&quot;</span>: <span class="hljs-string">&quot;0x1848dbc26865f118d0ea56ecf776ee68b5a9b39e0223d4e322374c087a66a201&quot;</span>,
-        <span class="hljs-attr">&quot;aggregationType&quot;</span>: <span class="hljs-string">&quot;0.0001&quot;</span>
-    }]
+    <span class="hljs-attr">&quot;c&quot;</span>: [
+        [{
+            <span class="hljs-attr">&quot;lowEpochId&quot;</span>: <span class="hljs-string">&quot;3285&quot;</span>,
+            <span class="hljs-attr">&quot;highEpochId&quot;</span>: <span class="hljs-string">&quot;3285&quot;</span>,
+            <span class="hljs-attr">&quot;smtKey&quot;</span>: <span class="hljs-string">&quot;0x03852258240400c873ea38e15d879465347afac4cdfb3a6e0317e6d89e29ffa9&quot;</span>,
+            <span class="hljs-attr">&quot;smtHash&quot;</span>: <span class="hljs-string">&quot;0x1efadbf30bbd972a82e7e6eb69d02426905ecaed708c906a579e37fe85309ade&quot;</span>,
+            <span class="hljs-attr">&quot;smtValue&quot;</span>: <span class="hljs-string">&quot;0x0000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000098eee79d10ce0000000000000000000000000000000000000000000000000079bffc1fc3ca0d0000000000000000000000000000e36ea790bc9d7ab70c55260c66d52b1eca985f842576ebd100000000000000000000000000000000000000000000000000000000&quot;</span>
+        }, {
+            <span class="hljs-attr">&quot;lowEpochId&quot;</span>: <span class="hljs-string">&quot;3285&quot;</span>,
+            <span class="hljs-attr">&quot;highEpochId&quot;</span>: <span class="hljs-string">&quot;3285&quot;</span>,
+            <span class="hljs-attr">&quot;smtKey&quot;</span>: <span class="hljs-string">&quot;0x038522582404009fdc11a1a8b36a931888d77829719c950ee22fa5dbb61a9010&quot;</span>,
+            <span class="hljs-attr">&quot;smtHash&quot;</span>: <span class="hljs-string">&quot;0xa1efd81e2e9e48bb4a87c3e12956e73e533dbced114930f6f9c8fad9c9703891&quot;</span>,
+            <span class="hljs-attr">&quot;smtValue&quot;</span>: <span class="hljs-string">&quot;0x00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ca5690c079320000000000000000000000000000000000000000000000000079fefd71b5fa530000000000000000000000000000e36ea790bc9d7ab70c55260c66d52b1eca985f842576ebd100000000000000000000000000000000000000000000000000000000&quot;</span>
+        }, {
+            <span class="hljs-attr">&quot;lowEpochId&quot;</span>: <span class="hljs-string">&quot;3285&quot;</span>,
+            <span class="hljs-attr">&quot;highEpochId&quot;</span>: <span class="hljs-string">&quot;3285&quot;</span>,
+            <span class="hljs-attr">&quot;smtKey&quot;</span>: <span class="hljs-string">&quot;0x03852258240400d29e5da477e70f8ae124adf64e3aacad16e047afbb72133e02&quot;</span>,
+            <span class="hljs-attr">&quot;smtHash&quot;</span>: <span class="hljs-string">&quot;0x03860f96f101ea693aed84948af1624a5fd75c33492aa3165feff26ad62f7655&quot;</span>,
+            <span class="hljs-attr">&quot;smtValue&quot;</span>: <span class="hljs-string">&quot;0x00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000693191d6e576000000000000000000000000000000000000000000000000007a5d5be5aed2fb0000000000000000000000000000e36ea790bc9d7ab70c55260c66d52b1eca985f842576ebd100000000000000000000000000000000000000000000000000000000&quot;</span>
+        }],
+        [{
+            <span class="hljs-attr">&quot;epochId&quot;</span>: <span class="hljs-string">&quot;3286&quot;</span>,
+            <span class="hljs-attr">&quot;txOrdinal&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+            <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-string">&quot;180842&quot;</span>,
+            <span class="hljs-attr">&quot;stateRootHash&quot;</span>: <span class="hljs-string">&quot;0xc480af2c9623e3571de640112a4b94a29406199359508a6ff1c0c4a8b07af7d1&quot;</span>,
+            <span class="hljs-attr">&quot;eventKind&quot;</span>: <span class="hljs-number">9</span>,
+            <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-06-30T20:32:38.018Z&quot;</span>,
+            <span class="hljs-attr">&quot;signature&quot;</span>: <span class="hljs-string">&quot;0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&quot;</span>,
+            <span class="hljs-attr">&quot;event&quot;</span>: {
+                <span class="hljs-attr">&quot;ETHPERP&quot;</span>: {
+                    <span class="hljs-attr">&quot;ema&quot;</span>: <span class="hljs-string">&quot;0.325889706776203498&quot;</span>,
+                    <span class="hljs-attr">&quot;indexPrice&quot;</span>: <span class="hljs-string">&quot;2263.343&quot;</span>,
+                    <span class="hljs-attr">&quot;indexPriceHash&quot;</span>: <span class="hljs-string">&quot;0x5f994903e82e60704f1d9fbb04315ad248fc7bb4bf739d32c4d53157beb079e0&quot;</span>
+                }
+            }
+        }]
+    ]
 }</code></pre>
-            <blockquote>
-               <p>Update response (JSON)</p>
-            </blockquote>
-            <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;OrderBookUpdate&quot;</span>,
-    <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Update&quot;</span>,
-    <span class="hljs-attr">&quot;c&quot;</span>: [{
-        <span class="hljs-attr">&quot;bids&quot;</span>: [
-            [<span class="hljs-string">&quot;516.58&quot;</span>, <span class="hljs-string">&quot;0&quot;</span>]
-        ],
-        <span class="hljs-attr">&quot;asks&quot;</span>: [
-            [<span class="hljs-string">&quot;527.01&quot;</span>, <span class="hljs-string">&quot;10&quot;</span>]
-        ],
-        <span class="hljs-attr">&quot;timestamp&quot;</span>: <span class="hljs-string">&quot;1616667513875&quot;</span>,
-        <span class="hljs-attr">&quot;nonce&quot;</span>: <span class="hljs-string">&quot;0xc423f94e3ba40527b7bed2925cfedabf8a68388bde06f090a772b8bf3c791f5f&quot;</span>,
-        <span class="hljs-attr">&quot;aggregationType&quot;</span>: <span class="hljs-string">&quot;0.0001&quot;</span>
-    }]
-}</code></pre>
-            <p>You can subscribe to updates to an L2-order book for any given market with the <code>OrderBookUpdate</code> event. As is typically seen, an order book is a price-time FIFO priority queue market place for you to interact with. Since this is an L2-aggregation, the response will collapse any given price level to the aggregate quantity at that level irrespective of the number of participants or the individual order details that comprise that price level.</p>
-            <p>Upon subscription, you will receive a <code>Partial</code> back, containing an L2-aggregate snapshot of the order book at that moment in time. From then on, you will receive streaming/incremental <code>Update</code> messages as appropriate containing only the aggregated price levels that are different (due to the placement of new orders, order cancellation, or liquidations/matches that have taken place). Updates will come in with a reference to the side of the order book and in the form of 2-item lists with the format <code>[price, new aggregate quantity]</code>. A new aggregate quantity of <code>0</code> indicates that the price level is now gone. </p>
-            <p>For the response, an array of updates per order book is emitted, with each update defined as follows:</p>
+            <p>Upon subscription, you will first receive a <code>Partial</code> back, containing a snapshot of the DerivaDEX state as of the latest checkpoint and all of the transactions from the latest checkpoint up until now. DerivaDEX has on-chain checkpoints roughly every 10 minutes. Say you were to connect to the API and subscribe to this endpoint 7 minutes after Checkpoint 100 had completed. You would first receive the entire state as of Checkpoint 100, and then all of the state-transitioning transactions that have elapsed in the last 7 minutes. Thus, you will be up-to-date without having to stream through all of the transactions from the beginning of time (Checkpoint 0). This is an incredibly powerful response, as you can construct literally the <strong>entire</strong> state of the DerivaDEX exchange from this.</p>
+            <p>The response is a 2-item array, with the first item referencing the state snapshot and the second referencing the transactions, as shown in the sample on the right. The types and fields that make up this response are described in the table below:</p>
             <table>
                <thead>
                   <tr>
@@ -1556,71 +2537,96 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                </thead>
                <tbody>
                   <tr>
-                     <td>decimal_s[2][]</td>
-                     <td>bids</td>
-                     <td>The price and corresponding updated aggregate quantity for the bids</td>
+                     <td>int_s</td>
+                     <td>lowEpochId</td>
+                     <td>Epoch ID of state entry</td>
                   </tr>
                   <tr>
-                     <td>decimal_s[2][]</td>
-                     <td>asks</td>
-                     <td>The price and corresponding updated aggregate quantity for the asks</td>
-                  </tr>
-                  <tr>
-                     <td>timestamp_s_i</td>
-                     <td>timestamp</td>
-                     <td>Timestamp of order book partial/update</td>
+                     <td>int_s</td>
+                     <td>highEpochId</td>
+                     <td>Epoch ID of state entry</td>
                   </tr>
                   <tr>
                      <td>bytes32_s</td>
-                     <td>nonce</td>
-                     <td>Disregard for time being......</td>
+                     <td>smtHash</td>
+                     <td>Hash of the SMT&#39;s key and ABI-encoded value</td>
                   </tr>
                   <tr>
-                     <td>decimal_s</td>
-                     <td>aggregationType</td>
-                     <td>Precision used for the selected product</td>
+                     <td>bytes32_s</td>
+                     <td>smtKey</td>
+                     <td>Unique location of leaf in the SMT. The first byte of this key is the leaf item discriminant, and will inform you how to decode the remainder of the key and the <code>smtValue</code>.</td>
+                  </tr>
+                  <tr>
+                     <td>bytes_s</td>
+                     <td>smtValue</td>
+                     <td>ABI-encoding of SMT leaf&#39;s value. You can appropriately decode this value using the first byte of the <code>smtKey</code>.</td>
+                  </tr>
+                  <tr>
+                     <td>int_s</td>
+                     <td>epochId</td>
+                     <td>Epoch ID of transaction</td>
+                  </tr>
+                  <tr>
+                     <td>int_s</td>
+                     <td>txOrdinal</td>
+                     <td>Monotonically increasing numerical value representing when a transaction took place in a given epoch. This will necessarily increase by 1 in order of being processed, and will only be reset to 0 when a new epoch has begun.</td>
+                  </tr>
+                  <tr>
+                     <td>int_s</td>
+                     <td>requestIndex</td>
+                     <td>Sequenced identifier for the request initially made. This will be the same as the <code>requestIndex</code> you receive in a successful <code>command</code>.</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32_s</td>
+                     <td>stateRootHash</td>
+                     <td>SMT&#39;s state root hash prior to the transaction being applied</td>
+                  </tr>
+                  <tr>
+                     <td>int</td>
+                     <td>eventKind</td>
+                     <td>Enum representation for event type (<code>0=PartialFill</code>, <code>1=CompleteFill</code>, <code>2=Post</code>, <code>3=Cancel</code>, <code>4=Liquidation</code>, <code>5=StrategyUpdate</code>, <code>6=TraderUpdate</code>, <code>7=Withdraw</code>, <code>8=WithdrawDDX</code>, <code>9=PriceCheckpoint</code>, <code>10=Funding</code>, <code>11=TradeMining</code>, <code>12=NoTransition</code>)</td>
+                  </tr>
+                  <tr>
+                     <td>timestamp_s</td>
+                     <td>createdAt</td>
+                     <td>Timestamp transaction log entry was created</td>
+                  </tr>
+                  <tr>
+                     <td>bytes_s</td>
+                     <td>signature</td>
+                     <td>Enclave&#39;s signature of transaction data</td>
+                  </tr>
+                  <tr>
+                     <td>object</td>
+                     <td>event</td>
+                     <td>Event data (structure and contents are different depending on the <code>eventKind</code>)</td>
                   </tr>
                </tbody>
             </table>
-            <h5 id="maintaining-local-order-book">Maintaining local order book</h5>
-            <p>To maintain a local order book, you can use a combination of the <code>Partial</code> snapshot and <code>Update</code> streaming messages. A sample algorithm is as follows:</p>
-            <ol>
-               <li>Receive a <code>Partial</code> snapshot and use that as the starting point for the order book. Keep in mind that the response outputs the aggregated quantities at each price level for both the <code>bids</code> and <code>asks</code> sides of the order book.</li>
-               <li>For every <code>Update</code> streaming message, you will receive information for both sides of the order book regarding any price level that has changed. There will be no explicit indication if a level has been newly-formed, modified, or deleted. For any <code>[price, updated_aggregated_quantity]</code> you receive, update your local order book. If your local order book does not currently have an entry for this <code>price</code>, you know it is a new level and can set the quantity to <code>updated_aggregated_quantity</code>. If your local order book has the price level corresponding to <code>price</code>, adjust its quantity to <code>updated_aggregated_quantity</code> except in the scenario where <code>updated_aggregated_quantity</code> is <code>&quot;0&quot;</code>, in which case you can delete the level entirely.</li>
-               <li>If your connection drops or you believe you may have missed/mishandled an update, simply refetch the <code>Partial</code> as per Step 1, and proceed from there with Step 2.</li>
-            </ol>
-            <h4 id="mark-price-update">Mark price update</h4>
-            <blockquote>
-               <p>Partial response (JSON)</p>
-            </blockquote>
-            <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;MarkPriceUpdate&quot;</span>,
-    <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Partial&quot;</span>,
-    <span class="hljs-attr">&quot;c&quot;</span>: [{
-        <span class="hljs-attr">&quot;indexPrice&quot;</span>: <span class="hljs-string">&quot;2471.07238095238095238&quot;</span>,
-        <span class="hljs-attr">&quot;ema&quot;</span>: <span class="hljs-string">&quot;5.136686727099837573&quot;</span>,
-        <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
-        <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-03-25T10:37:38.124Z&quot;</span>,
-        <span class="hljs-attr">&quot;updatedAt&quot;</span>: <span class="hljs-string">&quot;2021-03-25T10:37:38.124Z&quot;</span>
-    }]
-}</code></pre>
             <blockquote>
                <p>Update response (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;MarkPriceUpdate&quot;</span>,
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;TxLogUpdate&quot;</span>,
     <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Update&quot;</span>,
     <span class="hljs-attr">&quot;c&quot;</span>: [{
-        <span class="hljs-attr">&quot;indexPrice&quot;</span>: <span class="hljs-string">&quot;2471.354761904761904761&quot;</span>,
-        <span class="hljs-attr">&quot;ema&quot;</span>: <span class="hljs-string">&quot;4.246686727099837573&quot;</span>,
-        <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
-        <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-06-11T20:12:09.132Z&quot;</span>,
-        <span class="hljs-attr">&quot;updatedAt&quot;</span>: <span class="hljs-string">&quot;2021-06-11T20:12:09.132Z&quot;</span>
+        <span class="hljs-attr">&quot;epochId&quot;</span>: <span class="hljs-string">&quot;3286&quot;</span>,
+        <span class="hljs-attr">&quot;txOrdinal&quot;</span>: <span class="hljs-string">&quot;1&quot;</span>,
+        <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-string">&quot;180849&quot;</span>,
+        <span class="hljs-attr">&quot;stateRootHash&quot;</span>: <span class="hljs-string">&quot;0xc211ee51304784f6d5cf6841768570199dc6cd75025b383a615b67ae1d5fb234&quot;</span>,
+        <span class="hljs-attr">&quot;eventKind&quot;</span>: <span class="hljs-number">9</span>,
+        <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2021-06-30T20:33:00.478Z&quot;</span>,
+        <span class="hljs-attr">&quot;signature&quot;</span>: <span class="hljs-string">&quot;0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&quot;</span>,
+        <span class="hljs-attr">&quot;event&quot;</span>: {
+            <span class="hljs-attr">&quot;ETHPERP&quot;</span>: {
+                <span class="hljs-attr">&quot;ema&quot;</span>: <span class="hljs-string">&quot;0.513297744127047512&quot;</span>,
+                <span class="hljs-attr">&quot;indexPrice&quot;</span>: <span class="hljs-string">&quot;2263.064285714285714285&quot;</span>,
+                <span class="hljs-attr">&quot;indexPriceHash&quot;</span>: <span class="hljs-string">&quot;0x695c3030efe5609cee9cf66c7df0e451a80c388c3725abc6f5888d542bc3d480&quot;</span>
+            }
+        }
     }]
 }</code></pre>
-            <p>You can subscribe to updates to the price checkpoint (and thus, the mark price) for any given market with the <code>MarkPriceUpdate</code> event. The mark price is an important concept on DerivaDEX as it is the price at which positions are marked when displaying unrealized PNL. Consequently, the mark price helps determine a strategy&#39;s margin fraction, thereby triggering liquidations when appropriate. The mark price is computed based on a 30s exponential moving average (often referred to as a 30s EMA) of the spread between the underlying price (a composite of several spot price feeds for the underlying asset) and the DerivaDEX order book itself. The mark price can be computed as follows: <code>mark_price = index_price + ema</code>. </p>
-            <p>Upon subscription, you will receive a <code>Partial</code> back, containing a price checkpoint at that moment in time. From then on, you will receive streaming/incremental <code>Update</code> messages as appropriate. </p>
-            <p>For the response, an array of updates per symbol is emitted, with each update defined as follows:</p>
+            <p>From this point onwards, you will receive <code>Update</code> messages, with individual transactions that you can apply to your local state you have constructed using the <code>Partial</code> to always stay up-to-date. You may notice that the transaction log entries streamed in these update messages are identical to the individual transaction entries shown in the second part of the <code>Partial</code> response above. </p>
             <table>
                <thead>
                   <tr>
@@ -1631,29 +2637,645 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                </thead>
                <tbody>
                   <tr>
+                     <td>int_s</td>
+                     <td>epochId</td>
+                     <td>Epoch ID of transaction</td>
+                  </tr>
+                  <tr>
+                     <td>int_s</td>
+                     <td>txOrdinal</td>
+                     <td>Monotonically increasing numerical value representing when a transaction took place in a given epoch. This will necessarily increase by 1 in order of being processed, and will only be reset to 0 when a new epoch has begun.</td>
+                  </tr>
+                  <tr>
+                     <td>int_s</td>
+                     <td>requestIndex</td>
+                     <td>Sequenced identifier for the request initially made. This will be the same as the <code>requestIndex</code> you receive in a successful <code>command</code>.</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32_s</td>
+                     <td>stateRootHash</td>
+                     <td>SMT&#39;s state root hash prior to the transaction being applied</td>
+                  </tr>
+                  <tr>
+                     <td>int</td>
+                     <td>eventKind</td>
+                     <td>Enum representation for event type (<code>0=PartialFill</code>, <code>1=CompleteFill</code>, <code>2=Post</code>, <code>3=Cancel</code>, <code>4=Liquidation</code>, <code>5=StrategyUpdate</code>, <code>6=TraderUpdate</code>, <code>7=Withdraw</code>, <code>8=WithdrawDDX</code>, <code>9=PriceCheckpoint</code>, <code>10=Funding</code>, <code>11=TradeMining</code>, <code>12=NoTransition</code>)</td>
+                  </tr>
+                  <tr>
                      <td>timestamp_s</td>
                      <td>createdAt</td>
-                     <td>Timestamp of original price checkpoint entry</td>
+                     <td>Timestamp transaction log entry was created</td>
                   </tr>
                   <tr>
-                     <td>timestamp_s</td>
-                     <td>updatedAt</td>
-                     <td>Timestamp of price checkpoint update</td>
+                     <td>bytes_s</td>
+                     <td>signature</td>
+                     <td>Enclave&#39;s signature of transaction data</td>
+                  </tr>
+                  <tr>
+                     <td>object</td>
+                     <td>event</td>
+                     <td>Event data (structure and contents are different depending on the <code>eventKind</code>)</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>As mentioned above, there are 12 various types of transactions on DerivaDEX, each of which can modify the SMT&#39;s state in different ways. The full set of transactions along with their corresponding numeric discrimants can be seen in the table below.</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>Event</th>
+                     <th>Discriminant</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>PartialFill</td>
+                     <td>0</td>
+                  </tr>
+                  <tr>
+                     <td>CompleteFill</td>
+                     <td>1</td>
+                  </tr>
+                  <tr>
+                     <td>Post</td>
+                     <td>2</td>
+                  </tr>
+                  <tr>
+                     <td>Cancel</td>
+                     <td>3</td>
+                  </tr>
+                  <tr>
+                     <td>Liquidation</td>
+                     <td>4</td>
+                  </tr>
+                  <tr>
+                     <td>StrategyUpdate</td>
+                     <td>5</td>
+                  </tr>
+                  <tr>
+                     <td>TraderUpdate</td>
+                     <td>6</td>
+                  </tr>
+                  <tr>
+                     <td>Withdraw</td>
+                     <td>7</td>
+                  </tr>
+                  <tr>
+                     <td>WithdrawDDX</td>
+                     <td>8</td>
+                  </tr>
+                  <tr>
+                     <td>PriceCheckpoint</td>
+                     <td>9</td>
+                  </tr>
+                  <tr>
+                     <td>Funding</td>
+                     <td>10</td>
+                  </tr>
+                  <tr>
+                     <td>TradeMining</td>
+                     <td>11</td>
+                  </tr>
+                  <tr>
+                     <td>NoTransition</td>
+                     <td>12</td>
+                  </tr>
+               </tbody>
+            </table>
+            <p>Each of these transaction types are described at length below.</p>
+            <h4 id="partial-fill">Partial fill</h4>
+            <blockquote>
+               <p>Sample PartialFill (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+    <span class="hljs-attr">&quot;epochId&quot;</span>: <span class="hljs-number">1</span>,
+    <span class="hljs-attr">&quot;event&quot;</span>: {
+        <span class="hljs-attr">&quot;c&quot;</span>: [
+            [{
+                <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;20&quot;</span>,
+                <span class="hljs-attr">&quot;makerOrderHash&quot;</span>: <span class="hljs-string">&quot;0xccdc891e0178fff88e9158ae341247afad50d08b000b00eed6&quot;</span>,
+                <span class="hljs-attr">&quot;makerOrderRemainingAmount&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+                <span class="hljs-attr">&quot;makerOutcome&quot;</span>: {
+                    <span class="hljs-attr">&quot;ddxFeeElection&quot;</span>: <span class="hljs-literal">false</span>,
+                    <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+                    <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-string">&quot;200000&quot;</span>,
+                    <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;241&quot;</span>,
+                    <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;60&quot;</span>,
+                    <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-string">&quot;Short&quot;</span>,
+                    <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+                    <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
+                    <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0xa8dda8d7f5310e4a9e24f8eba77e091ac264f872&quot;</span>
+                },
+                <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;247&quot;</span>,
+                <span class="hljs-attr">&quot;reason&quot;</span>: <span class="hljs-string">&quot;Trade&quot;</span>,
+                <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
+                <span class="hljs-attr">&quot;takerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x3b1462eb4cd85476f059c4cd7d3aefdf9ec09f0ee85af3eeff&quot;</span>,
+                <span class="hljs-attr">&quot;takerOutcome&quot;</span>: {
+                    <span class="hljs-attr">&quot;ddxFeeElection&quot;</span>: <span class="hljs-literal">false</span>,
+                    <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;9.88&quot;</span>,
+                    <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-string">&quot;199971.08&quot;</span>,
+                    <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;241&quot;</span>,
+                    <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;60&quot;</span>,
+                    <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-string">&quot;Long&quot;</span>,
+                    <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+                    <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
+                    <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987e14ba32c8a66def67e9ece&quot;</span>
+                },
+                <span class="hljs-attr">&quot;takerSide&quot;</span>: <span class="hljs-string">&quot;Bid&quot;</span>
+            }], {
+                <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;80&quot;</span>,
+                <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x3b1462eb4cd85476f059c4cd7d3aefdf9ec09f0ee85af3eeff&quot;</span>,
+                <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;250&quot;</span>,
+                <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Bid&quot;</span>,
+                <span class="hljs-attr">&quot;strategyId&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
+                <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
+                <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987e14ba32c8a66def67e9ece&quot;</span>
+            }
+        ],
+        <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;PartialFill&quot;</span>
+    },
+    <span class="hljs-attr">&quot;eventKind&quot;</span>: <span class="hljs-number">0</span>,
+    <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-number">25</span>,
+    <span class="hljs-attr">&quot;stateRootHash&quot;</span>: <span class="hljs-string">&quot;0x45f744d76fa11ff3b58decd3ec5573a23694bff212399801c4ed14cd680cbc73&quot;</span>,
+    <span class="hljs-attr">&quot;txOrdinal&quot;</span>: <span class="hljs-number">8</span>
+}</code></pre>
+            <p>A <code>PartialFill</code> transaction is a scenario where the taker order has been partially filled across 1 or more maker orders and thus has a remaining order that enters the order book. The event portion of the transaction response consists of a 2-item array. The first item is a list of <code>Fill</code> events and the second item is the remaining <code>Post</code> event.</p>
+            <h4 id="complete-fill">Complete fill</h4>
+            <blockquote>
+               <p>Sample CompleteFill (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+    <span class="hljs-attr">&quot;epochId&quot;</span>: <span class="hljs-number">1</span>,
+    <span class="hljs-attr">&quot;event&quot;</span>: {
+        <span class="hljs-attr">&quot;c&quot;</span>: [{
+            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;20&quot;</span>,
+            <span class="hljs-attr">&quot;makerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x4b75a446ca9220d9dfd13bd697cba32657ad4caf1c51f59e8c&quot;</span>,
+            <span class="hljs-attr">&quot;makerOrderRemainingAmount&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+            <span class="hljs-attr">&quot;makerOutcome&quot;</span>: {
+                <span class="hljs-attr">&quot;ddxFeeElection&quot;</span>: <span class="hljs-literal">false</span>,
+                <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+                <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-string">&quot;200000&quot;</span>,
+                <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;235&quot;</span>,
+                <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;20&quot;</span>,
+                <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-string">&quot;Short&quot;</span>,
+                <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+                <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
+                <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0xa8dda8d7f5310e4a9e24f8eba77e091ac264f872&quot;</span>
+            },
+            <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;235&quot;</span>,
+            <span class="hljs-attr">&quot;reason&quot;</span>: <span class="hljs-string">&quot;Trade&quot;</span>,
+            <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
+            <span class="hljs-attr">&quot;takerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x4347298b461db640c829e51890d10695249e193fcfb84c9786&quot;</span>,
+            <span class="hljs-attr">&quot;takerOutcome&quot;</span>: {
+                <span class="hljs-attr">&quot;ddxFeeElection&quot;</span>: <span class="hljs-literal">false</span>,
+                <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;9.4&quot;</span>,
+                <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-string">&quot;199990.6&quot;</span>,
+                <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;235&quot;</span>,
+                <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;20&quot;</span>,
+                <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-string">&quot;Long&quot;</span>,
+                <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+                <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
+                <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987e14ba32c8a66def67e9ece&quot;</span>
+            },
+            <span class="hljs-attr">&quot;takerSide&quot;</span>: <span class="hljs-string">&quot;Bid&quot;</span>
+        }],
+        <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;CompleteFill&quot;</span>
+    },
+    <span class="hljs-attr">&quot;eventKind&quot;</span>: <span class="hljs-number">1</span>,
+    <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-number">23</span>,
+    <span class="hljs-attr">&quot;stateRootHash&quot;</span>: <span class="hljs-string">&quot;0xe79bba967fb7ffd2a46ac76ca1d920109376eb57b4b691ffdc0375690d94e21c&quot;</span>,
+    <span class="hljs-attr">&quot;txOrdinal&quot;</span>: <span class="hljs-number">6</span>
+}</code></pre>
+            <p>A <code>CompleteFill</code> is a scenario where the taker order has been completely filled across 1 or more maker orders. The event portion of the transaction response consists of a list of <code>Fill</code> events.</p>
+            <h4 id="post">Post</h4>
+            <blockquote>
+               <p>Sample Post (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+    <span class="hljs-attr">&quot;epochId&quot;</span>: <span class="hljs-number">1</span>,
+    <span class="hljs-attr">&quot;event&quot;</span>: {
+        <span class="hljs-attr">&quot;c&quot;</span>: {
+            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;20&quot;</span>,
+            <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x4b75a446ca9220d9dfd13bd697cba32657ad4caf1c51f59e8c&quot;</span>,
+            <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;235&quot;</span>,
+            <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Ask&quot;</span>,
+            <span class="hljs-attr">&quot;strategyId&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
+            <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
+            <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0xa8dda8d7f5310e4a9e24f8eba77e091ac264f872&quot;</span>
+        },
+        <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Post&quot;</span>
+    },
+    <span class="hljs-attr">&quot;eventKind&quot;</span>: <span class="hljs-number">2</span>,
+    <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-number">20</span>,
+    <span class="hljs-attr">&quot;stateRootHash&quot;</span>: <span class="hljs-string">&quot;0x661b2467616c9268b59e2abe88de871f8857c3e255ae02cdcf421d84dad8def0&quot;</span>,
+    <span class="hljs-attr">&quot;txOrdinal&quot;</span>: <span class="hljs-number">3</span>
+}</code></pre>
+            <p>A <code>Post</code> is an order that enters the order book. The event portion of the transaction has attributes defined as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>decimal_s</td>
+                     <td>amount</td>
+                     <td>Size of order posted to the order book</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32_s</td>
+                     <td>orderHash</td>
+                     <td>Hexstr representation of the EIP-712 hash of the order being placed</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
-                     <td>indexPrice</td>
-                     <td>Composite index price</td>
+                     <td>price</td>
+                     <td>Price the order has been placed at</td>
                   </tr>
                   <tr>
-                     <td>decimal_s</td>
-                     <td>ema</td>
-                     <td>Exponential moving average of the premium rate (essentially adjusting for the difference between the composite index price and the DerivaDEX derivative product&#39;s order book)</td>
+                     <td>string</td>
+                     <td>side</td>
+                     <td>Side of order (<code>Bid</code> or <code>Ask</code>)</td>
+                  </tr>
+                  <tr>
+                     <td>string</td>
+                     <td>strategyId</td>
+                     <td>Strategy ID this order belongs to (e.g. &quot;main&quot;)</td>
                   </tr>
                   <tr>
                      <td>string</td>
                      <td>symbol</td>
-                     <td>Market subscribed to</td>
+                     <td>Symbol for the market this order has been placed (e.g. &quot;ETHPERP&quot;)</td>
+                  </tr>
+                  <tr>
+                     <td>address_s</td>
+                     <td>traderAddress</td>
+                     <td>Trader&#39;s Ethereum address</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h4 id="cancel">Cancel</h4>
+            <blockquote>
+               <p>Sample Cancel (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+    <span class="hljs-attr">&quot;epochId&quot;</span>: <span class="hljs-number">1</span>,
+    <span class="hljs-attr">&quot;event&quot;</span>: {
+        <span class="hljs-attr">&quot;c&quot;</span>: {
+            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;20&quot;</span>,
+            <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x4b75a446ca9220d9dfd13bd697cba32657ad4caf1c51f59e8c&quot;</span>,
+            <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>
+        },
+        <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Cancel&quot;</span>
+    },
+    <span class="hljs-attr">&quot;eventKind&quot;</span>: <span class="hljs-number">3</span>,
+    <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-number">21</span>,
+    <span class="hljs-attr">&quot;stateRootHash&quot;</span>: <span class="hljs-string">&quot;0x661b2467616c9268b59e2abe88de871f8857c3e255ae02cdcf421d84dad8def0&quot;</span>,
+    <span class="hljs-attr">&quot;txOrdinal&quot;</span>: <span class="hljs-number">4</span>
+}</code></pre>
+            <p>A <code>Cancel</code> is when an existing order is canceled and removed from the order book. The event portion of the transaction has attributes defined as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>decimal_s</td>
+                     <td>amount</td>
+                     <td>Size of order canceled from the order book</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32_s</td>
+                     <td>orderHash</td>
+                     <td>Hexstr representation of the EIP-712 hash of the order being canceled</td>
+                  </tr>
+                  <tr>
+                     <td>string</td>
+                     <td>symbol</td>
+                     <td>Symbol for the market this order has been canceled (e.g. &quot;ETHPERP&quot;)</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h4 id="liquidation">Liquidation</h4>
+            <p>TBD</p>
+            <h4 id="strategy-update">Strategy update</h4>
+            <blockquote>
+               <p>Sample StrategyUpdate (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+    <span class="hljs-attr">&quot;epochId&quot;</span>: <span class="hljs-number">1</span>,
+    <span class="hljs-attr">&quot;event&quot;</span>: {
+        <span class="hljs-attr">&quot;c&quot;</span>: {
+            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;200000&quot;</span>,
+            <span class="hljs-attr">&quot;collateralAddress&quot;</span>: <span class="hljs-string">&quot;0xb69e673309512a9d726f87304c6984054f87a93b&quot;</span>,
+            <span class="hljs-attr">&quot;strategyId&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
+            <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987e14ba32c8a66def67e9ece&quot;</span>,
+            <span class="hljs-attr">&quot;txHash&quot;</span>: <span class="hljs-string">&quot;0xe6ae70d48a2800d2871237b1b90b15b8e3921f106ba31c1e4703df1c8ca49683&quot;</span>,
+            <span class="hljs-attr">&quot;updateType&quot;</span>: <span class="hljs-string">&quot;Deposit&quot;</span>
+        },
+        <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;StrategyUpdate&quot;</span>
+    },
+    <span class="hljs-attr">&quot;eventKind&quot;</span>: <span class="hljs-number">5</span>,
+    <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-number">13</span>,
+    <span class="hljs-attr">&quot;stateRootHash&quot;</span>: <span class="hljs-string">&quot;0x7d9c627046b71fabb3342602e7324df15b3dd46261584e9f6ee96ca12860aea2&quot;</span>,
+    <span class="hljs-attr">&quot;txOrdinal&quot;</span>: <span class="hljs-number">0</span>
+}</code></pre>
+            <p>A <code>StrategyUpdate</code> is an update to a trader&#39;s strategy (such as depositing or withdrawing collateral). The event portion of the transaction has attributes defined as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>decimal_s</td>
+                     <td>amount</td>
+                     <td>Amount deposited or withdrawn</td>
+                  </tr>
+                  <tr>
+                     <td>address_s</td>
+                     <td>collateralAddress</td>
+                     <td>Deposited / withdrawn collateral token&#39;s Ethereum address</td>
+                  </tr>
+                  <tr>
+                     <td>string</td>
+                     <td>strategyId</td>
+                     <td>Strategy ID deposited to or withdrawn from (e.g. &quot;main&quot;)</td>
+                  </tr>
+                  <tr>
+                     <td>address_s</td>
+                     <td>trader</td>
+                     <td>Trader&#39;s Ethereum address</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32_s</td>
+                     <td>txHash</td>
+                     <td>Ethereum transaction hash for the on-chain deposit / withdrawal</td>
+                  </tr>
+                  <tr>
+                     <td>string</td>
+                     <td>updateType</td>
+                     <td>Action corresponding to either &quot;Deposit&quot; or &quot;Withdraw&quot;</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h4 id="trader-update">Trader update</h4>
+            <blockquote>
+               <p>Sample TraderUpdate (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+    <span class="hljs-attr">&quot;epochId&quot;</span>: <span class="hljs-number">1</span>,
+    <span class="hljs-attr">&quot;event&quot;</span>: {
+        <span class="hljs-attr">&quot;c&quot;</span>: {
+            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;1000&quot;</span>,
+            <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987e14ba32c8a66def67e9ece&quot;</span>,
+            <span class="hljs-attr">&quot;txHash&quot;</span>: <span class="hljs-string">&quot;0xe6ae70d48a2800d2871237b1b90b15b8e3921f106ba31c1e4703df1c8ca49683&quot;</span>,
+            <span class="hljs-attr">&quot;updateType&quot;</span>: <span class="hljs-string">&quot;Deposit&quot;</span>
+        },
+        <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;TraderUpdate&quot;</span>
+    },
+    <span class="hljs-attr">&quot;eventKind&quot;</span>: <span class="hljs-number">6</span>,
+    <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-number">13</span>,
+    <span class="hljs-attr">&quot;stateRootHash&quot;</span>: <span class="hljs-string">&quot;0x7d9c627046b71fabb3342602e7324df15b3dd46261584e9f6ee96ca12860aea2&quot;</span>,
+    <span class="hljs-attr">&quot;txOrdinal&quot;</span>: <span class="hljs-number">0</span>
+}</code></pre>
+            <p>A <code>TraderUpdate</code> is an update to a trader&#39;s DDX account (such as depositing or withdrawing DDX). The event portion of the transaction has attributes defined as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>decimal_s</td>
+                     <td>amount</td>
+                     <td>Amount of DDX deposited or withdrawn</td>
+                  </tr>
+                  <tr>
+                     <td>address_s</td>
+                     <td>trader</td>
+                     <td>Trader&#39;s Ethereum address</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32_s</td>
+                     <td>txHash</td>
+                     <td>Ethereum transaction hash for the on-chain deposit / withdrawal</td>
+                  </tr>
+                  <tr>
+                     <td>string</td>
+                     <td>updateType</td>
+                     <td>Action corresponding to either &quot;Deposit&quot; or &quot;Withdraw&quot;</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h4 id="withdraw-1">Withdraw</h4>
+            <p>TBD</p>
+            <h4 id="withdraw-ddx">Withdraw DDX</h4>
+            <blockquote>
+               <p>Sample WithdrawDDX (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+    <span class="hljs-attr">&quot;epochId&quot;</span>: <span class="hljs-number">21</span>,
+    <span class="hljs-attr">&quot;event&quot;</span>: {
+        <span class="hljs-attr">&quot;c&quot;</span>: {
+            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;100&quot;</span>,
+            <span class="hljs-attr">&quot;signerAddress&quot;</span>: <span class="hljs-string">&quot;0xa8dda8d7f5310e4a9e24f8eba77e091ac264f872&quot;</span>,
+            <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0x603699848c84529987e14ba32c8a66def67e9ece&quot;</span>
+        },
+        <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;WithdrawDDX&quot;</span>
+    },
+    <span class="hljs-attr">&quot;eventKind&quot;</span>: <span class="hljs-number">8</span>,
+    <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-number">431</span>,
+    <span class="hljs-attr">&quot;stateRootHash&quot;</span>: <span class="hljs-string">&quot;0xe59fae6c648ecba3fa433c8d0778a73dba3c7632e9f1a5e66b6f0c1060bdeb7d&quot;</span>,
+    <span class="hljs-attr">&quot;txOrdinal&quot;</span>: <span class="hljs-number">0</span>
+}</code></pre>
+            <p>A <code>WithdrawDDX</code> is when a withdrawal of DDX is signaled). The event portion of the transaction has attributes defined as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>address_s</td>
+                     <td>signerAddress</td>
+                     <td>Signer&#39;s Ethereum address withdrawal is taking place from</td>
+                  </tr>
+                  <tr>
+                     <td>address_s</td>
+                     <td>traderAddress</td>
+                     <td>Trader Ethereum address DDX is being withdrawn to</td>
+                  </tr>
+                  <tr>
+                     <td>decimal_s</td>
+                     <td>amount</td>
+                     <td>Amount of DDX withdrawal has been signaled for</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h4 id="price-checkpoint">Price checkpoint</h4>
+            <blockquote>
+               <p>Sample PriceCheckpoint (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+    <span class="hljs-attr">&quot;epochId&quot;</span>: <span class="hljs-number">1</span>,
+    <span class="hljs-attr">&quot;event&quot;</span>: {
+        <span class="hljs-attr">&quot;c&quot;</span>: {
+            <span class="hljs-attr">&quot;ETHPERP&quot;</span>: {
+                <span class="hljs-attr">&quot;ema&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+                <span class="hljs-attr">&quot;indexPrice&quot;</span>: <span class="hljs-string">&quot;250&quot;</span>,
+                <span class="hljs-attr">&quot;indexPriceHash&quot;</span>: <span class="hljs-string">&quot;0x91e61212e54565a46348af417a8aa5c820157d2c9d91931ce3ba717c9c2e57bd&quot;</span>
+            }
+        },
+        <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;PriceCheckpoint&quot;</span>
+    },
+    <span class="hljs-attr">&quot;eventKind&quot;</span>: <span class="hljs-number">9</span>,
+    <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-number">19</span>,
+    <span class="hljs-attr">&quot;stateRootHash&quot;</span>: <span class="hljs-string">&quot;0x74304fc871abe5302df949c221bd8a2a0fd097cf15819c446da05420bfcbd2eb&quot;</span>,
+    <span class="hljs-attr">&quot;txOrdinal&quot;</span>: <span class="hljs-number">2</span>
+}</code></pre>
+            <p>A <code>PriceCheckpoint</code> is when a market registers an update to the composite index price a perpetual is tracking along with the ema component. The event portion of the transaction essentially emits the latest <code>Price</code> leaf contents. As a reminder, the <code>Price</code> leaf&#39;s attributes are defined as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>decimal_s</td>
+                     <td>ema</td>
+                     <td>Captures a smoothed average of the spread between the underlying index price and the DerivaDEX order book for the market.</td>
+                  </tr>
+                  <tr>
+                     <td>decimal_s</td>
+                     <td>indexPrice</td>
+                     <td>Composite index price (a weighted average across several price feed sources)</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32_s</td>
+                     <td>indexPriceHash</td>
+                     <td>Index price hash</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h4 id="funding">Funding</h4>
+            <blockquote>
+               <p>Sample Funding (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+    <span class="hljs-attr">&quot;epochId&quot;</span>: <span class="hljs-number">20</span>,
+    <span class="hljs-attr">&quot;event&quot;</span>: {
+        <span class="hljs-attr">&quot;c&quot;</span>: {
+            <span class="hljs-attr">&quot;fundingEpochId&quot;</span>: <span class="hljs-number">2</span>,
+            <span class="hljs-attr">&quot;fundingRates&quot;</span>: {
+                <span class="hljs-attr">&quot;ETHPERP&quot;</span>: <span class="hljs-string">&quot;0.0024&quot;</span>
+            },
+            <span class="hljs-attr">&quot;timeValue&quot;</span>: <span class="hljs-number">464</span>
+        },
+        <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Funding&quot;</span>
+    },
+    <span class="hljs-attr">&quot;eventKind&quot;</span>: <span class="hljs-number">10</span>,
+    <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-number">429</span>,
+    <span class="hljs-attr">&quot;stateRootHash&quot;</span>: <span class="hljs-string">&quot;0xe59fae6c648ecba3fa433c8d0778a73dba3c7632e9f1a5e66b6f0c1060bdeb7d&quot;</span>,
+    <span class="hljs-attr">&quot;txOrdinal&quot;</span>: <span class="hljs-number">1</span>
+}</code></pre>
+            <p>A <code>Funding</code> is when a there is a funding rate distribution. The event portion of the transaction has attributes defined as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>int</td>
+                     <td>fundingEpochId</td>
+                     <td>The epoch id for the funding event</td>
+                  </tr>
+                  <tr>
+                     <td>int</td>
+                     <td>timeValue</td>
+                     <td>Time value (??)</td>
+                  </tr>
+                  <tr>
+                     <td>dict&lt;string, decimal_s&gt;</td>
+                     <td>fundingRates</td>
+                     <td>Mapping of symbol to funding rate</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h4 id="trade-mining">Trade mining</h4>
+            <blockquote>
+               <p>Sample TradeMining (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+    <span class="hljs-attr">&quot;epochId&quot;</span>: <span class="hljs-number">20</span>,
+    <span class="hljs-attr">&quot;event&quot;</span>: {
+        <span class="hljs-attr">&quot;c&quot;</span>: {
+            <span class="hljs-attr">&quot;ddxDistributed&quot;</span>: <span class="hljs-string">&quot;3196.347031963470319632&quot;</span>,
+            <span class="hljs-attr">&quot;timeValue&quot;</span>: <span class="hljs-number">464</span>,
+            <span class="hljs-attr">&quot;totalVolume&quot;</span>: {
+                <span class="hljs-attr">&quot;makerVolume&quot;</span>: <span class="hljs-string">&quot;1000&quot;</span>,
+                <span class="hljs-attr">&quot;takerVolume&quot;</span>: <span class="hljs-string">&quot;40&quot;</span>
+            },
+            <span class="hljs-attr">&quot;tradeMiningEpochId&quot;</span>: <span class="hljs-number">2</span>
+        },
+        <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;TradeMining&quot;</span>
+    },
+    <span class="hljs-attr">&quot;eventKind&quot;</span>: <span class="hljs-number">11</span>,
+    <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-number">428</span>,
+    <span class="hljs-attr">&quot;stateRootHash&quot;</span>: <span class="hljs-string">&quot;0x61a07997f1b4af0cffe2d356338a2dd35573b49078765a39e614c91c74c1812c&quot;</span>,
+    <span class="hljs-attr">&quot;txOrdinal&quot;</span>: <span class="hljs-number">0</span>
+}</code></pre>
+            <p>A <code>TradeMining</code> is when a there is a funding rate distribution. The event portion of the transaction has attributes defined as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>int</td>
+                     <td>tradeMiningEpochId</td>
+                     <td>The epoch id for the trade mining event</td>
+                  </tr>
+                  <tr>
+                     <td>int</td>
+                     <td>timeValue</td>
+                     <td>Time value (??)</td>
+                  </tr>
+                  <tr>
+                     <td>decimal_s</td>
+                     <td>ddxDistributed</td>
+                     <td>The total DDX distributed during this trade mining distribution</td>
+                  </tr>
+                  <tr>
+                     <td>dict&lt;string, decimal_s&gt;</td>
+                     <td>totalVolume</td>
+                     <td>Mapping containing the total maker and taker volumes for this trade mining interval</td>
                   </tr>
                </tbody>
             </table>

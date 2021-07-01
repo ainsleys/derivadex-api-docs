@@ -3,7 +3,7 @@
 
 DerivaDEX is a decentralized derivatives exchange that combines the performance of centralized exchanges with the security of decentralized exchanges.
 
-DerivaDEX currently offers a public WebSocket API for traders and developers. The API will enable you to open and manage your positions via commands, and subscribe to market data via `subscriptions`. 
+DerivaDEX currently offers a public WebSocket API for traders and developers. The API will enable you to open and manage your positions via `commands`, and subscribe to market data via `subscriptions`. 
 
 Find us online [Discord](https://discord.gg/a54BWuG) | [Telegram](https://t.me/DerivaDEX) | [Medium](https://medium.com/derivadex)
 
@@ -14,7 +14,7 @@ To begin interacting with the DerivaDEX ecosystem programmatically, you generall
 1. Deposit funds via Ethereum via an Ethereum client
 2. Authenticate and connect to the websocket API
 3. Submit and cancel orders via `commands`
-4. Subscribe to market and account data feeds via `subscriptions`
+4. Subscribe to the DerivaDEX state snapshot and transaction log
 
 Additionally, you should familiarize yourself with the [DerivaDEX types terminology](#Types) and [hashing & signing schemes](#Signatures & hashing). 
 
@@ -32,7 +32,7 @@ decimal_s  | String representation of `decimal` | "10.031500000000000000"
 bool  | Boolean value, either `true` or `false` | True
 bytes32_s  | 32-byte "0x"-prefixed hexadecimal string literal (i.e. 64 digits long) corresponding to an `bytes32` ETH type | "0x0000000000000000000000000000000000000000000000000000000000000001"
 timestamp_s_i | String representation of numerical UNIX timestamp representing the number of seconds since 1/1/1970 | "1616667513875"
-timestamp_s | String representation representing the ISO 8601 UTC timestamp | "2021-03-25T10:38:09.503654+00:00"
+timestamp_s | String representation representing the ISO 8601 UTC timestamp | "2021-03-25T10:38:09.503654"
 
 
 ## Signatures & hashing
@@ -360,6 +360,1005 @@ symbol  |  "ETHPERP"
 orderHash |  "0xbc9ea45d017a031120db603f40ff3dc6003f41e531e69a7fdfe2ebc438032b7d"
 nonce |  "0x3136323338333734323633363939323230303000000000000000000000000000"
 
+## Sparse merkle tree (state)
+
+DerivaDEX utilizes a [Sparse Merkle Tree (SMT)](https://medium.com/@kelvinfichter/whats-a-sparse-merkle-tree-acda70aeb837) in order to efficiently maintain the
+state of the exchange at all times. Storing data on-chain (such as user's balances and positions), something most
+decentralized exchanges do, is very costly and one that is usually passed on to the user,
+making exchange use prohibitively expensive to most. An SMT, however, allows the system to only
+store a single root hash (the root of the tree) on-chain, while still allowing for any one to verify the integrity of the data (leaves) through
+inclusion (or non-inclusion) proofs.
+
+So what kind of data is stored and where in the SMT? The short answer is - everything.
+This means any data pertaining to a trader (their account-level data, strategy-level data,
+positions, and volume statistics), to a given market (the various open orders and the price feed information),
+and to the system (the insurance fund capitalization) is stored as individual leaf entries in the SMT.
+The DerivaDEX SMT consists of 2^256 possible leaves, each uniquely located at a specific leaf location
+(as indicated by its `key`, which is a 32-byte value). As you might surmise, the _vast_ majority of the SMT
+will be empty (2^256 is very, _very_, _**very**_ large number), but the data that does exist can exist at a location
+anywhere within these large bounds. For efficient querying and data management
+(while maintaining practical collision-resistance), the various types of leaf items are
+prefixed to reside in the same general vicinity as one another. Each leaf item type is
+described in detail below. The full set of leaf types can be seen in the following table,
+along with their corresponding numeric discriminants.
+
+Item | Discriminant
+-----| ------------
+Trader | 0
+Strategy | 1
+Position | 2
+BookOrder | 3
+Price | 4
+InsuranceFund | 5
+Stats | 6
+Empty | 7
+
+Each item type is described in detail below.
+
+### Trader
+
+A `Trader` contains information pertaining to a trader's free and frozen DDX balances,
+and referral address.
+
+#### Key encoding / decoding
+
+> Key encoding / decoding (Python)
+```python
+from eth_abi.utils.padding import zpad32_right
+
+def encode_key(trader_address: str, chain_discriminant: int):
+    # ItemType.TRADER == 0
+    return zpad32_right(
+        ItemType.TRADER.to_bytes(1, byteorder="little")
+        + chain_discriminant.to_bytes(1, byteorder="little")
+        + bytes.fromhex(trader_address[2:])
+    )
+
+def decode_key(trader_key: bytes):
+    # chain_discriminant, trader_address
+    return int.from_bytes(trader_key[1:2], "little"), f"0x{trader_key[2:22].hex()}"
+```
+
+The location of a `Trader` leaf is determined by its key, which is encoded as
+follows:
+
+Bytes | Value
+-----| ------------
+0 | Trader discriminant
+1 | Blockchain discriminant
+[2, 21] | Trader's Ethereum address
+[22, 31] | Zero-padding
+
+The following sample `Trader` materials generates the following encoded key: `0x0000603699848c84529987e14ba32c8a66def67e9ece00000000000000000000`.
+
+field | value
+-----|------
+trader_address  |  "0x603699848c84529987E14Ba32C8a66DEF67E9eCE"
+chain_discriminant  |  0
+
+#### Value definition
+
+> Value encoding / decoding (Python)
+```python
+from decimal import Decimal, ROUND_DOWN
+from eth_abi import encode_single, decode_single
+from web3.auto import w3
+
+def round_to_unit(val):
+    return val.quantize(Decimal(".000000000000000001"), rounding=ROUND_DOWN)
+
+def to_base_unit_amount(val, decimals):
+    return int(round_to_unit(val) * 10 ** decimals)
+
+def to_unit_amount(val, decimals):
+    return Decimal(str(val)) / 10 ** decimals
+
+def abi_encoded_value(self, free_ddx_balance: Decimal, frozen_ddx_balance: Decimal, referral_address: str):
+    # Trader item discriminant
+    item_type = 0
+
+    # Scale collateral amounts to DDX grains (to_base_unit_amount
+    return encode_single(
+        "(uint8,(uint128,uint128,address))",
+        [
+            self.item_type,
+            [
+                to_base_unit_amount(free_ddx_balance, 18),
+                to_base_unit_amount(frozen_ddx_balance, 18),
+                self.referral_address,
+            ],
+        ],
+    )
+
+def abi_decoded_value(abi_encoded_value: str):
+    (
+        item_type,
+        (free_ddx_balance, frozen_ddx_balance, referral_address),
+    ) = decode_single(
+        "(uint8,(uint128,uint128,address))", w3.toBytes(hexstr=abi_encoded_value),
+    )
+
+    # Scale collateral amounts from DDX grains
+    return (
+        to_unit_amount(free_ddx_balance, 18),
+        to_unit_amount(frozen_ddx_balance, 18),
+        referral_address,
+    )
+```
+
+A `Trader` leaf holds the following data:
+
+type | field | description
+----- | ------------ | ---------
+decimal | free_ddx_balance | DDX collateral available for staking/fees
+decimal | frozen_ddx_balance | DDX collateral available for on-chain withdrawal
+address_s | referral_address | Referral address pertaining to the Ethereum address who referred this trader (if applicable)
+
+These contents are always stored in the tree in ABI-encoded form: `(uint8,(uint128,uint128,address))`. Meaning,
+you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading
+data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree.
+A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain
+variables, is shown on the right.
+
+The following sample `Trader` materials generates the following ABI-encoded value: `0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003635c9adc5dea000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a8dda8d7f5310e4a9e24f8eba77e091ac264f872`.
+
+field | value
+-----|------
+free_ddx_balance  |  1000
+frozen_ddx_balance  |  0
+referral_address  |  "0xA8dDa8d7F5310E4A9E24F8eBA77E091Ac264f872"
+
+
+### Strategy
+
+A `Strategy` contains information pertaining to a trader's cross-margined strategy, such as their free and frozen collaterals and max leverage.
+
+#### Key encoding / decoding
+
+> Key encoding / decoding (Python)
+```python
+from eth_abi.utils.padding import zpad32_right, encode_single, decode_single
+from web3.auto import w3
+
+def generate_strategy_id_hash(strategy_id: str) -> bytes:
+    # Get the last 4 bytes of the hash of the strategy id
+    return w3.keccak(
+        len(strategy_id).to_bytes(1, byteorder="little")
+        + encode_single("bytes32", strategy_id.encode("utf8"))[:-1]
+    )[:4]
+
+def encode_key(trader_address: str, strategy_id: str, chain_discriminant: int):
+    # ItemType.STRATEGY == 1
+    return zpad32_right(
+            ItemType.STRATEGY.to_bytes(1, byteorder="little")
+            + chain_discriminant.to_bytes(1, byteorder="little")
+            + bytes.fromhex(trader_address[2:])
+            + generate_strategy_id_hash(strategy_id)
+        )
+
+def decode_key(strategy_key: bytes):
+    # chain_discriminant, trader_address, strategy_id_hash
+    return (
+            int.from_bytes(strategy_key[1:2], "little"),
+            f"0x{strategy_key[2:22].hex()}",
+            f"0x{strategy_key[22:26].hex()}",
+        )
+```
+
+The location of a `Strategy` leaf is determined by its key, which is encoded as
+follows:
+
+Bytes | Value
+-----| ------------
+0 | Strategy discriminant
+1 | Blockchain discriminant
+[2, 21] | Trader's Ethereum address
+[22, 25] | Abbreviated hash of strategy ID
+[26, 25] | Zero-padding
+
+The following sample `Strategy` materials generates the following encoded key: `0x0100603699848c84529987e14ba32c8a66def67e9ece2576ebd1000000000000`.
+
+field | value
+-----|------
+trader_address  |  "0x603699848c84529987E14Ba32C8a66DEF67E9eCE"
+strategy_id  |  "main"
+chain_discriminant  |  0
+
+#### Value definition
+
+> Value encoding / decoding (Python)
+```python
+from typing import Dict
+from decimal import Decimal, ROUND_DOWN
+from eth_abi import encode_single, decode_single
+from web3.auto import w3
+
+def round_to_unit(val):
+    return val.quantize(Decimal(".000000000000000001"), rounding=ROUND_DOWN)
+
+def to_base_unit_amount(val, decimals):
+    return int(round_to_unit(val) * 10 ** decimals)
+
+def to_base_unit_amount_list(vals, decimals):
+    return [to_base_unit_amount(val, decimals) for val in vals]
+
+def to_unit_amount(val, decimals):
+    return Decimal(str(val)) / 10 ** decimals
+
+def to_unit_amount_list(vals, decimals):
+    return [to_unit_amount(val, decimals) for val in vals]
+
+def abi_encoded_value(self, strategy_id: str, free_collateral: Dict[str, Decimal], frozen_collateral: Dict[str, Decimal], max_leverage: int, frozen: bool):
+    # Strategy item discriminant
+    item_type = 1
+
+    # Scale collateral amounts to DDX grains
+    return encode_single(
+        "((uint8,(bytes32,(address[],uint128[]),(address[],uint128[]),uint64,bool)))",
+        [
+            [
+                item_type,
+                [
+                    len(strategy_id).to_bytes(1, byteorder="little")
+                    + encode_single("bytes32", strategy_id.encode("utf8"))[
+                        :-1
+                    ],
+                    [
+                        list(free_collateral.keys()),
+                        to_base_unit_amount_list(
+                            list(free_collateral.values()), 18
+                        ),
+                    ],
+                    [
+                        list(frozen_collateral.keys()),
+                        to_base_unit_amount_list(
+                            list(frozen_collateral.values()), 18
+                        ),
+                    ],
+                    max_leverage,
+                    frozen,
+                ],
+            ]
+        ],
+    )
+
+def abi_decoded_value(abi_encoded_value: str):
+    (
+        (
+            item_type,
+            (
+                strategy_id,
+                (free_collateral_tokens, free_collateral_amounts),
+                (frozen_collateral_tokens, frozen_collateral_amounts),
+                max_leverage,
+                frozen,
+            ),
+        ),
+    ) = decode_single(
+        "((uint8,(bytes32,(address[],uint128[]),(address[],uint128[]),uint64,bool)))",
+        w3.toBytes(hexstr=abi_encoded_value),
+    )
+
+    # Scale collateral amounts from DDX grains
+    return (
+        strategy_id[1 : 1 + strategy_id[0]].decode("utf8"),
+        {
+            k: to_unit_amount(v, 18)
+            for k, v in zip(
+                list(free_collateral_tokens), list(free_collateral_amounts)
+            )
+        },
+        {
+            k: to_unit_amount(v, 18)
+            for k, v in zip(
+                list(frozen_collateral_tokens), list(frozen_collateral_amounts)
+            )
+        },
+        max_leverage,
+        frozen,
+    )
+```
+
+A `Strategy` leaf holds the following data:
+
+type | field | description
+----- | ------------ | ---------
+string | strategy_id | Identifier for strategy (e.g. "main")
+dict<address_s, decimal> | free_collateral | Mapping of collateral address to free collateral amount
+dict<address_s, decimal> | frozen_collateral | Mapping of collateral address to frozen collateral amount
+int | max_leverage | Maximum leverage strategy can take
+bool | frozen | Whether the strategy is frozen or not (relevant for tokenization)
+
+These contents are always stored in the tree in ABI-encoded form: `((uint8,(bytes32,(address[],uint128[]),(address[],uint128[]),uint64,bool)))`. Meaning,
+you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading
+data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree.
+A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain
+variables, is shown on the right.
+
+The following sample `Strategy` materials generates the following ABI-encoded value: `0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040046d61696e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000016000000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000001000000000000000000000000b69e673309512a9d726f87304c6984054f87a93b0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000002a58743747cf74b400000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000`.
+
+field | value
+-----|------
+strategy_id  |  "main"
+free_collateral  |  {"0xb69e673309512a9d726f87304c6984054f87a93b": 199971.08}
+frozen_collateral  |  {}
+max_leverage  |  20
+frozen  |  False
+
+
+### Position
+
+A `Position` contains information pertaining to an open position.
+
+#### Key encoding / decoding
+
+> Key encoding / decoding (Python)
+```python
+from eth_abi.utils.padding import zpad32_right, encode_single, decode_single
+from web3.auto import w3
+
+def generate_strategy_id_hash(strategy_id: str) -> bytes:
+    # Get the last 4 bytes of the hash of the strategy id
+    return w3.keccak(
+        len(strategy_id).to_bytes(1, byteorder="little")
+        + encode_single("bytes32", strategy_id.encode("utf8"))[:-1]
+    )[:4]
+
+def pack_bytes(text: str):
+    charset = "0ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    symbol_bits = ""
+    for letter in text:
+        for i, char in enumerate(charset):
+            if char == letter:
+                bits = format(i, "08b")[::-1]
+                symbol_bits += bits[:5]
+
+    symbol_bytes = int(symbol_bits[::-1], 2).to_bytes(
+        (len(symbol_bits) + 7) // 8, byteorder="little"
+    )
+    return zpad_right(symbol_bytes, 6)
+
+def unpack_bytes(packed_text: bytes):
+    charset = "0ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    symbol_bits = format(int.from_bytes(packed_text, "little"), "030b")[::-1]
+    symbol_char_bit_chunks = [
+        symbol_bits[i : i + 5] for i in range(0, len(symbol_bits), 5)
+    ]
+    symbol = ""
+    for symbol_char_bit_chunk in symbol_char_bit_chunks:
+        reversed_bit_chunk = symbol_char_bit_chunk[::-1]
+        char_index = int(reversed_bit_chunk, 2)
+        symbol += charset[char_index]
+    return symbol
+
+def encode_key(trader_address: str, strategy_id: str, symbol: str, chain_discriminant: int):
+    # ItemType.POSITION == 2
+    return (
+            ItemType.POSITION.to_bytes(1, byteorder="little")
+            + pack_bytes(symbol)
+            + chain_discriminant.to_bytes(1, byteorder="little")
+            + bytes.fromhex(trader_address[2:])
+            + generate_strategy_id_hash(strategy_id)
+        )
+
+def decode_key(position_key: bytes):
+    # symbol, chain_discriminant, trader_address, strategy_id_hash
+    return (
+            unpack_bytes(position_key[1:7]),
+            int.from_bytes(position_key[7:8], "little"),
+            f"0x{position_key[8:28].hex()}",
+            f"0x{position_key[28:].hex()}",
+        )
+```
+
+The location of a `Position` leaf is determined by its key, which is encoded as
+follows:
+
+Bytes | Value
+-----| ------------
+0 | Position discriminant
+[1, 6] | Symbol (5-bit encoded/packed)
+7 | Blockchain discriminant
+[8, 27] | Trader's Ethereum address
+[28, 31] | Abbreviated hash of strategy ID
+
+The following sample `Position` materials generates the following encoded key: `0x0285225824040000603699848c84529987e14ba32c8a66def67e9ece2576ebd1`.
+
+field | value
+-----|------
+trader_address  |  "0x603699848c84529987E14Ba32C8a66DEF67E9eCE"
+strategy_id  |  "main"
+symbol  |  "ETHPERP"
+chain_discriminant  |  0
+
+#### Value definition
+
+> Value encoding / decoding (Python)
+```python
+from typing import Dict
+from decimal import Decimal, ROUND_DOWN
+from eth_abi import encode_single, decode_single
+from web3.auto import w3
+
+def round_to_unit(val):
+    return val.quantize(Decimal(".000000000000000001"), rounding=ROUND_DOWN)
+
+def to_base_unit_amount(val, decimals):
+    return int(round_to_unit(val) * 10 ** decimals)
+
+def to_unit_amount(val, decimals):
+    return Decimal(str(val)) / 10 ** decimals
+
+def abi_encoded_value(self, side: int, balance: Decimal, avg_entry_price: Decimal):
+    # Position item discriminant
+    item_type = 2
+
+    # Scale balance and average entry price to DDX grains
+    return encode_single(
+        "(uint8,(uint8,uint128,uint128))",
+        [
+            item_type,
+            [
+                side,
+                to_base_unit_amount(balance, 18),
+                to_base_unit_amount(avg_entry_price, 18),
+            ],
+        ],
+    )
+
+def abi_decoded_value(abi_encoded_value: str):
+    (item_type, (side, balance, avg_entry_price)) = decode_single(
+        "(uint8,(uint8,uint128,uint128))", w3.toBytes(hexstr=abi_encoded_value),
+    )
+
+    # Scale balance and average entry price from DDX grains
+    return (
+        side, to_unit_amount(balance, 18), to_unit_amount(avg_entry_price, 18)
+    )
+```
+
+A `Position` leaf holds the following data:
+
+type | field | description
+----- | ------------ | ---------
+int | side | Side of position (`Long=1`, `Short=2`)
+decimal | balance | Size of the position
+decimal | average_entry_price | Average entry price of the position
+
+These contents are always stored in the tree in ABI-encoded form: `(uint8,(uint8,uint128,uint128))`. Meaning,
+you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading
+data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree.
+A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain
+variables, is shown on the right.
+
+The following sample `Position` materials generates the following ABI-encoded value: `0x000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000068155a43676e0000000000000000000000000000000000000000000000000000d4eff354906660000`.
+
+field | value
+-----|------
+side  |  1
+balance  |  120
+avg_entry_price  |  245.5
+
+
+### Book order
+
+A `BookOrder` contains information pertaining to a maker order in the order book.
+
+#### Key encoding / decoding
+
+> Key encoding / decoding (Python)
+```python
+from eth_abi.utils.padding import zpad32_right, encode_single, decode_single
+from web3.auto import w3
+
+def generate_strategy_id_hash(strategy_id: str) -> bytes:
+    # Get the last 4 bytes of the hash of the strategy id
+    return w3.keccak(
+        len(strategy_id).to_bytes(1, byteorder="little")
+        + encode_single("bytes32", strategy_id.encode("utf8"))[:-1]
+    )[:4]
+
+def pack_bytes(text: str):
+    charset = "0ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    symbol_bits = ""
+    for letter in text:
+        for i, char in enumerate(charset):
+            if char == letter:
+                bits = format(i, "08b")[::-1]
+                symbol_bits += bits[:5]
+
+    symbol_bytes = int(symbol_bits[::-1], 2).to_bytes(
+        (len(symbol_bits) + 7) // 8, byteorder="little"
+    )
+    return zpad_right(symbol_bytes, 6)
+
+def unpack_bytes(packed_text: bytes):
+    charset = "0ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    symbol_bits = format(int.from_bytes(packed_text, "little"), "030b")[::-1]
+    symbol_char_bit_chunks = [
+        symbol_bits[i : i + 5] for i in range(0, len(symbol_bits), 5)
+    ]
+    symbol = ""
+    for symbol_char_bit_chunk in symbol_char_bit_chunks:
+        reversed_bit_chunk = symbol_char_bit_chunk[::-1]
+        char_index = int(reversed_bit_chunk, 2)
+        symbol += charset[char_index]
+    return symbol
+
+def encode_key(symbol: str, order_hash: str):
+    # ItemType.BOOK_ORDER == 3
+    return (
+            ItemType.BOOK_ORDER.to_bytes(1, byteorder="little")
+            + pack_bytes(symbol)
+            + bytes.fromhex(order_hash[2:52])
+        )
+
+def decode_key(book_order_key: bytes):
+    # symbol, first 25 bytes of order_hash
+    return (
+            unpack_bytes(book_order_key[1:7]),
+            f"0x{book_order_key[7:].hex()}",
+        )
+```
+
+The location of a `BookOrder` leaf is determined by its key, which is encoded as
+follows:
+
+Bytes | Value
+-----| ------------
+0 | Book order discriminant
+[1, 6] | Symbol (5-bit encoded/packed)
+[7, 31] | First 25 bytes of order's unique hash
+
+The following sample `BookOrder` materials generates the following encoded key: `0x038522582404003d940b7e18acdf6c6f4740f7226245a796d53b6f2ffb9a8ca4`.
+
+field | value
+-----|------
+symbol  |  "ETHPERP"
+order_hash  |  "0x3d940b7e18acdf6c6f4740f7226245a796d53b6f2ffb9a8ca4ABABABABABABAB"
+
+#### Value definition
+
+> Value encoding / decoding (Python)
+```python
+from typing import Dict
+from decimal import Decimal, ROUND_DOWN
+from eth_abi import encode_single, decode_single
+from web3.auto import w3
+
+def round_to_unit(val):
+    return val.quantize(Decimal(".000000000000000001"), rounding=ROUND_DOWN)
+
+def to_base_unit_amount(val, decimals):
+    return int(round_to_unit(val) * 10 ** decimals)
+
+def to_unit_amount(val, decimals):
+    return Decimal(str(val)) / 10 ** decimals
+
+def abi_encoded_value(self, side: int, amount: Decimal, price: Decimal, trader_address: str, strategy_id_hash: bytes):
+    # BookOrder item discriminant
+    item_type = 3
+
+    # Scale amount and price to DDX grains
+    return encode_single(
+        "(uint8,(uint8,uint128,uint128,address,bytes32))",
+        [
+            self.item_type,
+            [
+                side,
+                to_base_unit_amount(amount, 18),
+                to_base_unit_amount(price, 18),
+                trader_address,
+                strategy_id_hash,
+            ],
+        ],
+    )
+
+def abi_decoded_value(abi_encoded_value: str):
+    (
+        item_type,
+        (side, amount, price, trader_address, strategy_id_hash),
+    ) = decode_single(
+        "(uint8,(uint8,uint128,uint128,address,bytes32))",
+        w3.toBytes(hexstr=abi_encoded_value),
+    )
+    
+    # Scale amount and price from DDX grains
+    return (
+        side,
+        to_unit_amount(amount, 18),
+        to_unit_amount(price, 18),
+        trader_address,
+        strategy_id_hash[:4],
+    )
+```
+
+A `BookOrder` leaf holds the following data:
+
+type | field | description
+----- | ------------ | ---------
+int | side | Side of order (`Bid=0`, `Ask=1`)
+decimal | amount | Amount/size of order
+decimal | price | Price the order has been placed at
+address_s | trader_address | The order creator's Ethereum address
+bytes | strategy_id_hash | First 4 bytes of strategy ID hash this order belongs to
+
+These contents are always stored in the tree in ABI-encoded form: `(uint8,(uint8,uint128,uint128,address,bytes32))`. Meaning,
+you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading
+data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree.
+A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain
+variables, is shown on the right.
+
+The following sample `BookOrder` materials generates the following ABI-encoded value: `0x00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001158e460913d0000000000000000000000000000000000000000000000000000d8d726b7177a80000000000000000000000000000603699848c84529987e14ba32c8a66def67e9ece2576ebd100000000000000000000000000000000000000000000000000000000`.
+
+field | value
+-----|------
+side  |  0
+amount  |  20
+price  |  250
+trader_address  |  "0x603699848c84529987E14Ba32C8a66DEF67E9eCE"
+strategy_id_hash  |  "0x2576ebd1"
+
+
+
+### Price
+
+A `Price` contains information pertaining to a market's price checkpoint.
+
+#### Key encoding / decoding
+
+> Key encoding / decoding (Python)
+```python
+from eth_abi.utils.padding import zpad32_right, encode_single, decode_single
+from web3.auto import w3
+
+def pack_bytes(text: str):
+    charset = "0ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    symbol_bits = ""
+    for letter in text:
+        for i, char in enumerate(charset):
+            if char == letter:
+                bits = format(i, "08b")[::-1]
+                symbol_bits += bits[:5]
+
+    symbol_bytes = int(symbol_bits[::-1], 2).to_bytes(
+        (len(symbol_bits) + 7) // 8, byteorder="little"
+    )
+    return zpad_right(symbol_bytes, 6)
+
+def unpack_bytes(packed_text: bytes):
+    charset = "0ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    symbol_bits = format(int.from_bytes(packed_text, "little"), "030b")[::-1]
+    symbol_char_bit_chunks = [
+        symbol_bits[i : i + 5] for i in range(0, len(symbol_bits), 5)
+    ]
+    symbol = ""
+    for symbol_char_bit_chunk in symbol_char_bit_chunks:
+        reversed_bit_chunk = symbol_char_bit_chunk[::-1]
+        char_index = int(reversed_bit_chunk, 2)
+        symbol += charset[char_index]
+    return symbol
+
+def encode_key(symbol: str, index_price_hash: str):
+    # ItemType.PRICE == 4
+    return zpad32_right(
+            ItemType.PRICE.to_bytes(1, byteorder="little")
+            + pack_bytes(symbol)
+            # TODO (apalepu): Uncomment once this is added on Rust side
+            # + index_price_hash[:26]
+        )
+
+def decode_key(price_key: bytes):
+    # symbol
+    return unpack_bytes(price_key[1:7])
+```
+
+The location of a `Price` leaf is determined by its key, which is encoded as
+follows:
+
+Bytes | Value
+-----| ------------
+0 | Price discriminant
+[1, 6] | Symbol (5-bit encoded/packed)
+[7, 31] | 25 bytes of index price's unique hash
+
+The following sample `Price` materials generates the following encoded key: `0x0485225824040000000000000000000000000000000000000000000000000000`.
+
+field | value
+-----|------
+symbol  |  "ETHPERP"
+index_price_hash  |  "0x3d940b7e18acdf6c6f4740f7226245a796d53b6f2ffb9a8ca4ABABABABABABAB"
+
+#### Value definition
+
+> Value encoding / decoding (Python)
+```python
+from typing import Dict
+from decimal import Decimal, ROUND_DOWN
+from eth_abi import encode_single, decode_single
+from web3.auto import w3
+
+def round_to_unit(val):
+    return val.quantize(Decimal(".000000000000000001"), rounding=ROUND_DOWN)
+
+def to_base_unit_amount(val, decimals):
+    return int(round_to_unit(val) * 10 ** decimals)
+
+def to_unit_amount(val, decimals):
+    return Decimal(str(val)) / 10 ** decimals
+
+def abi_encoded_value(self, index_price: Decimal, index_price_hash: bytes, ema: Decimal):
+    # Price item discriminant
+    item_type = 4
+
+    # Scale index price and ema to DDX grains
+    price_encoding = encode_single(
+        "(uint8,(uint128,bytes32,uint128))",
+        [
+            self.item_type,
+            [
+                to_base_unit_amount(index_price, 18),
+                index_price_hash,
+                to_base_unit_amount(abs(ema), 18),
+            ],
+        ],
+    )
+    if self.ema < 0:
+        price_encoding_byte_array = bytearray(price_encoding)
+        price_encoding_byte_array[-17] = 1
+        price_encoding = bytes(price_encoding_byte_array)
+
+    return price_encoding
+
+def abi_decoded_value(abi_encoded_value: str):
+    price_encoding_byte_array = bytearray(bytes.fromhex(abi_encoded_value[2:]))
+    multiplier = -1 if price_encoding_byte_array[-17] == 1 else 1
+    price_encoding_byte_array[-17] = 0
+    abi_encoded_value = bytes(price_encoding_byte_array).hex()
+
+    (item_type, (index_price, index_price_hash, ema)) = decode_single(
+        "(uint8,(uint128,bytes32,uint128))", w3.toBytes(hexstr=abi_encoded_value),
+    )
+
+    # Scale index price and ema from DDX grains
+    return (
+        to_unit_amount(index_price, 18),
+        index_price_hash,
+        to_unit_amount(ema * multiplier, 18),
+    )
+```
+
+A `Price` leaf holds the following data:
+
+type | field | description
+----- | ------------ | ---------
+decimal | index_price | Composite index price perpetual is tracking
+bytes | index_price_hash | Unique hash of index price
+decimal | ema | EMA component of price, tracking the difference between the DerivaDEX order book price and the underlying
+
+These contents are always stored in the tree in ABI-encoded form: `(uint8,(uint128,bytes32,uint128))`. Meaning,
+you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading
+data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree.
+A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain
+variables, is shown on the right. It's demonstrated in the code sample, but it's worth highlighting that
+the `ema` component, which can be a negative value, is ABI-encoded to a 32-byte value where the first 16 bytes will either be
+`0x00000000000000000000000000000000` (positive) or `0x00000000000000000000000000000001` (negative), and the next 16 bytes
+is the absolute value of the `ema`.
+
+The following sample `Price` materials generates the following ABI-encoded value: `0x000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000d8d726b7177a800003ad520dd6051f521d43b7b834450b663b7782df758823a8e6a9845cdc86139690000000000000000000000000000000000000000000000000000000000000000`.
+
+field | value
+-----|------
+index_price  |  250
+index_price_hash  |  '0x3ad520dd6051f521d43b7b834450b663b7782df758823a8e6a9845cdc8613969'
+ema  |  0
+
+
+### Insurance fund
+
+An `InsuranceFund` contains information pertaining to the insurance fund's capitalization.
+
+#### Key encoding / decoding
+
+> Key encoding / decoding (Python)
+```python
+from eth_abi.utils.padding import zpad32_right
+
+def encode_key():
+    # ItemType.INSURANCE_FUND == 5
+    return zpad32_right(
+        ItemType.INSURANCE_FUND.to_bytes(1, byteorder="little")
+        + "OrganicInsuranceFund".encode("utf8")
+    )
+```
+
+The location of an `InsuranceFund` leaf is determined by its key, which is encoded as
+follows:
+
+Bytes | Value
+-----| ------------
+0 | Insurance fund discriminant
+[1, 20] | "OrganicInsuranceFund" bytes-encoded
+[21, 31] | Zero-padding
+
+The `InsuranceFund` leaf is located at the encoded key: `0x054f7267616e6963496e737572616e636546756e640000000000000000000000`.
+
+#### Value definition
+
+> Value encoding / decoding (Python)
+```python
+from typing import Dict
+from decimal import Decimal, ROUND_DOWN
+from eth_abi import encode_single, decode_single
+from web3.auto import w3
+
+def round_to_unit(val):
+    return val.quantize(Decimal(".000000000000000001"), rounding=ROUND_DOWN)
+
+def to_base_unit_amount(val, decimals):
+    return int(round_to_unit(val) * 10 ** decimals)
+
+def to_unit_amount(val, decimals):
+    return Decimal(str(val)) / 10 ** decimals
+
+def abi_encoded_value(self, capitalization: Dict[str, Decimal]):
+    # InsuranceFund item discriminant
+    item_type = 5
+
+    # Scale collateral amounts to DDX grains
+    return encode_single(
+        "((uint8,(address[],uint128[])))",
+        [
+            [
+                self.item_type,
+                [
+                    list(capitalization.keys()),
+                    to_base_unit_amount_list(
+                        list(capitalization.values()), 18
+                    ),
+                ],
+            ]
+        ],
+    )
+
+def abi_decoded_value(abi_encoded_value: str):
+    (
+        (item_type, (capitalization_tokens, capitalization_amounts,),),
+    ) = decode_single(
+        "((uint8,(address[],uint128[])))", w3.toBytes(hexstr=abi_encoded_value),
+    )
+
+    # Scale collateral amounts from DDX grains
+    return cls(
+        {
+            k: to_unit_amount(v, 18)
+            for k, v in zip(
+                list(capitalization_tokens), list(capitalization_amounts)
+            )
+        },
+    )
+```
+
+An `InsuranceFund` leaf holds the following data:
+
+type | field | description
+----- | ------------ | ---------
+dict<address_s, decimal> | capitalization | Mapping of collateral address to organic insurance fund capitalization
+
+These contents are always stored in the tree in ABI-encoded form: `((uint8,(address[],uint128[])))`. Meaning,
+you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading
+data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree.
+A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain
+variables, is shown on the right.
+
+The following sample `InsuranceFund` materials generates the following ABI-encoded value: `0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000500000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000`.
+
+field | value
+-----|------
+capitalization  |  {}
+
+### Stats
+
+An `Stats` contains data such as volume info for trade mining for any given trader.
+
+#### Key encoding / decoding
+
+> Key encoding / decoding (Python)
+```python
+from eth_abi.utils.padding import zpad32_right
+
+def encode_key(trader_address: str):
+    # ItemType.STATS == 6
+    return zpad32_right(
+            ItemType.STATS.to_bytes(1, byteorder="little")
+            + chain_discriminant.to_bytes(1, byteorder="little")
+            + bytes.fromhex(trader_address[2:])
+        )
+
+def decode_key(book_order_key: bytes):
+    # chain_discriminant, trader_address
+    return int.from_bytes(stats_key[1:2], "little"), f"0x{stats_key[2:22].hex()}"
+```
+
+The location of a `Stats` leaf is determined by its key, which is encoded as
+follows:
+
+Bytes | Value
+-----| ------------
+0 | Stats discriminant
+1 | Blockchain discriminant
+[2, 21] | Trader's Ethereum address
+[22, 31] | Zero-padding
+
+The following sample `Stats` materials generates the following encoded key: `0x0600603699848c84529987e14ba32c8a66def67e9ece00000000000000000000`.
+
+field | value
+-----|------
+trader_address  |  "0x0x603699848c84529987E14Ba32C8a66DEF67E9eCE"
+
+#### Value definition
+
+> Value encoding / decoding (Python)
+```python
+from typing import Dict
+from decimal import Decimal, ROUND_DOWN
+from eth_abi import encode_single, decode_single
+from web3.auto import w3
+
+def round_to_unit(val):
+    return val.quantize(Decimal(".000000000000000001"), rounding=ROUND_DOWN)
+
+def to_base_unit_amount(val, decimals):
+    return int(round_to_unit(val) * 10 ** decimals)
+
+def to_unit_amount(val, decimals):
+    return Decimal(str(val)) / 10 ** decimals
+
+def abi_encoded_value(self, maker_volume: Decimal, taker_volume: Decimal):
+    # Stats item discriminant
+    item_type = 6
+
+    # Scale volume amounts to DDX grains
+    return encode_single(
+        "(uint8,(uint128,uint128))",
+        [
+            item_type,
+            [
+                to_base_unit_amount(maker_volume, 18),
+                to_base_unit_amount(taker_volume, 18),
+            ],
+        ],
+    )
+
+def abi_decoded_value(abi_encoded_value: str):
+    (item_type, (maker_volume, taker_volume)) = decode_single(
+        "(uint8,(uint128,uint128))", w3.toBytes(hexstr=abi_encoded_value),
+    )
+
+    # Scale volumes from DDX grains
+    return (to_unit_amount(maker_volume, 18), to_unit_amount(taker_volume, 18))
+```
+
+A `Stats` leaf holds the following data:
+
+type | field | description
+----- | ------------ | ---------
+decimal | maker_volume | Maker volume of trader during this trade mining epoch
+decimal | taker_volume | Taker volume of trader during this trade mining epoch
+
+These contents are always stored in the tree in ABI-encoded form: `(uint8,(uint128,uint128))`. Meaning,
+you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading
+data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree.
+A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain
+variables, is shown on the right.
+
+The following sample `Stats` materials generates the following ABI-encoded value: `0x000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000340aad21b3b70000000000000000000000000000000000000000000000000000340aad21b3b700000`.
+
+field | value
+-----|------
+maker_volume | 60
+capitalization | 60
+
 
 ## Making a deposit
 
@@ -593,7 +1592,7 @@ bytes32_s | orderHash| The hash of the order being canceled.
 bytes32_s | nonce | An incrementing numeric identifier for this request that is unique per user for all time
 bytes_s | signature | EIP-712 signature
 
-As described in the `Signatures & hashing` section, the `orderHash` is something that you construct client-side prior to submitting the order to the exchange. In this regard, you have the `orderHash` for each order you submit irrespective of acknowledgement from the exchange. You can determine which ones have actually been received by the exchange by filtering all the ones you have sent by using the `requestId` field in the successful/received responses from the place order `command`. As an alternate/additional reference, the `OrdersUpdate` `subscription` (see below for further information) includes the `orderHash` field for any open orders you have.
+As described in the `Signatures & hashing` section, the `orderHash` is something that you construct client-side prior to submitting the order to the exchange. In this regard, you have the `orderHash` for each order you submit irrespective of acknowledgement from the exchange. You can determine which ones have actually been received by the exchange by filtering all the ones you have sent by using the `nonce` field in the successful/received responses from the place order `command`.
 
 ### Response
 > Receipt (success) format (JSON)
@@ -709,38 +1708,39 @@ string | msg | Error message
 
 # Subscriptions
 
-You can subscribe to two different kinds of feeds corresponding to a specific trader's account or market data with `SubscribeAccount` or `SubscribeMarket` requests, respectively.
+You can subscribe to the whole DerivaDEX state and all of the data via a subscription request.
 
-## Account
+## State and transaction log
 
-### Request
+DerivaDEX maintains its state in a Sparse Merkle Tree (SMT), which consists of leaves of various types.
+The SMT is updated when any state-changing transaction takes place. Any client that subscribes to
+this state and transaction log can efficiently track everything that happens on the exchange in
+full. This is an exceptionally powerful subscription endpoint, allowing consumers to:
+1) validate the honesty and integrity of the exchange's operations
+2) ensure they are verifiably up-to-date with the latest exchange data
+
+### Subscription request
 > Request format (JSON)
 ```json
 {
-	"t": "SubscribeAccount",
+	"t": "SubscribeMarket",
 	"c": {
-		"trader": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
-		"strategies": ["main"],
-		"events": ["StrategyUpdate", "OrdersUpdate", "PositionUpdate"]
+		"events": ["TxLogUpdate"]
 	}
 }
 ```
 
-You can subscribe to data feeds corresponding to events for a particular trader's Ethereum address. The possible account events you can subscribe to are `StrategyUpdate`, `OrdersUpdate`, `TradeUpdate`, and `PositionUpdate`.
-
 type | field | description
 -----|----- | ---------------------
-address_s  | trader | Trader's Ethereum address (same as the one that facilitated the deposit)
-string[] | strategies | Strategies being subscribed to. Currently, the only supported strategy is `main`, but support for multiple strategies is coming soon!
-string[] | events | Events being subscribed to. This can be one or more of `StrategyUpdate`, `OrdersUpdate`, `TradeUpdate`, and `PositionUpdate` 
+string[] | events | Events being subscribed to. There is only one event that can be subscribed to, the `TxLogUpdate` event. 
 
-### Response
+### Subscription response
 > Receipt (success) format (JSON)
 ```json
 {
     "t": "Subscribed",
     "c": {
-        "message": "Subscribed to [StrategyUpdate | OrdersUpdate | TradeUpdate | PositionUpdate ] for 0x603699848c84529987E14Ba32C8a66DEF67E9eCE"
+        "message": "Subscribed to [TxLogUpdate] for 0x603699848c84529987E14Ba32C8a66DEF67E9eCE"
     }
 }
 ```
@@ -769,368 +1769,520 @@ type | field | description
 ------ | ---- | -----------
 string | message | Error message 
 
-### Events
 
-Each of the market `subscription` events will be discussed below individually. 
-
-#### Strategy update
+### Event response
 > Partial response (JSON)
 ```json
 {
-	"t": "StrategyUpdate",
+	"t": "TxLogUpdate",
 	"e": "Partial",
-	"c": [{
-		"trader": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
-		"strategy": "main",
-		"maxLeverage": "20",
-		"freeCollateral": {
-            "0xc4f290a59d66a2e06677ed27422a1106049d9e72": "1000"
-        },
-		"frozenCollateral": {
-            "0xc4f290a59d66a2e06677ed27422a1106049d9e72": "0"
-        },
-		"createdAt": "2021-03-23T20:03:45.850Z"
-	}]
+	"c": [
+		[{
+			"lowEpochId": "3285",
+			"highEpochId": "3285",
+			"smtKey": "0x03852258240400c873ea38e15d879465347afac4cdfb3a6e0317e6d89e29ffa9",
+			"smtHash": "0x1efadbf30bbd972a82e7e6eb69d02426905ecaed708c906a579e37fe85309ade",
+			"smtValue": "0x0000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000098eee79d10ce0000000000000000000000000000000000000000000000000079bffc1fc3ca0d0000000000000000000000000000e36ea790bc9d7ab70c55260c66d52b1eca985f842576ebd100000000000000000000000000000000000000000000000000000000"
+		}, {
+			"lowEpochId": "3285",
+			"highEpochId": "3285",
+			"smtKey": "0x038522582404009fdc11a1a8b36a931888d77829719c950ee22fa5dbb61a9010",
+			"smtHash": "0xa1efd81e2e9e48bb4a87c3e12956e73e533dbced114930f6f9c8fad9c9703891",
+			"smtValue": "0x00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ca5690c079320000000000000000000000000000000000000000000000000079fefd71b5fa530000000000000000000000000000e36ea790bc9d7ab70c55260c66d52b1eca985f842576ebd100000000000000000000000000000000000000000000000000000000"
+		}, {
+			"lowEpochId": "3285",
+			"highEpochId": "3285",
+			"smtKey": "0x03852258240400d29e5da477e70f8ae124adf64e3aacad16e047afbb72133e02",
+			"smtHash": "0x03860f96f101ea693aed84948af1624a5fd75c33492aa3165feff26ad62f7655",
+			"smtValue": "0x00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000693191d6e576000000000000000000000000000000000000000000000000007a5d5be5aed2fb0000000000000000000000000000e36ea790bc9d7ab70c55260c66d52b1eca985f842576ebd100000000000000000000000000000000000000000000000000000000"
+		}],
+		[{
+			"epochId": "3286",
+			"txOrdinal": "0",
+			"requestIndex": "180842",
+			"stateRootHash": "0xc480af2c9623e3571de640112a4b94a29406199359508a6ff1c0c4a8b07af7d1",
+			"eventKind": 9,
+			"createdAt": "2021-06-30T20:32:38.018Z",
+			"signature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+			"event": {
+				"ETHPERP": {
+					"ema": "0.325889706776203498",
+					"indexPrice": "2263.343",
+					"indexPriceHash": "0x5f994903e82e60704f1d9fbb04315ad248fc7bb4bf739d32c4d53157beb079e0"
+				}
+			}
+		}]
+	]
 }
 ```
+
+Upon subscription, you will first receive a `Partial` back, containing a snapshot of the DerivaDEX state as of the latest checkpoint and all of the transactions from the latest checkpoint up until now.
+DerivaDEX has on-chain checkpoints roughly every 10 minutes. Say you were to connect to the API and subscribe to this endpoint 7 minutes after Checkpoint 100 had completed. You would first receive
+the entire state as of Checkpoint 100, and then all of the state-transitioning transactions that have elapsed in the last 7 minutes. Thus, you will be up-to-date without having to stream through all of
+the transactions from the beginning of time (Checkpoint 0). This is an incredibly powerful response, as you can construct literally the **entire** state
+of the DerivaDEX exchange from this.
+
+The response is a 2-item array, with the first item referencing the state snapshot and the second referencing the transactions, as shown in the sample on the right. The types and fields that
+make up this response are described in the table below:
+
+type | field | description 
+------ | ---- | -------
+int_s | lowEpochId | Epoch ID of state entry
+int_s | highEpochId | Epoch ID of state entry
+bytes32_s | smtHash | Hash of the SMT's key and ABI-encoded value
+bytes32_s | smtKey | Unique location of leaf in the SMT. The first byte of this key is the leaf item discriminant, and will inform you how to decode the remainder of the key and the `smtValue`.
+bytes_s | smtValue | ABI-encoding of SMT leaf's value. You can appropriately decode this value using the first byte of the `smtKey`.
+int_s | epochId | Epoch ID of transaction
+int_s | txOrdinal | Monotonically increasing numerical value representing when a transaction took place in a given epoch. This will necessarily increase by 1 in order of being processed, and will only be reset to 0 when a new epoch has begun.
+int_s | requestIndex | Sequenced identifier for the request initially made. This will be the same as the `requestIndex` you receive in a successful `command`.
+bytes32_s | stateRootHash | SMT's state root hash prior to the transaction being applied
+int | eventKind | Enum representation for event type (`0=PartialFill`, `1=CompleteFill`, `2=Post`, `3=Cancel`, `4=Liquidation`, `5=StrategyUpdate`, `6=TraderUpdate`, `7=Withdraw`, `8=WithdrawDDX`, `9=PriceCheckpoint`, `10=Funding`, `11=TradeMining`, `12=NoTransition`)
+timestamp_s | createdAt | Timestamp transaction log entry was created
+bytes_s | signature | Enclave's signature of transaction data
+object | event | Event data (structure and contents are different depending on the `eventKind`)
 
 > Update response (JSON)
 ```json
 {
-	"t": "StrategyUpdate",
+	"t": "TxLogUpdate",
 	"e": "Update",
 	"c": [{
-		"trader": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
-		"strategy": "main",
-		"maxLeverage": "20",
-		"freeCollateral": {
-            "0xc4f290a59d66a2e06677ed27422a1106049d9e72": "2000"
-        },
-		"frozenCollateral": {
-            "0xc4f290a59d66a2e06677ed27422a1106049d9e72": "0"
-        },
-		"frozen": false,
-		"createdAt": "2021-03-23T20:03:45.850Z"
+		"epochId": "3286",
+		"txOrdinal": "1",
+		"requestIndex": "180849",
+		"stateRootHash": "0xc211ee51304784f6d5cf6841768570199dc6cd75025b383a615b67ae1d5fb234",
+		"eventKind": 9,
+		"createdAt": "2021-06-30T20:33:00.478Z",
+		"signature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+		"event": {
+			"ETHPERP": {
+				"ema": "0.513297744127047512",
+				"indexPrice": "2263.064285714285714285",
+				"indexPriceHash": "0x695c3030efe5609cee9cf66c7df0e451a80c388c3725abc6f5888d542bc3d480"
+			}
+		}
 	}]
 }
 ```
 
-You can subscribe to updates to their strategy with the `StrategyUpdate` event. A strategy is a cross-margined account in which you can deposit/withdraw collateral and make trades. Strategies are siloed off from one another. Any updates to the free or frozen collaterals you have (whether it's from deposits, withdrawals, or realized PNL) will be registered in this feed.
-
-Upon subscription, you will receive a `Partial` back, containing a snapshot of your strategy at that moment in time. From then on, you will receive streaming `Update` messages as appropriate. 
-
-For the response, an array of updates per strategy you have subscribed to is emitted, with each update defined as follows:
+From this point onwards, you will receive `Update` messages, with individual transactions that you can apply to your local state you have constructed using the `Partial` to always stay up-to-date.
+You may notice that the transaction log entries streamed in these update messages are identical to the individual
+transaction entries shown in the second part of the `Partial` response above. 
 
 type | field | description
 -----|----- | ---------------------
-address_s  | trader | Trader's Ethereum address (same as the one requested)
-string_s   | strategy | Strategy being subscribed to. Currently, the only supported strategy is `main`, but support for multiple strategies is coming soon!
-int_s   | maxLeverage | Maximum leverage for strategy, which impacts the maintenance margin ratio associated to any given trader
-<address_s, decimal_s>  | freeCollateral | Collateral (on a per token basis) available for trading (not to be confused with the `Free Collateral` displayed on the UI, which is the collateral available to a trader wishing to signal a withdraw intent)
-<address_s, decimal_s>  | frozenCollateral | Collateral (on a per token basis) available for a smart contract withdrawal, but not for trading, since the Operators have received the withdraw intent)
-bool     | frozen | Whether the account and its collateral is frozen or not
+int_s | epochId | Epoch ID of transaction
+int_s | txOrdinal | Monotonically increasing numerical value representing when a transaction took place in a given epoch. This will necessarily increase by 1 in order of being processed, and will only be reset to 0 when a new epoch has begun.
+int_s | requestIndex | Sequenced identifier for the request initially made. This will be the same as the `requestIndex` you receive in a successful `command`.
+bytes32_s | stateRootHash | SMT's state root hash prior to the transaction being applied
+int | eventKind | Enum representation for event type (`0=PartialFill`, `1=CompleteFill`, `2=Post`, `3=Cancel`, `4=Liquidation`, `5=StrategyUpdate`, `6=TraderUpdate`, `7=Withdraw`, `8=WithdrawDDX`, `9=PriceCheckpoint`, `10=Funding`, `11=TradeMining`, `12=NoTransition`)
+timestamp_s | createdAt | Timestamp transaction log entry was created
+bytes_s | signature | Enclave's signature of transaction data
+object | event | Event data (structure and contents are different depending on the `eventKind`)
 
-#### Orders update
-> Partial response (JSON)
+As mentioned above, there are 12 various types of transactions on DerivaDEX, each of which can modify the SMT's state
+in different ways. The full set of transactions along with their corresponding numeric discrimants can be seen in the table below.
+                   
+Event | Discriminant
+-----| ------------
+PartialFill | 0
+CompleteFill | 1
+Post | 2
+Cancel | 3
+Liquidation | 4
+StrategyUpdate | 5
+TraderUpdate | 6
+Withdraw | 7
+WithdrawDDX | 8
+PriceCheckpoint | 9
+Funding | 10
+TradeMining | 11
+NoTransition | 12
+
+Each of these transaction types are described at length below.
+
+#### Partial fill
+
+> Sample PartialFill (JSON)
 ```json
 {
-	"t": "OrdersUpdate",
-	"e": "Partial",
-	"c": [{
-		"orderHash": "0x946e4bedf2dd87e5380f32a18d1af19adb4d7ecec3a8a346cb641adc5201e53e",
-		"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
-		"symbol": "ETHPERP",
-		"side": "Ask",
-		"orderType": "Limit",
-		"nonce": "0x3136323334303630353437323034353030303000000000000000000000000000",
-		"amount": "10.000000000000000000",
-		"remainingAmount": "10.000000000000000000",
-		"price": "2473.620000000000000000",
-		"stopPrice": "0",
-		"signature": "0x87b20c98f21a988737ad4e1820f66a96acf9eba979bfc51c84f3b5b6519815d13f67f07b18cb78d9f30395b80370c6af4a705e9fed0b671858dd7714d8c663f81c",
-		"createdAt": "2021-03-24T23:25:41.467Z"
-	}]
+    "epochId": 1,
+    "event": {
+        "c": [
+            [{
+                "amount": "20",
+                "makerOrderHash": "0xccdc891e0178fff88e9158ae341247afad50d08b000b00eed6",
+                "makerOrderRemainingAmount": "0",
+                "makerOutcome": {
+                    "ddxFeeElection": false,
+                    "fee": "0",
+                    "newCollateral": "200000",
+                    "newPositionAvgEntryPrice": "241",
+                    "newPositionBalance": "60",
+                    "positionSide": "Short",
+                    "realizedPnl": "0",
+                    "strategy": "main",
+                    "trader": "0xa8dda8d7f5310e4a9e24f8eba77e091ac264f872"
+                },
+                "price": "247",
+                "reason": "Trade",
+                "symbol": "ETHPERP",
+                "takerOrderHash": "0x3b1462eb4cd85476f059c4cd7d3aefdf9ec09f0ee85af3eeff",
+                "takerOutcome": {
+                    "ddxFeeElection": false,
+                    "fee": "9.88",
+                    "newCollateral": "199971.08",
+                    "newPositionAvgEntryPrice": "241",
+                    "newPositionBalance": "60",
+                    "positionSide": "Long",
+                    "realizedPnl": "0",
+                    "strategy": "main",
+                    "trader": "0x603699848c84529987e14ba32c8a66def67e9ece"
+                },
+                "takerSide": "Bid"
+            }], {
+                "amount": "80",
+                "orderHash": "0x3b1462eb4cd85476f059c4cd7d3aefdf9ec09f0ee85af3eeff",
+                "price": "250",
+                "side": "Bid",
+                "strategyId": "main",
+                "symbol": "ETHPERP",
+                "traderAddress": "0x603699848c84529987e14ba32c8a66def67e9ece"
+            }
+        ],
+        "t": "PartialFill"
+    },
+    "eventKind": 0,
+    "requestIndex": 25,
+    "stateRootHash": "0x45f744d76fa11ff3b58decd3ec5573a23694bff212399801c4ed14cd680cbc73",
+    "txOrdinal": 8
 }
 ```
 
-> Update response (JSON)
+A `PartialFill` transaction is a scenario where the taker order has been partially filled across 1 or more
+maker orders and thus has a remaining order that enters the order book. The event portion of the transaction response consists of a 2-item array. The
+first item is a list of `Fill` events and the second item is the remaining `Post` event.
+
+#### Complete fill
+
+> Sample CompleteFill (JSON)
 ```json
 {
-	"t": "OrdersUpdate",
-	"e": "Update",
-	"c": [{
-		"orderHash": "0x6ba227be1c689a978c30ef50196d6451b1e039cf64b22ce82b88f14a31d9da8a",
-		"makerAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
-		"symbol": "ETHPERP",
-		"strategy": "main",
-		"side": "Ask",
-		"orderType": "Limit",
-		"nonce": "0x3136323130313431373537353037303130303000000000000000000000000000",
-		"amount": "7.51",
-		"remainingAmount": "5.51",
-		"price": "4165.16",
-		"stopPrice": "0",
-		"signature": "0x61d4e6f2c65cc21f5ace380d5f025c117841a92fbde3354802955f77372c709174cc3d31160fa0d4d0ff8a34bed80dfe99bd04bcee71308560314e0db509e0051b",
-		"createdAt": "2021-05-14T17:42:59.558Z"
-	}]
+    "epochId": 1,
+    "event": {
+        "c": [{
+            "amount": "20",
+            "makerOrderHash": "0x4b75a446ca9220d9dfd13bd697cba32657ad4caf1c51f59e8c",
+            "makerOrderRemainingAmount": "0",
+            "makerOutcome": {
+                "ddxFeeElection": false,
+                "fee": "0",
+                "newCollateral": "200000",
+                "newPositionAvgEntryPrice": "235",
+                "newPositionBalance": "20",
+                "positionSide": "Short",
+                "realizedPnl": "0",
+                "strategy": "main",
+                "trader": "0xa8dda8d7f5310e4a9e24f8eba77e091ac264f872"
+            },
+            "price": "235",
+            "reason": "Trade",
+            "symbol": "ETHPERP",
+            "takerOrderHash": "0x4347298b461db640c829e51890d10695249e193fcfb84c9786",
+            "takerOutcome": {
+                "ddxFeeElection": false,
+                "fee": "9.4",
+                "newCollateral": "199990.6",
+                "newPositionAvgEntryPrice": "235",
+                "newPositionBalance": "20",
+                "positionSide": "Long",
+                "realizedPnl": "0",
+                "strategy": "main",
+                "trader": "0x603699848c84529987e14ba32c8a66def67e9ece"
+            },
+            "takerSide": "Bid"
+        }],
+        "t": "CompleteFill"
+    },
+    "eventKind": 1,
+    "requestIndex": 23,
+    "stateRootHash": "0xe79bba967fb7ffd2a46ac76ca1d920109376eb57b4b691ffdc0375690d94e21c",
+    "txOrdinal": 6
 }
 ```
 
-You can subscribe to updates to your open orders with the `OrdersUpdate` event. 
-
-Upon subscription, you will receive a `Partial` back, containing a snapshot of all of your open orders at that moment in time. From then on, you will receive streaming/incremental `Update` messages with any changes to these orders (due to posting new orders, canceling existing orders, or orders that have been matched in partial or in full).
-
-For the response, an array of updates per order is emitted, with each update defined as follows:
-
-type | field | description 
------- | ---- | -------
-bytes32_s | orderHash | Hash of the order that has changed or is new
-address_s | traderAddress | Trader's Ethereum address associated with this order
-string  | symbol | Name of the market this order belongs to. Currently, this is limited to 'ETHPERP', but new symbols are coming soon! 
-string | strategy | Name of the cross-margined strategy this order belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
-string | side | Side of order, either `Bid` or `Ask`
-string | orderType | Order type, either `Limit` or `Market`. Other order types coming soon!
-bytes32_s | requestId | Numeric identifier for the order. To clarify, this is NOT an identifier relating to this particular subscription/response, but rather the `requestId` field associated with this order at the time of placement.
-decimal_s | amount | The original order amount/size requested
-decimal_s | remainingAmount | The order amount/size remaining on the order book
-decimal_s | price | The order price
-decimal_s | stopPrice | Currently, always 0 as stops are not implemented.
-bytes_s   | signature | EIP-712 signature
-timestamp_s  | createdAt | Timestamp when order was initially created
+A `CompleteFill` is a scenario where the taker order has been completely filled across 1 or more maker orders.
+The event portion of the transaction response consists of a list of `Fill` events.
 
 
-#### Trade update
-> Partial response (JSON)
+#### Post
+
+> Sample Post (JSON)
 ```json
 {
-	"t": "TradeUpdate",
-	"e": "Partial",
-	"c": [{
-		"amount": "1",
-		"createdAt": "2021-06-08T12:44:00.231Z",
-		"fee": "0",
-		"price": "2521.34",
-		"realizedPnl": "0",
-		"side": "Ask",
-		"type": "Limit",
-		"orderHash": "0x961cb97fde433e621ba4d37b4714df1a1c52e062a119a6af58fcca312a90c616"
-	}]
+    "epochId": 1,
+    "event": {
+        "c": {
+            "amount": "20",
+            "orderHash": "0x4b75a446ca9220d9dfd13bd697cba32657ad4caf1c51f59e8c",
+            "price": "235",
+            "side": "Ask",
+            "strategyId": "main",
+            "symbol": "ETHPERP",
+            "traderAddress": "0xa8dda8d7f5310e4a9e24f8eba77e091ac264f872"
+        },
+        "t": "Post"
+    },
+    "eventKind": 2,
+    "requestIndex": 20,
+    "stateRootHash": "0x661b2467616c9268b59e2abe88de871f8857c3e255ae02cdcf421d84dad8def0",
+    "txOrdinal": 3
 }
 ```
 
-> Update response (JSON)
+A `Post` is an order that enters the order book. The event portion of the transaction has attributes defined as follows:
+
+type | field | description
+-----|----- | ---------------------
+decimal_s | amount | Size of order posted to the order book
+bytes32_s | orderHash | Hexstr representation of the EIP-712 hash of the order being placed
+decimal_s | price | Price the order has been placed at
+string | side | Side of order (`Bid` or `Ask`)
+string | strategyId | Strategy ID this order belongs to (e.g. "main")
+string | symbol | Symbol for the market this order has been placed (e.g. "ETHPERP")
+address_s | traderAddress | Trader's Ethereum address
+
+
+#### Cancel
+
+> Sample Cancel (JSON)
 ```json
 {
-	"t": "TradeUpdate",
-	"e": "Update",
-	"c": [{
-		"amount": "9.8",
-		"createdAt": "2021-06-11T10:36:52.844Z",
-		"fee": "48.62662",
-		"price": "2480.95",
-		"realizedPnl": "-105.574444971899599047",
-		"orderHash": "0x5648a591b5e2db72bd561197945e94ee2c1657527d85fccaeaf0d44d7daf94c1"
-	}]
+    "epochId": 1,
+    "event": {
+        "c": {
+            "amount": "20",
+            "orderHash": "0x4b75a446ca9220d9dfd13bd697cba32657ad4caf1c51f59e8c",
+            "symbol": "ETHPERP"
+        },
+        "t": "Cancel"
+    },
+    "eventKind": 3,
+    "requestIndex": 21,
+    "stateRootHash": "0x661b2467616c9268b59e2abe88de871f8857c3e255ae02cdcf421d84dad8def0",
+    "txOrdinal": 4
 }
 ```
 
-You can subscribe to updates to your trades/fills with the `TradeUpdate` event. 
+A `Cancel` is when an existing order is canceled and removed from the order book. The event portion of the transaction has attributes defined as follows:
 
-Upon subscription, you will receive a `Partial` back, containing a snapshot of all of your prior trades. From then on, you will receive streaming/incremental `Update` messages with any partial/complete fills moving forward.
-
-For the response, an array of trade update events is emitted, with each update defined as follows:
-
-type | field | description 
------- | ---- | -------
-bytes32_s | orderHash | Hash of the order that has been filled
-decimal_s | amount | The amount/size filled
-decimal_s | fee | The fees paid as a result of this fill (the fees paid are always presented as a positive number for the purposes of this field's value)
-decimal_s | price | The fill price
-decimal_s | realizedPnl | The realized PNL as a result of this fill (to be explicit, fees are not a component of this realized PNL as they are presented in their own dedicated field)
-timestamp_s  | createdAt | Timestamp when order was initially created
-
-##### Tracking orders and fills
-
-To track your orders and fills, you can use a combination of the `OrdersUpdate` and `TradeUpdate` events. Keep in mind that the `OrdersUpdate` event 
-emits data pertaining to your open orders, including but not limited to, the order's original amount (`amount`), price (`price`), and remaining amount (`remainingAmount`). 
-The `remainingAmount` does not on its own indicate whether the reduced amount off of the original `amount` is a result of fills or cancellations. 
-However, you can determine the filled vs. cancelled amounts by using the filled `amount` field from the `TradeEvent` and tying that back to the orders data with the `orderHash`. Additionally, the 
-`price` field in the `TradeUpdate` event will help you determine the average fill price for any orders you may have.
+type | field | description
+-----|----- | ---------------------
+decimal_s | amount | Size of order canceled from the order book
+bytes32_s | orderHash | Hexstr representation of the EIP-712 hash of the order being canceled
+string | symbol | Symbol for the market this order has been canceled (e.g. "ETHPERP")
 
 
-#### Positions update
+#### Liquidation
 
 TBD
 
+#### Strategy update
 
-## Market
-
-### Request
-> Request format (JSON)
+> Sample StrategyUpdate (JSON)
 ```json
 {
-    "t": "SubscribeMarket",
-    "c": {
-        "symbols": ["ETHPERP"],
-        "events": ["OrderBookUpdate", "MarkPriceUpdate"]
-    }
+    "epochId": 1,
+    "event": {
+        "c": {
+            "amount": "200000",
+            "collateralAddress": "0xb69e673309512a9d726f87304c6984054f87a93b",
+            "strategyId": "main",
+            "trader": "0x603699848c84529987e14ba32c8a66def67e9ece",
+            "txHash": "0xe6ae70d48a2800d2871237b1b90b15b8e3921f106ba31c1e4703df1c8ca49683",
+            "updateType": "Deposit"
+        },
+        "t": "StrategyUpdate"
+    },
+    "eventKind": 5,
+    "requestIndex": 13,
+    "stateRootHash": "0x7d9c627046b71fabb3342602e7324df15b3dd46261584e9f6ee96ca12860aea2",
+    "txOrdinal": 0
 }
 ```
 
-You can subscribe to data feeds corresponding to events for the broader market. The possible market events you can subscribe to at this time are `OrderBookUpdate` and `MarkPriceUpdate`. 
+A `StrategyUpdate` is an update to a trader's strategy (such as depositing or withdrawing collateral). The event portion of the transaction has attributes defined as follows:
 
 type | field | description
 -----|----- | ---------------------
-string[] | symbols | Symbols being subscribed to. Currently, the only supported symbol is `ETHPERP`, but support for more symbols is coming soon!
-string[] | events | Events being subscribed to. This can be one or more of `OrderBookUpdate` and `MarkPriceUpdate`
+decimal_s | amount | Amount deposited or withdrawn
+address_s | collateralAddress | Deposited / withdrawn collateral token's Ethereum address
+string | strategyId | Strategy ID deposited to or withdrawn from (e.g. "main")
+address_s | trader | Trader's Ethereum address
+bytes32_s | txHash | Ethereum transaction hash for the on-chain deposit / withdrawal
+string | updateType | Action corresponding to either "Deposit" or "Withdraw"
 
-### Response
-> Receipt (success) format (JSON)
+#### Trader update
+
+> Sample TraderUpdate (JSON)
 ```json
 {
-    "t": "Subscribed",
-    "c": {
-        "message": "Subscribed to [OrderBookUpdate | MarkPriceUpdate] for ETHPERP"
-    }
+    "epochId": 1,
+    "event": {
+        "c": {
+            "amount": "1000",
+            "trader": "0x603699848c84529987e14ba32c8a66def67e9ece",
+            "txHash": "0xe6ae70d48a2800d2871237b1b90b15b8e3921f106ba31c1e4703df1c8ca49683",
+            "updateType": "Deposit"
+        },
+        "t": "TraderUpdate"
+    },
+    "eventKind": 6,
+    "requestIndex": 13,
+    "stateRootHash": "0x7d9c627046b71fabb3342602e7324df15b3dd46261584e9f6ee96ca12860aea2",
+    "txOrdinal": 0
 }
 ```
 
-Each `subscription` returns a receipt, which confirms that an Operator has received the `subscription` request. The receipt `type` will be either `Subscribed` or `Error`.
-
-A successful `subscription` returns a `Subscribed` receipt from the Operator.
-
-type | field | description
------- | ---- | -----------
-string | message | Success message 
-
-> Receipt (error) format (JSON)
-```json
-{
-    "t": "Error",
-    "c": {
-        "message": "Invalid subscription"
-    }
-}
-```
-
-An erroneous `subscription` returns an `Error` receipt from the Operator.
-
-type | field | description
------- | ---- | -----------
-string | message | Error message 
-
-### Events
-
-Each of the market `subscription` events will be discussed below individually. 
-
-#### Order book update
-
-> Partial response (JSON)
-```json
-{
-	"t": "OrderBookUpdate",
-	"e": "Partial",
-	"c": [{
-		"bids": [
-			["516.58", "10"],
-			["511.36", "10"]
-		],
-		"asks": [],
-		"timestamp": "1616664308163",
-		"nonce": "0x1848dbc26865f118d0ea56ecf776ee68b5a9b39e0223d4e322374c087a66a201",
-		"aggregationType": "0.0001"
-	}]
-}
-```
-
-> Update response (JSON)
-```json
-{
-	"t": "OrderBookUpdate",
-	"e": "Update",
-	"c": [{
-		"bids": [
-			["516.58", "0"]
-		],
-		"asks": [
-			["527.01", "10"]
-		],
-		"timestamp": "1616667513875",
-		"nonce": "0xc423f94e3ba40527b7bed2925cfedabf8a68388bde06f090a772b8bf3c791f5f",
-		"aggregationType": "0.0001"
-	}]
-}
-```
-
-You can subscribe to updates to an L2-order book for any given market with the `OrderBookUpdate` event. As is typically seen, an order book is a price-time FIFO priority queue market place for you to interact with. Since this is an L2-aggregation, the response will collapse any given price level to the aggregate quantity at that level irrespective of the number of participants or the individual order details that comprise that price level.
-
-Upon subscription, you will receive a `Partial` back, containing an L2-aggregate snapshot of the order book at that moment in time. From then on, you will receive streaming/incremental `Update` messages as appropriate containing only the aggregated price levels that are different (due to the placement of new orders, order cancellation, or liquidations/matches that have taken place). Updates will come in with a reference to the side of the order book and in the form of 2-item lists with the format `[price, new aggregate quantity]`. A new aggregate quantity of `0` indicates that the price level is now gone. 
-
-For the response, an array of updates per order book is emitted, with each update defined as follows:
+A `TraderUpdate` is an update to a trader's DDX account (such as depositing or withdrawing DDX). The event portion of the transaction has attributes defined as follows:
 
 type | field | description
 -----|----- | ---------------------
-decimal_s[2][]  | bids | The price and corresponding updated aggregate quantity for the bids
-decimal_s[2][]  | asks | The price and corresponding updated aggregate quantity for the asks
-timestamp_s_i  | timestamp | Timestamp of order book partial/update
-bytes32_s  | nonce | Disregard for time being......
-decimal_s   | aggregationType | Precision used for the selected product
-
-##### Maintaining local order book
-
-To maintain a local order book, you can use a combination of the `Partial` snapshot and `Update` streaming messages. A sample algorithm is as follows:
-
-1. Receive a `Partial` snapshot and use that as the starting point for the order book. Keep in mind that the response outputs the aggregated quantities at each price level for both the `bids` and `asks` sides of the order book.
-2. For every `Update` streaming message, you will receive information for both sides of the order book regarding any price level that has changed. There will be no explicit indication if a level has been newly-formed, modified, or deleted. For any `[price, updated_aggregated_quantity]` you receive, update your local order book. If your local order book does not currently have an entry for this `price`, you know it is a new level and can set the quantity to `updated_aggregated_quantity`. If your local order book has the price level corresponding to `price`, adjust its quantity to `updated_aggregated_quantity` except in the scenario where `updated_aggregated_quantity` is `"0"`, in which case you can delete the level entirely.
-3. If your connection drops or you believe you may have missed/mishandled an update, simply refetch the `Partial` as per Step 1, and proceed from there with Step 2.
+decimal_s | amount | Amount of DDX deposited or withdrawn
+address_s | trader | Trader's Ethereum address
+bytes32_s | txHash | Ethereum transaction hash for the on-chain deposit / withdrawal
+string | updateType | Action corresponding to either "Deposit" or "Withdraw"
 
 
-#### Mark price update
+#### Withdraw
 
-> Partial response (JSON)
+TBD
+
+#### Withdraw DDX
+
+> Sample WithdrawDDX (JSON)
 ```json
 {
-	"t": "MarkPriceUpdate",
-	"e": "Partial",
-	"c": [{
-		"indexPrice": "2471.07238095238095238",
-        "ema": "5.136686727099837573",
-		"symbol": "ETHPERP",
-		"createdAt": "2021-03-25T10:37:38.124Z",
-		"updatedAt": "2021-03-25T10:37:38.124Z"
-	}]
+	"epochId": 21,
+	"event": {
+		"c": {
+			"amount": "100",
+			"signerAddress": "0xa8dda8d7f5310e4a9e24f8eba77e091ac264f872",
+			"traderAddress": "0x603699848c84529987e14ba32c8a66def67e9ece"
+		},
+		"t": "WithdrawDDX"
+	},
+	"eventKind": 8,
+	"requestIndex": 431,
+	"stateRootHash": "0xe59fae6c648ecba3fa433c8d0778a73dba3c7632e9f1a5e66b6f0c1060bdeb7d",
+	"txOrdinal": 0
 }
 ```
 
-> Update response (JSON)
-```json
-{
-	"t": "MarkPriceUpdate",
-	"e": "Update",
-	"c": [{
-		"indexPrice": "2471.354761904761904761",
-		"ema": "4.246686727099837573",
-		"symbol": "ETHPERP",
-		"createdAt": "2021-06-11T20:12:09.132Z",
-		"updatedAt": "2021-06-11T20:12:09.132Z"
-	}]
-}
-```
-
-You can subscribe to updates to the price checkpoint (and thus, the mark price) for any given market with the `MarkPriceUpdate` event. The mark price is an important concept on DerivaDEX as it is the price at which positions are marked when displaying unrealized PNL. Consequently, the mark price helps determine a strategy's margin fraction, thereby triggering liquidations when appropriate. The mark price is computed based on a 30s exponential moving average (often referred to as a 30s EMA) of the spread between the underlying price (a composite of several spot price feeds for the underlying asset) and the DerivaDEX order book itself. 
-The mark price can be computed as follows: `mark_price = index_price + ema`. 
-
-Upon subscription, you will receive a `Partial` back, containing a price checkpoint at that moment in time. From then on, you will receive streaming/incremental `Update` messages as appropriate. 
-
-For the response, an array of updates per symbol is emitted, with each update defined as follows:
+A `WithdrawDDX` is when a withdrawal of DDX is signaled). The event portion of the transaction has attributes defined as follows:
 
 type | field | description
 -----|----- | ---------------------
-timestamp_s  | createdAt | Timestamp of original price checkpoint entry
-timestamp_s  | updatedAt | Timestamp of price checkpoint update
-decimal_s | indexPrice | Composite index price
-decimal_s | ema | Exponential moving average of the premium rate (essentially adjusting for the difference between the composite index price and the DerivaDEX derivative product's order book)
-string  | symbol | Market subscribed to
+address_s | signerAddress | Signer's Ethereum address withdrawal is taking place from
+address_s | traderAddress | Trader Ethereum address DDX is being withdrawn to
+decimal_s | amount | Amount of DDX withdrawal has been signaled for
+
+#### Price checkpoint
+
+> Sample PriceCheckpoint (JSON)
+```json
+{
+    "epochId": 1,
+    "event": {
+        "c": {
+            "ETHPERP": {
+                "ema": "0",
+                "indexPrice": "250",
+                "indexPriceHash": "0x91e61212e54565a46348af417a8aa5c820157d2c9d91931ce3ba717c9c2e57bd"
+            }
+        },
+        "t": "PriceCheckpoint"
+    },
+    "eventKind": 9,
+    "requestIndex": 19,
+    "stateRootHash": "0x74304fc871abe5302df949c221bd8a2a0fd097cf15819c446da05420bfcbd2eb",
+    "txOrdinal": 2
+}
+```
+
+A `PriceCheckpoint` is when a market registers an update to the composite index price a perpetual is tracking along with the ema component. The event portion of the transaction essentially emits the latest `Price` leaf contents. As a reminder, the `Price` leaf's attributes are defined as follows:
+
+type | field | description
+-----|----- | ---------------------
+decimal_s | ema | Captures a smoothed average of the spread between the underlying index price and the DerivaDEX order book for the market.
+decimal_s | indexPrice | Composite index price (a weighted average across several price feed sources)
+bytes32_s | indexPriceHash | Index price hash
+
+
+#### Funding
+
+> Sample Funding (JSON)
+```json
+{
+	"epochId": 20,
+	"event": {
+		"c": {
+			"fundingEpochId": 2,
+			"fundingRates": {
+				"ETHPERP": "0.0024"
+			},
+			"timeValue": 464
+		},
+		"t": "Funding"
+	},
+	"eventKind": 10,
+	"requestIndex": 429,
+	"stateRootHash": "0xe59fae6c648ecba3fa433c8d0778a73dba3c7632e9f1a5e66b6f0c1060bdeb7d",
+	"txOrdinal": 1
+}
+```
+
+A `Funding` is when a there is a funding rate distribution. The event portion of the transaction has attributes defined as follows:
+
+type | field | description
+-----|----- | ---------------------
+int | fundingEpochId | The epoch id for the funding event
+int | timeValue | Time value (??)
+dict<string, decimal_s> | fundingRates | Mapping of symbol to funding rate
+
+#### Trade mining
+
+> Sample TradeMining (JSON)
+```json
+{
+	"epochId": 20,
+	"event": {
+		"c": {
+			"ddxDistributed": "3196.347031963470319632",
+			"timeValue": 464,
+			"totalVolume": {
+				"makerVolume": "1000",
+				"takerVolume": "40"
+			},
+			"tradeMiningEpochId": 2
+		},
+		"t": "TradeMining"
+	},
+	"eventKind": 11,
+	"requestIndex": 428,
+	"stateRootHash": "0x61a07997f1b4af0cffe2d356338a2dd35573b49078765a39e614c91c74c1812c",
+	"txOrdinal": 0
+}
+```
+
+A `TradeMining` is when a there is a funding rate distribution. The event portion of the transaction has attributes defined as follows:
+
+type | field | description
+-----|----- | ---------------------
+int | tradeMiningEpochId | The epoch id for the trade mining event
+int | timeValue | Time value (??)
+decimal_s | ddxDistributed | The total DDX distributed during this trade mining distribution
+dict<string, decimal_s> | totalVolume | Mapping containing the total maker and taker volumes for this trade mining interval
 
 
 # Validation
