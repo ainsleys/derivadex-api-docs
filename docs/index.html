@@ -411,7 +411,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   </tr>
                </tbody>
             </table>
-            <p>This is a powerful endpoint and can be used for a variety of use-cases:</p>
+            <p>This is a endpoint can be used for a variety of use-cases:</p>
             <ul>
                <li>L3 order book: An L3 order book is a granular, order-by-order view of the entire market for any given symbol (i.e. no aggregation). You are welcome to consume this data and aggregate as you see fit. You can obtain this order book view using a topic such as <code>STATE/BOOK_ORDER/ETHPERP/</code>, where <code>ETHPERP</code> is an example market you may be requesting.</li>
                <li>Open orders: You can obtain your open orders in a given strategy via this REST endpoint at any given time using a topic such as <code>STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/</code>, where <code>0xe36ea790bc9d7ab70c55260c66d52b1eca985f84</code> is an example Ethereum address you are trading with and <code>0x2576ebd1</code> is the first 4 bytes of the hash of the strategy you are trading from (e.g. <code>main</code>)</li>
@@ -1591,9 +1591,9 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
         <span class="hljs-attr">&quot;itemData&quot;</span>: [{
             <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/&quot;</span>,
             <span class="hljs-attr">&quot;c&quot;</span>: {
-                <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-number">2</span>,
-                <span class="hljs-attr">&quot;balance&quot;</span>: <span class="hljs-string">&quot;5.63&quot;</span>,
-                <span class="hljs-attr">&quot;avgEntryPrice&quot;</span>: <span class="hljs-string">&quot;2293.38&quot;</span>
+                <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Short&quot;</span>,
+                <span class="hljs-attr">&quot;balance&quot;</span>: <span class="hljs-string">&quot;10.13&quot;</span>,
+                <span class="hljs-attr">&quot;avgEntryPrice&quot;</span>: <span class="hljs-string">&quot;1946.458727521116845949&quot;</span>
             }
         }],
         <span class="hljs-attr">&quot;eventTrigger&quot;</span>: <span class="hljs-literal">null</span>
@@ -1647,7 +1647,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>string</td>
                      <td>c.itemData[n].c.side</td>
-                     <td>Position side (<code>1=long</code>, <code>2=short</code>)</td>
+                     <td>Position side (<code>Long</code>, <code>Short</code>)</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
@@ -1677,42 +1677,42 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
         <span class="hljs-attr">&quot;itemData&quot;</span>: {
             <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/&quot;</span>,
             <span class="hljs-attr">&quot;c&quot;</span>: {
-                <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-number">2</span>,
-                <span class="hljs-attr">&quot;balance&quot;</span>: <span class="hljs-string">&quot;4.4&quot;</span>,
-                <span class="hljs-attr">&quot;avgEntryPrice&quot;</span>: <span class="hljs-string">&quot;2293.38&quot;</span>
+                <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Short&quot;</span>,
+                <span class="hljs-attr">&quot;balance&quot;</span>: <span class="hljs-string">&quot;11.87&quot;</span>,
+                <span class="hljs-attr">&quot;avgEntryPrice&quot;</span>: <span class="hljs-string">&quot;1946.508753983901739634&quot;</span>
             }
         },
         <span class="hljs-attr">&quot;eventTrigger&quot;</span>: {
-            <span class="hljs-attr">&quot;eventType&quot;</span>: <span class="hljs-number">13</span>,
-            <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-number">17479</span>,
+            <span class="hljs-attr">&quot;eventType&quot;</span>: <span class="hljs-number">14</span>,
+            <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-number">12289</span>,
             <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
-            <span class="hljs-attr">&quot;takerOrderHash&quot;</span>: <span class="hljs-string">&quot;0xebfc161e4f895ceef660539745fa6515d4990833dc71c5f342&quot;</span>,
-            <span class="hljs-attr">&quot;makerOrderHash&quot;</span>: <span class="hljs-string">&quot;0xf947e64d2a24769e1b303df3c74ff7766f9ba83d4946da8423&quot;</span>,
-            <span class="hljs-attr">&quot;makerOrderRemainingAmount&quot;</span>: <span class="hljs-string">&quot;3.77&quot;</span>,
-            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;1.23&quot;</span>,
-            <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;1500&quot;</span>,
-            <span class="hljs-attr">&quot;takerSide&quot;</span>: <span class="hljs-number">1</span>,
+            <span class="hljs-attr">&quot;takerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x4a9a3e9b462ca1678df83819c9cd62d65306b967ce9879192a&quot;</span>,
+            <span class="hljs-attr">&quot;makerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x4315e691b9b6e7046578823aa59ea0c8f4b96b5e48d2d07f2d&quot;</span>,
+            <span class="hljs-attr">&quot;makerOrderRemainingAmount&quot;</span>: <span class="hljs-string">&quot;6.94&quot;</span>,
+            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;1.74&quot;</span>,
+            <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;1946.8&quot;</span>,
+            <span class="hljs-attr">&quot;takerSide&quot;</span>: <span class="hljs-string">&quot;Bid&quot;</span>,
             <span class="hljs-attr">&quot;makerOutcome&quot;</span>: {
-                <span class="hljs-attr">&quot;trader_Address&quot;</span>: <span class="hljs-string">&quot;0xe36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
+                <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0xe36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
                 <span class="hljs-attr">&quot;strategyId&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
                 <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
                 <span class="hljs-attr">&quot;ddxFeeElection&quot;</span>: <span class="hljs-literal">false</span>,
-                <span class="hljs-attr">&quot;realized_pnl&quot;</span>: <span class="hljs-string">&quot;975.8574&quot;</span>,
-                <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-number">114608.109695076206500957</span>,
-                <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;2293.38&quot;</span>,
-                <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;4.4&quot;</span>,
-                <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-number">2</span>
+                <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+                <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-string">&quot;999155.746041827306396849&quot;</span>,
+                <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;1946.508753983901739634&quot;</span>,
+                <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;11.87&quot;</span>,
+                <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-string">&quot;Short&quot;</span>
             },
             <span class="hljs-attr">&quot;takerOutcome&quot;</span>: {
-                <span class="hljs-attr">&quot;trader_Address&quot;</span>: <span class="hljs-string">&quot;0x6ecbe1db9ef729cbe972c83fb886247691fb6beb&quot;</span>,
+                <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0x6ecbe1db9ef729cbe972c83fb886247691fb6beb&quot;</span>,
                 <span class="hljs-attr">&quot;strategyId&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
-                <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;3.69&quot;</span>,
+                <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;6.774864&quot;</span>,
                 <span class="hljs-attr">&quot;ddxFeeElection&quot;</span>: <span class="hljs-literal">false</span>,
-                <span class="hljs-attr">&quot;realized_pnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
-                <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-number">99996.31</span>,
-                <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;1500&quot;</span>,
-                <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;1.23&quot;</span>,
-                <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-number">2</span>
+                <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+                <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-string">&quot;99994.506474276943985849&quot;</span>,
+                <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;1945.889456858208289734&quot;</span>,
+                <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;4.87&quot;</span>,
+                <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-string">&quot;Long&quot;</span>
             }
         }
     }
@@ -1758,9 +1758,9 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                      <td><code>Position</code> leaf contents</td>
                   </tr>
                   <tr>
-                     <td>int</td>
+                     <td>string</td>
                      <td>c.itemData.c.side</td>
-                     <td>Position side (<code>1=long</code>, <code>2=short</code>)</td>
+                     <td>Position side (<code>Long</code>, <code>Short</code>)</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
@@ -1829,7 +1829,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   </tr>
                </tbody>
             </table>
-            <p>Like its REST counterpart, this is a very powerful endpoint. You can subscribe to <code>BookOrder</code> state updates to track:</p>
+            <p>Like its REST counterpart, this is endpoint can be used for a variety of purposes. You can subscribe to <code>BookOrder</code> state updates to track:</p>
             <ul>
                <li>L3 order book: An L3 order book is a granular, order-by-order view of the entire market for any given symbol (i.e. no aggregation). You can subscribe to a market&#39;s order book using a topic such as <code>STATE/BOOK_ORDER/ETHPERP</code>, where <code>ETHPERP</code> is an example market you may be requesting. This will send an initial <code>Partial</code> response with all of the <code>BookOrder</code> leaf entries making up the order book, and subsequently, <code>Update</code> messages with any new, canceled, or updated orders in the book. You are welcome to process this data in any local order book data structure you see fit.</li>
                <li>Open orders: You can obtain your open orders in a given strategy using a topic such as <code>STATE/BOOK_ORDER/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/</code>, where <code>ETHPERP</code> is an example market, <code>0x6ecbe1db9ef729cbe972c83fb886247691fb6beb</code> is an example of your Ethereum address, and <code>0x2576ebd1</code> is an example of the first 4 bytes of the hash of your strategy&#39;s name (in this case, <code>main</code>). This will send an initial <code>Partial</code> response with all of the <code>BookOrder</code> leaf entries corresponding to the open orders in your strategy, and subsequently, <code>Update</code> messages with any new, canceled, or updated orders of yours. You are welcome to process this data however you see fit.</li>
@@ -1846,7 +1846,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
         <span class="hljs-attr">&quot;itemData&quot;</span>: [{
             <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;STATE/BOOK_ORDER/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/0x8f9f1044d35dfef941e6af68cbaa183f0794d4dc4317206326/&quot;</span>,
             <span class="hljs-attr">&quot;c&quot;</span>: {
-                <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-number">1</span>,
+                <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Short&quot;</span>,
                 <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;1&quot;</span>,
                 <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;2057.9926&quot;</span>,
                 <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0x6ecbe1db9ef729cbe972c83fb886247691fb6beb&quot;</span>,
@@ -1856,7 +1856,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
         }, {
             <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/0xfe3094706dde23aeccba4639715d801c53b58807575efcf285/&quot;</span>,
             <span class="hljs-attr">&quot;c&quot;</span>: {
-                <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-number">0</span>,
+                <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Bid&quot;</span>,
                 <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;3.68&quot;</span>,
                 <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;2050.92&quot;</span>,
                 <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0xe36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
@@ -1913,9 +1913,9 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                      <td><code>BookOrder</code> leaf contents</td>
                   </tr>
                   <tr>
-                     <td>int</td>
+                     <td>string</td>
                      <td>c.itemData[n].c.side</td>
-                     <td>Order side (<code>0=bid</code>, <code>1=ask</code>)</td>
+                     <td>Order side (<code>Bid</code>, <code>Ask</code>)</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
@@ -1958,24 +1958,25 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
     <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Update&quot;</span>,
     <span class="hljs-attr">&quot;c&quot;</span>: {
         <span class="hljs-attr">&quot;itemData&quot;</span>: {
-            <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;STATE/BOOK_ORDER/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/0x937edd47f326c0351e960516ff4a10ab37a2bd5dac39b054cf/&quot;</span>,
+            <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/0x85f483c62fc5a2172db06a3dd322cd89a464bd31ad2408f6d6/&quot;</span>,
             <span class="hljs-attr">&quot;c&quot;</span>: {
-                <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-number">0</span>,
-                <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;1.52&quot;</span>,
-                <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;2051.9272&quot;</span>,
-                <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0x6ecbe1db9ef729cbe972c83fb886247691fb6beb&quot;</span>,
+                <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Bid&quot;</span>,
+                <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;14.37&quot;</span>,
+                <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;1948.25&quot;</span>,
+                <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0xe36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
                 <span class="hljs-attr">&quot;strategyIdHash&quot;</span>: <span class="hljs-string">&quot;0x2576ebd1&quot;</span>,
                 <span class="hljs-attr">&quot;bookOrdinal&quot;</span>: <span class="hljs-number">6</span>
             }
         },
         <span class="hljs-attr">&quot;eventTrigger&quot;</span>: {
-            <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-number">57549</span>,
+            <span class="hljs-attr">&quot;eventType&quot;</span>: <span class="hljs-number">2</span>,
+            <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-number">13977</span>,
             <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
-            <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x937edd47f326c0351e960516ff4a10ab37a2bd5dac39b054cf&quot;</span>,
-            <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-number">0</span>,
-            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;1.52&quot;</span>,
-            <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;2051.9272&quot;</span>,
-            <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0x6ecbe1db9ef729cbe972c83fb886247691fb6beb&quot;</span>,
+            <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x85f483c62fc5a2172db06a3dd322cd89a464bd31ad2408f6d6&quot;</span>,
+            <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Bid&quot;</span>,
+            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;14.37&quot;</span>,
+            <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;1948.25&quot;</span>,
+            <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0xe36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
             <span class="hljs-attr">&quot;strategyId&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
             <span class="hljs-attr">&quot;bookOrdinal&quot;</span>: <span class="hljs-number">6</span>
         }
@@ -2022,9 +2023,9 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                      <td><code>BookOrder</code> leaf contents</td>
                   </tr>
                   <tr>
-                     <td>int</td>
+                     <td>string</td>
                      <td>c.itemData.c.side</td>
-                     <td>Order side (<code>0=bid</code>, <code>1=ask</code>)</td>
+                     <td>Order side (<code>Bid</code>, <code>Ask</code>)</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
@@ -2054,7 +2055,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>dict</td>
                      <td>c.eventTrigger</td>
-                     <td>The transaction log event that triggered an update. Since this is a <code>Partial</code> response, there is no update, thus will always be null.</td>
+                     <td>The transaction log event that triggered an update.</td>
                   </tr>
                </tbody>
             </table>
@@ -2125,7 +2126,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
             <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-number">52623</span>,
             <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
             <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x24b67dd08a9157b9431a087e892a2cbe1e3258034477af6e8b&quot;</span>,
-            <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-number">0</span>,
+            <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Bid&quot;</span>,
             <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;1.39&quot;</span>,
             <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;2030.25&quot;</span>,
             <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0x6ecbe1db9ef729cbe972c83fb886247691fb6beb&quot;</span>,
@@ -2408,16 +2409,17 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                <p>Sample price checkpoint transaction event update response (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;TX_LOG/PRICE_CHECKPOINT/&quot;</span>,
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;TX_LOG/PRICE_CHECKPOINT/ETHPERP/&quot;</span>,
     <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Update&quot;</span>,
     <span class="hljs-attr">&quot;c&quot;</span>: {
         <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;TX_LOG/PRICE_CHECKPOINT/ETHPERP/&quot;</span>,
         <span class="hljs-attr">&quot;c&quot;</span>: {
-            <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-number">20892</span>,
+            <span class="hljs-attr">&quot;eventType&quot;</span>: <span class="hljs-number">9</span>,
+            <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-number">15957</span>,
             <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
-            <span class="hljs-attr">&quot;ema&quot;</span>: <span class="hljs-string">&quot;15.837941010778195511&quot;</span>,
-            <span class="hljs-attr">&quot;indexPriceHash&quot;</span>: <span class="hljs-string">&quot;0x3d5f9f23dbeb96aaa7594ed992b16035159f72c9b99ef0e15a282d3f73ba895b&quot;</span>,
-            <span class="hljs-attr">&quot;indexPrice&quot;</span>: <span class="hljs-string">&quot;2020.355238095238095238&quot;</span>
+            <span class="hljs-attr">&quot;ema&quot;</span>: <span class="hljs-string">&quot;0.562806061520606728&quot;</span>,
+            <span class="hljs-attr">&quot;indexPriceHash&quot;</span>: <span class="hljs-string">&quot;0xdf08ef420733ecf6055f279cbb296e70925d12ee4e04b945c9da42bfd5f0a3df&quot;</span>,
+            <span class="hljs-attr">&quot;indexPrice&quot;</span>: <span class="hljs-string">&quot;1950.64619047619047619&quot;</span>
         }
     }
 }</code></pre>
@@ -2455,6 +2457,11 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                      <td>dict</td>
                      <td>c.c</td>
                      <td><code>PriceCheckpoint</code> event contents</td>
+                  </tr>
+                  <tr>
+                     <td>int</td>
+                     <td>c.c.eventType</td>
+                     <td>Enum value corresponding to this transaction log event type (<code>9=PriceCheckpoint</code>)</td>
                   </tr>
                   <tr>
                      <td>int</td>
@@ -2539,41 +2546,41 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                <p>Sample price checkpoint transaction event update response (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;TX_LOG/FILL/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/&quot;</span>,
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;TX_LOG/FILL/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/&quot;</span>,
     <span class="hljs-attr">&quot;e&quot;</span>: <span class="hljs-string">&quot;Update&quot;</span>,
     <span class="hljs-attr">&quot;c&quot;</span>: {
-        <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;TX_LOG/FILL/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/&quot;</span>,
+        <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;TX_LOG/FILL/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/&quot;</span>,
         <span class="hljs-attr">&quot;c&quot;</span>: {
-            <span class="hljs-attr">&quot;eventType&quot;</span>: <span class="hljs-number">13</span>,
-            <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-number">21454</span>,
+            <span class="hljs-attr">&quot;eventType&quot;</span>: <span class="hljs-number">14</span>,
+            <span class="hljs-attr">&quot;requestIndex&quot;</span>: <span class="hljs-number">16298</span>,
             <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
-            <span class="hljs-attr">&quot;takerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x829638b7820f4c9a170cef148a6ac74238e1fcd101fd31cf0e&quot;</span>,
-            <span class="hljs-attr">&quot;makerOrderHash&quot;</span>: <span class="hljs-string">&quot;0xef48327e3abf22264e5933b54d79478783ddbb83849f836a28&quot;</span>,
-            <span class="hljs-attr">&quot;makerOrderRemainingAmount&quot;</span>: <span class="hljs-string">&quot;5.98&quot;</span>,
-            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;0.1&quot;</span>,
-            <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;2041.23&quot;</span>,
-            <span class="hljs-attr">&quot;takerSide&quot;</span>: <span class="hljs-number">0</span>,
+            <span class="hljs-attr">&quot;takerOrderHash&quot;</span>: <span class="hljs-string">&quot;0xe8adb15982728639fa19a6d00ba6baa763cd7c7fbb339b16f5&quot;</span>,
+            <span class="hljs-attr">&quot;makerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x20f5c6ddfae3950dd64b5915686342798bf57278cf8d793ce2&quot;</span>,
+            <span class="hljs-attr">&quot;makerOrderRemainingAmount&quot;</span>: <span class="hljs-string">&quot;10.08&quot;</span>,
+            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;1.23&quot;</span>,
+            <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;1951.6&quot;</span>,
+            <span class="hljs-attr">&quot;takerSide&quot;</span>: <span class="hljs-string">&quot;Ask&quot;</span>,
             <span class="hljs-attr">&quot;makerOutcome&quot;</span>: {
-                <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0x5409ed021d9299bf6814279a6a1411a7e866a631&quot;</span>,
+                <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0xe36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
                 <span class="hljs-attr">&quot;strategyId&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
                 <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
                 <span class="hljs-attr">&quot;ddxFeeElection&quot;</span>: <span class="hljs-literal">false</span>,
-                <span class="hljs-attr">&quot;realizedPNL&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
-                <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-string">&quot;1017178.859159703584945935&quot;</span>,
-                <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;2057.634891434262948203&quot;</span>,
-                <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;100.4&quot;</span>,
-                <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-number">2</span>
+                <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+                <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-string">&quot;999149.891751616220046303&quot;</span>,
+                <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;1951.6&quot;</span>,
+                <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;1.23&quot;</span>,
+                <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-string">&quot;Long&quot;</span>
             },
             <span class="hljs-attr">&quot;takerOutcome&quot;</span>: {
                 <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0x6ecbe1db9ef729cbe972c83fb886247691fb6beb&quot;</span>,
                 <span class="hljs-attr">&quot;strategyId&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
-                <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;0.408246&quot;</span>,
+                <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;4.800936&quot;</span>,
                 <span class="hljs-attr">&quot;ddxFeeElection&quot;</span>: <span class="hljs-literal">false</span>,
-                <span class="hljs-attr">&quot;realizedPNL&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
-                <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-string">&quot;99998.367016&quot;</span>,
-                <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;2041.23&quot;</span>,
-                <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;0.4&quot;</span>,
-                <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-number">1</span>
+                <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+                <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-string">&quot;99884.740517241403286802&quot;</span>,
+                <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;1958.439229330850592231&quot;</span>,
+                <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;8.23&quot;</span>,
+                <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-string">&quot;Short&quot;</span>
             }
         }
     }
@@ -2616,7 +2623,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>int</td>
                      <td>c.c.eventType</td>
-                     <td>Enum value corresponding to this transaction log event type (<code>13=fill</code>)</td>
+                     <td>Enum value corresponding to this transaction log event type (<code>14=Fill</code>)</td>
                   </tr>
                   <tr>
                      <td>int</td>
@@ -2654,9 +2661,9 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                      <td>Price the fill took place</td>
                   </tr>
                   <tr>
-                     <td>int</td>
+                     <td>string</td>
                      <td>c.c.takerSide</td>
-                     <td>Enum representing the side of the taker order (<code>0=Bid</code>, <code>1=Ask</code>)</td>
+                     <td>Enum representing the side of the taker order (<code>Bid</code>, <code>Ask</code>)</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -2704,9 +2711,9 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                      <td>New size for maker&#39;s position as a result of the trade</td>
                   </tr>
                   <tr>
-                     <td>int</td>
+                     <td>string</td>
                      <td>c.c.makerOutcome.positionSide</td>
-                     <td>New side for maker&#39;s position (<code>long=1</code>, <code>short=2</code>) as a result of the trade</td>
+                     <td>New side for maker&#39;s position (<code>Long</code>, <code>Short</code>) as a result of the trade</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -2756,7 +2763,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>int</td>
                      <td>c.c.takerOutcome.positionSide</td>
-                     <td>New side for taker&#39;s position (<code>long=1</code>, <code>short=2</code>) as a result of the trade</td>
+                     <td>New side for taker&#39;s position (<code>Long</code>, <code>Short</code>) as a result of the trade</td>
                   </tr>
                </tbody>
             </table>
@@ -3312,7 +3319,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                </tbody>
             </table>
             <h2 id="trader-api--auditor">Trader API &lt;&gt; Auditor</h2>
-            <p>As mentioned in the <a href="#auditor-api">Auditor API</a> section above, the Auditor is an abstraction that exposes a very powerful, and perhaps more importantly, convenient and easy-to-use API for programmatic traders. It&#39;s powered by connecting more directly to the DerivaDEX Trader API&#39;s transaction log WebSocket endpoint. This endpoint provides a snapshot of the Sparse Merkle Tree and streaming transaction&#39;s that transition the state of this data store. Technically, to trade on DerivaDEX you won&#39;t need to understand all of these details as this has been abstracted away using the setup presented above. However, if you are interested in 1) learning more about how the system works, 2) considering rewriting the Auditor, or 3) exploring connecting to the Trader API directly, you should read on to best understand the data you will be working with.</p>
+            <p>As mentioned in the <a href="#auditor-api">Auditor API</a> section above, the Auditor is an abstraction that exposes a more convenient and familiar API for programmatic traders. It&#39;s connects more directly to the DerivaDEX Trader API&#39;s transaction log WebSocket endpoint. This endpoint provides a snapshot of the Sparse Merkle Tree and streaming transaction&#39;s that transition the state of this data store. Technically, to trade on DerivaDEX you won&#39;t need to understand all of these details as this has been abstracted away using the setup presented above. However, if you are interested in 1) learning more about how the system works, 2) considering rewriting the Auditor, or 3) exploring connecting to the Trader API directly, you should read on to best understand the data you will be working with.</p>
             <h3 id="sparse-merkle-tree-state">Sparse merkle tree (state)</h3>
             <p>DerivaDEX utilizes a <a href="https://medium.com/@kelvinfichter/whats-a-sparse-merkle-tree-acda70aeb837">Sparse Merkle Tree (SMT)</a> in order to efficiently maintain the state of the exchange at all times. Storing data on-chain (such as user&#39;s balances and positions), something most decentralized exchanges do, is very costly and one that is usually passed on to the user, making exchange use prohibitively expensive to most. An SMT, however, allows the system to only store a single root hash (the root of the tree) on-chain, while still allowing for any one to verify the integrity of the data (leaves) through inclusion (or non-inclusion) proofs.</p>
             <p>So what kind of data is stored and where in the SMT? The short answer is - everything. This means any data pertaining to a trader (their account-level data, strategy-level data, positions, and volume statistics), to a given market (the various open orders and the price feed information), and to the system (the insurance fund capitalization) is stored as individual leaf entries in the SMT. The DerivaDEX SMT consists of 2^256 possible leaves, each uniquely located at a specific leaf location (as indicated by its <code>key</code>, which is a 32-byte value). As you might surmise, the <em>vast</em> majority of the SMT will be empty (2^256 is very, <em>very</em>, <em><strong>very</strong></em> large number), but the data that does exist can exist at a location anywhere within these large bounds. For efficient querying and data management (while maintaining practical collision-resistance), the various types of leaf items are prefixed to reside in the same general vicinity as one another. Each leaf item type is described in detail below. The full set of leaf types can be seen in the following table, along with their corresponding numeric discriminants.</p>
@@ -5708,7 +5715,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         }]
     ]
 }</code></pre>
-            <p>Upon subscription, you will first receive a <code>Partial</code> back, containing a snapshot of the DerivaDEX state as of the latest checkpoint and all of the transactions from the latest checkpoint up until now. DerivaDEX has on-chain checkpoints roughly every 10 minutes. Say you were to connect to the API and subscribe to this endpoint 7 minutes after Checkpoint 100 had completed. You would first receive the entire state as of Checkpoint 100, and then all of the state-transitioning transactions that have elapsed in the last 7 minutes. Thus, you will be up-to-date without having to stream through all of the transactions from the beginning of time (Checkpoint 0). This is an incredibly powerful response, as you can construct literally the <strong>entire</strong> state of the DerivaDEX exchange from this.</p>
+            <p>Upon subscription, you will first receive a <code>Partial</code> back, containing a snapshot of the DerivaDEX state as of the latest checkpoint and all of the transactions from the latest checkpoint up until now. DerivaDEX has on-chain checkpoints roughly every 10 minutes. Say you were to connect to the API and subscribe to this endpoint 7 minutes after Checkpoint 100 had completed. You would first receive the entire state as of Checkpoint 100, and then all of the state-transitioning transactions that have elapsed in the last 7 minutes. Thus, you will be up-to-date without having to stream through all of the transactions from the beginning of time (Checkpoint 0). This endpoint allows you to construct the <strong>entire</strong> state of the DerivaDEX exchange.</p>
             <p>The response is a 2-item array, with the first item referencing the state snapshot and the second referencing the transactions, as shown in the sample on the right. The types and fields that make up this response are described in the table below:</p>
             <table>
                <thead>

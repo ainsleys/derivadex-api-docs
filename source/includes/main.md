@@ -252,7 +252,7 @@ type | field | description
 ------ | ---- | -------
 string | topic | Must be of the format `STATE/BOOK_ORDER/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is a `string` type (e.g. `ETHPERP`), `trader_address` should be a lower-cased `bytes32_s` type, `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 
-This is a powerful endpoint and can be used for a variety of use-cases:
+This is a endpoint can be used for a variety of use-cases:
 - L3 order book: An L3 order book is a granular, order-by-order view of the entire market for any given symbol (i.e. no
 aggregation). You are welcome to consume this data and aggregate as you see fit. You can obtain this order book view using
 a topic such as `STATE/BOOK_ORDER/ETHPERP/`, where `ETHPERP` is an example market you may be requesting.
@@ -894,9 +894,9 @@ string | c | Subscription topic of the format `STATE/POSITION/[<symbol>/][[<chai
 		"itemData": [{
 			"t": "STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
 			"c": {
-				"side": 2,
-				"balance": "5.63",
-				"avgEntryPrice": "2293.38"
+				"side": "Short",
+				"balance": "10.13",
+				"avgEntryPrice": "1946.458727521116845949"
 			}
 		}],
 		"eventTrigger": null
@@ -916,7 +916,7 @@ list | c.itemData | Contains a list of the snapshotted `Position` leaf data
 dict | c.itemData[n] | An individual `Position` leaf as part of the snapshot
 string | c.itemData[n].t | `Position` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/POSITION/<symbol>/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>`. `symbol` is of `string` type, `trader_address` should be a lower-cased `bytes32_s` type and `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 dict | c.itemData[n].c | `Position` leaf contents
-string | c.itemData[n].c.side | Position side (`1=long`, `2=short`)
+string | c.itemData[n].c.side | Position side (`Long`, `Short`)
 decimal_s | c.itemData[n].c.balance | Position size
 decimal_s | c.itemData[n].c.avgEntryPrice | Position average entry price
 dict | c.eventTrigger | The transaction log event that triggered an update. Since this is a `Partial` response, there is no update, thus will always be null.
@@ -932,42 +932,42 @@ dict | c.eventTrigger | The transaction log event that triggered an update. Sinc
 		"itemData": {
 			"t": "STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
 			"c": {
-				"side": 2,
-				"balance": "4.4",
-				"avgEntryPrice": "2293.38"
+				"side": "Short",
+				"balance": "11.87",
+				"avgEntryPrice": "1946.508753983901739634"
 			}
 		},
 		"eventTrigger": {
-			"eventType": 13,
-			"requestIndex": 17479,
+			"eventType": 14,
+			"requestIndex": 12289,
 			"symbol": "ETHPERP",
-			"takerOrderHash": "0xebfc161e4f895ceef660539745fa6515d4990833dc71c5f342",
-			"makerOrderHash": "0xf947e64d2a24769e1b303df3c74ff7766f9ba83d4946da8423",
-			"makerOrderRemainingAmount": "3.77",
-			"amount": "1.23",
-			"price": "1500",
-			"takerSide": 1,
+			"takerOrderHash": "0x4a9a3e9b462ca1678df83819c9cd62d65306b967ce9879192a",
+			"makerOrderHash": "0x4315e691b9b6e7046578823aa59ea0c8f4b96b5e48d2d07f2d",
+			"makerOrderRemainingAmount": "6.94",
+			"amount": "1.74",
+			"price": "1946.8",
+			"takerSide": "Bid",
 			"makerOutcome": {
-				"trader_Address": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
+				"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
 				"strategyId": "main",
 				"fee": "0",
 				"ddxFeeElection": false,
-				"realized_pnl": "975.8574",
-				"newCollateral": 114608.109695076206500957,
-				"newPositionAvgEntryPrice": "2293.38",
-				"newPositionBalance": "4.4",
-				"positionSide": 2
+				"realizedPnl": "0",
+				"newCollateral": "999155.746041827306396849",
+				"newPositionAvgEntryPrice": "1946.508753983901739634",
+				"newPositionBalance": "11.87",
+				"positionSide": "Short"
 			},
 			"takerOutcome": {
-				"trader_Address": "0x6ecbe1db9ef729cbe972c83fb886247691fb6beb",
+				"traderAddress": "0x6ecbe1db9ef729cbe972c83fb886247691fb6beb",
 				"strategyId": "main",
-				"fee": "3.69",
+				"fee": "6.774864",
 				"ddxFeeElection": false,
-				"realized_pnl": "0",
-				"newCollateral": 99996.31,
-				"newPositionAvgEntryPrice": "1500",
-				"newPositionBalance": "1.23",
-				"positionSide": 2
+				"realizedPnl": "0",
+				"newCollateral": "99994.506474276943985849",
+				"newPositionAvgEntryPrice": "1945.889456858208289734",
+				"newPositionBalance": "4.87",
+				"positionSide": "Long"
 			}
 		}
 	}
@@ -985,7 +985,7 @@ dict | c | Websocket message content containing the updated `Position` leaf data
 list | c.itemData | Contains a an entry for the `Position` leaf data
 string | c.itemData.t | `Position` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/POSITION/<symbol>/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>`. `symbol` is of `string` type, `trader_address` should be a lower-cased `bytes32_s` type and `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 dict | c.itemData.c | `Position` leaf contents
-int | c.itemData.c.side | Position side (`1=long`, `2=short`)
+string | c.itemData.c.side | Position side (`Long`, `Short`)
 decimal_s | c.itemData.c.balance | Position size
 decimal_s | c.itemData.c.avgEntryPrice | Position average entry price
 dict | c.eventTrigger | The transaction log event that triggered an update. Since this is an `Update` response, there will be a transaction log event that triggered it. The possible events that can result in a an update to a strategy are `PartialFill` (`Fill`), `CompleteFill` (`Fill`), and `Liquidation`. Please check out each transaction type in these docs for additional information as necessary.
@@ -1028,7 +1028,7 @@ type | field | description
 string | t | WebSocket message type - must be `Subscribe`
 string | c | Subscription topic of the format `STATE/BOOK_ORDER/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is of `string` type (e.g. `ETHPERP`), `trader_address` should be a lower-cased `bytes32_s` type and `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 
-Like its REST counterpart, this is a very powerful endpoint. You can subscribe to `BookOrder` state updates to track:
+Like its REST counterpart, this is endpoint can be used for a variety of purposes. You can subscribe to `BookOrder` state updates to track:
 - L3 order book: An L3 order book is a granular, order-by-order view of the entire market for any given symbol (i.e. no aggregation). You can subscribe to a market's order book using a topic such as `STATE/BOOK_ORDER/ETHPERP`, where `ETHPERP` is an example market you may be requesting. This will send an initial `Partial` response with all of the `BookOrder` leaf entries making up the order book, and subsequently, `Update` messages with any new, canceled, or updated orders in the book. You are welcome to process this data in any local order book data structure you see fit.
 - Open orders: You can obtain your open orders in a given strategy using a topic such as `STATE/BOOK_ORDER/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/`, where `ETHPERP` is an example market, `0x6ecbe1db9ef729cbe972c83fb886247691fb6beb` is an example of your Ethereum address, and `0x2576ebd1` is an example of the first 4 bytes of the hash of your strategy's name (in this case, `main`). This will send an initial `Partial` response with all of the `BookOrder` leaf entries corresponding to the open orders in your strategy, and subsequently, `Update` messages with any new, canceled, or updated orders of yours. You are welcome to process this data however you see fit.
 
@@ -1046,7 +1046,7 @@ Like its REST counterpart, this is a very powerful endpoint. You can subscribe t
 		"itemData": [{
 			"t": "STATE/BOOK_ORDER/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/0x8f9f1044d35dfef941e6af68cbaa183f0794d4dc4317206326/",
 			"c": {
-				"side": 1,
+				"side": "Short",
 				"amount": "1",
 				"price": "2057.9926",
 				"traderAddress": "0x6ecbe1db9ef729cbe972c83fb886247691fb6beb",
@@ -1056,7 +1056,7 @@ Like its REST counterpart, this is a very powerful endpoint. You can subscribe t
 		}, {
 			"t": "STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/0xfe3094706dde23aeccba4639715d801c53b58807575efcf285/",
 			"c": {
-				"side": 0,
+				"side": "Bid",
 				"amount": "3.68",
 				"price": "2050.92",
 				"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
@@ -1081,7 +1081,7 @@ list | c.itemData | Contains a list of the snapshotted `BookOrder` leaf data
 dict | c.itemData[n] | An individual `BookOrder` leaf as part of the snapshot
 string | c.itemData[n].t | `BookOrder` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/BOOK_ORDER/<symbol>/<trader_address>/<abbrev_strategy_id_hash>/<order_hash>/`. `symbol` is of `string` type, `trader_address` should be a lower-cased `bytes32_s` type, `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`), and `order_hash` is of `bytes_s` type representing the first 25 bytes of the order's unique hash.
 dict | c.itemData[n].c | `BookOrder` leaf contents
-int | c.itemData[n].c.side | Order side (`0=bid`, `1=ask`)
+string | c.itemData[n].c.side | Order side (`Bid`, `Ask`)
 decimal_s | c.itemData[n].c.amount | Order size
 decimal_s | c.itemData[n].c.price | Order price
 address_s | c.itemData[n].c.traderAddress | The trader's Ethereum address responsible for this order
@@ -1098,24 +1098,25 @@ dict | c.eventTrigger | The transaction log event that triggered an update. Sinc
 	"e": "Update",
 	"c": {
 		"itemData": {
-			"t": "STATE/BOOK_ORDER/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/0x937edd47f326c0351e960516ff4a10ab37a2bd5dac39b054cf/",
+			"t": "STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/0x85f483c62fc5a2172db06a3dd322cd89a464bd31ad2408f6d6/",
 			"c": {
-				"side": 0,
-				"amount": "1.52",
-				"price": "2051.9272",
-				"traderAddress": "0x6ecbe1db9ef729cbe972c83fb886247691fb6beb",
+				"side": "Bid",
+				"amount": "14.37",
+				"price": "1948.25",
+				"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
 				"strategyIdHash": "0x2576ebd1",
 				"bookOrdinal": 6
 			}
 		},
 		"eventTrigger": {
-			"requestIndex": 57549,
+			"eventType": 2,
+			"requestIndex": 13977,
 			"symbol": "ETHPERP",
-			"orderHash": "0x937edd47f326c0351e960516ff4a10ab37a2bd5dac39b054cf",
-			"side": 0,
-			"amount": "1.52",
-			"price": "2051.9272",
-			"traderAddress": "0x6ecbe1db9ef729cbe972c83fb886247691fb6beb",
+			"orderHash": "0x85f483c62fc5a2172db06a3dd322cd89a464bd31ad2408f6d6",
+			"side": "Bid",
+			"amount": "14.37",
+			"price": "1948.25",
+			"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
 			"strategyId": "main",
 			"bookOrdinal": 6
 		}
@@ -1135,13 +1136,13 @@ dict | c | Websocket message content, containing a snapshot of `BookOrder` leaf 
 dict | c.itemData | Contains the updated `BookOrder` leaf data
 string | c.itemData.t | `BookOrder` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/BOOK_ORDER/<symbol>/<trader_address>/<abbrev_strategy_id_hash>/<order_hash>/`. `symbol` is of `string` type, `trader_address` should be a lower-cased `bytes32_s` type, `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`), and `order_hash` is of `bytes_s` type representing the first 25 bytes of the order's unique hash.
 dict | c.itemData.c | `BookOrder` leaf contents
-int | c.itemData.c.side | Order side (`0=bid`, `1=ask`)
+string | c.itemData.c.side | Order side (`Bid`, `Ask`)
 decimal_s | c.itemData.c.amount | Order size
 decimal_s | c.itemData.c.price | Order price
 address_s | c.itemData.c.traderAddress | The trader's Ethereum address responsible for this order
 bytes_s | c.itemData.c.strategyIdHash | The trader's strategy identifier (first 4 bytes of the hash of the strategy, e.g. `main`) for which this order belongs
 int | c.itemData.c.bookOrdinal | Numerical identifier signifying the order's sequencing in the book, can be useful to arrange orders that are at the same level in priority
-dict | c.eventTrigger | The transaction log event that triggered an update. Since this is a `Partial` response, there is no update, thus will always be null.
+dict | c.eventTrigger | The transaction log event that triggered an update.
 
 
 ## Transaction log events
@@ -1200,7 +1201,7 @@ string | c | Subscription topic of the format `TX_LOG/POST/[<symbol>/][[<trader_
 			"requestIndex": 52623,
 			"symbol": "ETHPERP",
 			"orderHash": "0x24b67dd08a9157b9431a087e892a2cbe1e3258034477af6e8b",
-			"side": 0,
+			"side": "Bid",
 			"amount": "1.39",
 			"price": "2030.25",
 			"traderAddress": "0x6ecbe1db9ef729cbe972c83fb886247691fb6beb",
@@ -1337,16 +1338,17 @@ string | c | Subscription topic of the format `TX_LOG/PRICE_CHECKPOINT/[<symbol>
 > Sample price checkpoint transaction event update response (JSON)
 ```json
 {
-	"t": "TX_LOG/PRICE_CHECKPOINT/",
+	"t": "TX_LOG/PRICE_CHECKPOINT/ETHPERP/",
 	"e": "Update",
 	"c": {
 		"t": "TX_LOG/PRICE_CHECKPOINT/ETHPERP/",
 		"c": {
-			"requestIndex": 20892,
+			"eventType": 9,
+			"requestIndex": 15957,
 			"symbol": "ETHPERP",
-			"ema": "15.837941010778195511",
-			"indexPriceHash": "0x3d5f9f23dbeb96aaa7594ed992b16035159f72c9b99ef0e15a282d3f73ba895b",
-			"indexPrice": "2020.355238095238095238"
+			"ema": "0.562806061520606728",
+			"indexPriceHash": "0xdf08ef420733ecf6055f279cbb296e70925d12ee4e04b945c9da42bfd5f0a3df",
+			"indexPrice": "1950.64619047619047619"
 		}
 	}
 }
@@ -1361,6 +1363,7 @@ string | e | Websocket message event, which will be `Update`
 dict | c | Websocket message content, containing the `PriceCheckpoint` transaction event data
 dict | c.t | `PriceCheckpoint` event topic
 dict | c.c | `PriceCheckpoint` event contents
+int | c.c.eventType | Enum value corresponding to this transaction log event type (`9=PriceCheckpoint`)
 int | c.c.requestIndex | Numerical sequencing identifier pertaining to this transaction. All transactions are processed in order of their `requestIndex`.
 string | c.c.symbol | Market for which this price checkpoint corresponds to
 decimal_s | c.c.ema | Exponential moving average reflecting the spread between DerivaDEX's order book and the underlying composite index price
@@ -1411,41 +1414,41 @@ string | c | Subscription topic of the format `TX_LOG/FILL/[<symbol>/][[<trader_
 > Sample price checkpoint transaction event update response (JSON)
 ```json
 {
-	"t": "TX_LOG/FILL/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/",
+	"t": "TX_LOG/FILL/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
 	"e": "Update",
 	"c": {
-		"t": "TX_LOG/FILL/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/",
+		"t": "TX_LOG/FILL/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
 		"c": {
-			"eventType": 13,
-			"requestIndex": 21454,
+			"eventType": 14,
+			"requestIndex": 16298,
 			"symbol": "ETHPERP",
-			"takerOrderHash": "0x829638b7820f4c9a170cef148a6ac74238e1fcd101fd31cf0e",
-			"makerOrderHash": "0xef48327e3abf22264e5933b54d79478783ddbb83849f836a28",
-			"makerOrderRemainingAmount": "5.98",
-			"amount": "0.1",
-			"price": "2041.23",
-			"takerSide": 0,
+			"takerOrderHash": "0xe8adb15982728639fa19a6d00ba6baa763cd7c7fbb339b16f5",
+			"makerOrderHash": "0x20f5c6ddfae3950dd64b5915686342798bf57278cf8d793ce2",
+			"makerOrderRemainingAmount": "10.08",
+			"amount": "1.23",
+			"price": "1951.6",
+			"takerSide": "Ask",
 			"makerOutcome": {
-				"traderAddress": "0x5409ed021d9299bf6814279a6a1411a7e866a631",
+				"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
 				"strategyId": "main",
 				"fee": "0",
 				"ddxFeeElection": false,
-				"realizedPNL": "0",
-				"newCollateral": "1017178.859159703584945935",
-				"newPositionAvgEntryPrice": "2057.634891434262948203",
-				"newPositionBalance": "100.4",
-				"positionSide": 2
+				"realizedPnl": "0",
+				"newCollateral": "999149.891751616220046303",
+				"newPositionAvgEntryPrice": "1951.6",
+				"newPositionBalance": "1.23",
+				"positionSide": "Long"
 			},
 			"takerOutcome": {
 				"traderAddress": "0x6ecbe1db9ef729cbe972c83fb886247691fb6beb",
 				"strategyId": "main",
-				"fee": "0.408246",
+				"fee": "4.800936",
 				"ddxFeeElection": false,
-				"realizedPNL": "0",
-				"newCollateral": "99998.367016",
-				"newPositionAvgEntryPrice": "2041.23",
-				"newPositionBalance": "0.4",
-				"positionSide": 1
+				"realizedPnl": "0",
+				"newCollateral": "99884.740517241403286802",
+				"newPositionAvgEntryPrice": "1958.439229330850592231",
+				"newPositionBalance": "8.23",
+				"positionSide": "Short"
 			}
 		}
 	}
@@ -1461,7 +1464,7 @@ string | e | Websocket message event, which will be `Update`
 dict | c | Websocket message content, containing the `Fill` transaction event data
 dict | c.t | `Fill` event topic
 dict | c.c | `Fill` event contents
-int | c.c.eventType | Enum value corresponding to this transaction log event type (`13=fill`)
+int | c.c.eventType | Enum value corresponding to this transaction log event type (`14=Fill`)
 int | c.c.requestIndex | Numerical sequencing identifier pertaining to this transaction. All transactions are processed in order of their `requestIndex`.
 string | c.c.symbol | Market for which this fill corresponds to
 bytes_s | c.c.takerOrderHash | First 25 bytes of the hash of the taker's order intent
@@ -1469,7 +1472,7 @@ bytes_s | c.c.makerOrderHash | First 25 bytes of the hash of the maker's order i
 decimal_s | c.c.makerOrderRemainingAmount | The remaining size on the maker order
 decimal_s | c.c.amount | Size / number of contracts of the fill
 decimal_s | c.c.price | Price the fill took place
-int | c.c.takerSide | Enum representing the side of the taker order (`0=Bid`, `1=Ask`)
+string | c.c.takerSide | Enum representing the side of the taker order (`Bid`, `Ask`)
 dict | c.c.makerOutcome | Data containing the some relevant information pertaining to the maker in the trade
 address_s | c.c.makerOutcome.traderAddress | Maker trader's Ethereum address
 string | c.c.makerOutcome.strategyId | Cross-margined strategy identifier for the maker trader
@@ -1479,7 +1482,7 @@ decimal_s | c.c.makerOutcome.realizedPNL | Realized profits and losses for the m
 decimal_s | c.c.makerOutcome.newCollateral | New free collateral in maker trader's strategy as a result of the trade
 decimal_s | c.c.makerOutcome.newPositionAvgEntryPrice | New average entry price for maker's position as a result of the trade
 decimal_s | c.c.makerOutcome.newPositionBalance | New size for maker's position as a result of the trade
-int | c.c.makerOutcome.positionSide | New side for maker's position (`long=1`, `short=2`) as a result of the trade
+string | c.c.makerOutcome.positionSide | New side for maker's position (`Long`, `Short`) as a result of the trade
 dict | c.c.takerOutcome | Data containing the some relevant information pertaining to the taker in the trade
 address_s | c.c.takerOutcome.traderAddress | Taker trader's Ethereum address
 string | c.c.takerOutcome.strategyId | Cross-margined strategy identifier for the taker trader
@@ -1489,7 +1492,7 @@ decimal_s | c.c.takerOutcome.realizedPNL | Realized profits and losses for the t
 decimal_s | c.c.takerOutcome.newCollateral | New free collateral in taker trader's strategy as a result of the trade
 decimal_s | c.c.takerOutcome.newPositionAvgEntryPrice | New average entry price for taker's position as a result of the trade
 decimal_s | c.c.takerOutcome.newPositionBalance | New size for taker's position as a result of the trade
-int | c.c.takerOutcome.positionSide | New side for taker's position (`long=1`, `short=2`) as a result of the trade
+int | c.c.takerOutcome.positionSide | New side for taker's position (`Long`, `Short`) as a result of the trade
 
 Please keep in mind that due to the subscription topic methodology, in the scenario where
 you don't specify a particular `trader_address` and `abbrev_strategy_id_hash` (e.g. a topic of the format
@@ -1922,9 +1925,8 @@ nonce |  "0x3136323338333734323633363939323230303000000000000000000000000000"
 
 ## Trader API <> Auditor
 
-As mentioned in the [Auditor API](#auditor-api) section above, the Auditor is an abstraction that exposes a very powerful, and perhaps
-more importantly, convenient and easy-to-use API for programmatic traders. It's powered by connecting
-more directly to the DerivaDEX Trader API's transaction log WebSocket endpoint. This endpoint
+As mentioned in the [Auditor API](#auditor-api) section above, the Auditor is an abstraction that exposes a more convenient and familiar API for programmatic traders.
+It's connects more directly to the DerivaDEX Trader API's transaction log WebSocket endpoint. This endpoint
 provides a snapshot of the Sparse Merkle Tree and streaming transaction's that transition
 the state of this data store. Technically, to trade on DerivaDEX you won't need to understand all
 of these details as this has been abstracted away using the setup presented above. However, if you are
@@ -3548,8 +3550,8 @@ string | message | Error message
 Upon subscription, you will first receive a `Partial` back, containing a snapshot of the DerivaDEX state as of the latest checkpoint and all of the transactions from the latest checkpoint up until now.
 DerivaDEX has on-chain checkpoints roughly every 10 minutes. Say you were to connect to the API and subscribe to this endpoint 7 minutes after Checkpoint 100 had completed. You would first receive
 the entire state as of Checkpoint 100, and then all of the state-transitioning transactions that have elapsed in the last 7 minutes. Thus, you will be up-to-date without having to stream through all of
-the transactions from the beginning of time (Checkpoint 0). This is an incredibly powerful response, as you can construct literally the **entire** state
-of the DerivaDEX exchange from this.
+the transactions from the beginning of time (Checkpoint 0). This endpoint allows you to construct the **entire** state
+of the DerivaDEX exchange.
 
 The response is a 2-item array, with the first item referencing the state snapshot and the second referencing the transactions, as shown in the sample on the right. The types and fields that
 make up this response are described in the table below:
