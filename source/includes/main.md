@@ -44,14 +44,13 @@ To run the Auditor locally, follow these steps from the DerivaDEX `trading_clien
 
 1. If you don't already have it, we recommend setting up [Anaconda/Python(>3)](https://docs.anaconda.com/anaconda/install/index.html) on your machine
 
-2. Initialize and activate a Conda environment from which you will run the Auditor: `conda env create -f environment.yml && conda activate derivadex`
+2. Initialize and activate a Conda environment (located at the root level of the repo) from which you will run the Auditor: `conda env create -f environment.yml && conda activate derivadex`
 
-3. Navigate to the `auditor` subdirectory and create an `.env-auditor` file based off of the `.env-auditor-template`, adjusting your `rpc-url` and `private-key` appropriately. If you are unfamiliar
-with RPC URLs or don't already have one, please check out [Infura](https://infura.io/) or [Alchemy](https://www.alchemy.com/) and obtain a URL there.
-**Please be sure to run the Auditor with a private key corresponding to the Ethereum address you
-intend on trading with.**
+3. Set your PYTHONPATH: `export PYTHONPATH="${PYTHONPATH}:/your/full/path/upto/but/not/including/trading_clients"`
 
-4. Run the Auditor with: `PYTHON_LOG=verbose python auditor_driver.py --config ".env-auditor"`
+4. Navigate to the `auditor` subdirectory and create an `.env-auditor` file using the template: `cp .env-auditor.template .env-auditor`
+
+5. Run the Auditor with: `PYTHON_LOG=verbose python auditor_driver.py --config ".env-auditor"`
 
 You will immediately see logging messages (should be lots of green) with state initialized and transactions streaming through successfully.
 

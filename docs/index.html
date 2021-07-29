@@ -62,15 +62,17 @@
                   <p>If you don&#39;t already have it, we recommend setting up <a href="https://docs.anaconda.com/anaconda/install/index.html">Anaconda/Python(&gt;3)</a> on your machine</p>
                </li>
                <li>
-                  <p>Initialize and activate a Conda environment from which you will run the Auditor: <code>conda env create -f environment.yml &amp;&amp; conda activate derivadex</code></p>
+                  <p>Initialize and activate a Conda environment (located at the root level of the repo) from which you will run the Auditor: <code>conda env create -f environment.yml &amp;&amp; conda activate derivadex</code></p>
                </li>
                <li>
-                  <p>Navigate to the <code>auditor</code> subdirectory and create an <code>.env-auditor</code> file based off of the <code>.env-auditor-template</code>, adjusting your <code>rpc-url</code> and <code>private-key</code> appropriately. If you are unfamiliar with RPC URLs or don&#39;t already have one, please check out <a href="https://infura.io/">Infura</a> or <a href="https://www.alchemy.com/">Alchemy</a> and obtain a URL there.</p>
+                  <p>Set your PYTHONPATH: <code>export PYTHONPATH=&quot;${PYTHONPATH}:/your/full/path/upto/but/not/including/trading_clients&quot;</code></p>
                </li>
-            </ol>
-            <p><strong>Please be sure to run the Auditor with a private key corresponding to the Ethereum address you intend on trading with.</strong></p>
-            <ol start="4">
-               <li>Run the Auditor with: <code>PYTHON_LOG=verbose python auditor_driver.py --config &quot;.env-auditor&quot;</code></li>
+               <li>
+                  <p>Navigate to the <code>auditor</code> subdirectory and create an <code>.env-auditor</code> file using the template: <code>cp .env-auditor.template .env-auditor</code></p>
+               </li>
+               <li>
+                  <p>Run the Auditor with: <code>PYTHON_LOG=verbose python auditor_driver.py --config &quot;.env-auditor&quot;</code></p>
+               </li>
             </ol>
             <p>You will immediately see logging messages (should be lots of green) with state initialized and transactions streaming through successfully.</p>
             <p>Voila! You now have the Auditor running locally validating the <strong>entire</strong> DerivaDEX exchange, and serving as a local REST &amp; WebSocket API for whatever your trading needs may be!</p>
