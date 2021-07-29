@@ -100,7 +100,7 @@ e.g. topic = STATE/TRADER/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/</code></
                   <tr>
                      <td>string</td>
                      <td>topic</td>
-                     <td>Must be of the format <code>STATE/TRADER/[&lt;chain_discriminant&gt;/][[&lt;trader_address&gt;/]]</code>. <code>chain_discriminant</code> should be set to <code>0</code> for now and <code>trader_address</code> should be a lower-cased <code>bytes32_s</code> type.</td>
+                     <td>Must be of the format <code>STATE/TRADER/[&lt;chain_discriminant&gt;/][[&lt;trader_address&gt;/]]</code>. <code>chain_discriminant</code> should be set to <code>0</code> for now and <code>trader_address</code> should be an <code>address_s</code> type.</td>
                   </tr>
                </tbody>
             </table>
@@ -154,7 +154,7 @@ e.g. topic = STATE/TRADER/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/</code></
                   <tr>
                      <td>string</td>
                      <td>c[n].t</td>
-                     <td><code>Trader</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/TRADER/&lt;chain_discriminant&gt;/&lt;trader_address&gt;/</code>. <code>trader_address</code> should be a lower-cased <code>bytes32_s</code> type.</td>
+                     <td><code>Trader</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/TRADER/&lt;chain_discriminant&gt;/&lt;trader_address&gt;/</code>. <code>trader_address</code> should be an <code>address_s</code> type.</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -202,7 +202,7 @@ e.g. topic = STATE/STRATEGY/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576e
                   <tr>
                      <td>string</td>
                      <td>topic</td>
-                     <td>Must be of the format <code>STATE/STRATEGY/[&lt;chain_discriminant&gt;/][[&lt;trader_address&gt;/]][[[abbrev_strategy_id_hash]]]</code>. <code>trader_address</code> should be a lower-cased <code>bytes32_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes32_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
+                     <td>Must be of the format <code>STATE/STRATEGY/[&lt;chain_discriminant&gt;/][[&lt;trader_address&gt;/]][[[abbrev_strategy_id_hash]]]</code>. <code>trader_address</code> should be an <code>address_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
                   </tr>
                </tbody>
             </table>
@@ -253,7 +253,7 @@ e.g. topic = STATE/STRATEGY/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576e
                   <tr>
                      <td>string</td>
                      <td>c[n].t</td>
-                     <td><code>Strategy</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/STRATEGY/&lt;chain_discriminant&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;/</code>. <code>trader_address</code> should be a lower-cased <code>bytes32_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes32_s</code> type representing the first 4 bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
+                     <td><code>Strategy</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/STRATEGY/&lt;chain_discriminant&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;/</code>. <code>trader_address</code> should be an <code>address_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4 bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -273,7 +273,7 @@ e.g. topic = STATE/STRATEGY/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576e
                   <tr>
                      <td>dict&lt;address_s, decimal_s&gt;</td>
                      <td>c[n].c.frozenCollateral</td>
-                     <td>Strategy&#39;s free collateral (available for withdrawal) mapping from ERC-20 collateral token address to amount</td>
+                     <td>Strategy&#39;s frozen collateral (available for withdrawal) mapping from ERC-20 collateral token address to amount</td>
                   </tr>
                   <tr>
                      <td>int</td>
@@ -312,7 +312,7 @@ e.g. topic = STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>string</td>
                      <td>topic</td>
-                     <td>Must be of the format <code>STATE/POSITION/[&lt;symbol&gt;/][[&lt;chain_discriminant&gt;/]][[[&lt;trader_address&gt;/]]][[[[&lt;abbrev_strategy_id_hash&gt;/]]]]</code>. <code>symbol</code> is a <code>string</code> type (e.g. <code>ETHPERP</code>), <code>trader_address</code> should be a lower-cased <code>bytes32_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes32_s</code> type representing the first 4 bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
+                     <td>Must be of the format <code>STATE/POSITION/[&lt;symbol&gt;/][[&lt;chain_discriminant&gt;/]][[[&lt;trader_address&gt;/]]][[[[&lt;abbrev_strategy_id_hash&gt;/]]]]</code>. <code>symbol</code> is a <code>string</code> type (e.g. <code>ETHPERP</code>), <code>trader_address</code> should be an <code>address_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4 bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
                   </tr>
                </tbody>
             </table>
@@ -325,7 +325,7 @@ e.g. topic = STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
     <span class="hljs-attr">&quot;c&quot;</span>: [{
         <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/&quot;</span>,
         <span class="hljs-attr">&quot;c&quot;</span>: {
-            <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-number">1</span>,
+            <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Long&quot;</span>,
             <span class="hljs-attr">&quot;balance&quot;</span>: <span class="hljs-string">&quot;0.1&quot;</span>,
             <span class="hljs-attr">&quot;avgEntryPrice&quot;</span>: <span class="hljs-string">&quot;2300&quot;</span>
         }
@@ -359,7 +359,7 @@ e.g. topic = STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>string</td>
                      <td>c[n].t</td>
-                     <td><code>Position</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/POSITION/&lt;symbol&gt;/&lt;chain_discriminant&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;</code>. <code>symbol</code> is a <code>string</code> type (e.g. <code>ETHPERP</code>), <code>trader_address</code> should be a lower-cased <code>bytes32_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes32_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
+                     <td><code>Position</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/POSITION/&lt;symbol&gt;/&lt;chain_discriminant&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;</code>. <code>symbol</code> is a <code>string</code> type (e.g. <code>ETHPERP</code>), <code>trader_address</code> should be an <code>address_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -369,7 +369,7 @@ e.g. topic = STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>int</td>
                      <td>c[n].c.side</td>
-                     <td>Position side (<code>1=Long</code>, <code>2=Short</code>)</td>
+                     <td>Position side (<code>Long</code>, <code>Short</code>)</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
@@ -407,14 +407,14 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>string</td>
                      <td>topic</td>
-                     <td>Must be of the format <code>STATE/BOOK_ORDER/[&lt;symbol&gt;/][[&lt;trader_address&gt;/]][[[&lt;abbrev_strategy_id_hash&gt;/]]]</code>. <code>symbol</code> is a <code>string</code> type (e.g. <code>ETHPERP</code>), <code>trader_address</code> should be a lower-cased <code>bytes32_s</code> type, <code>abbrev_strategy_id_hash</code> is a <code>bytes32_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
+                     <td>Must be of the format <code>STATE/BOOK_ORDER/[&lt;symbol&gt;/][[&lt;trader_address&gt;/]][[[&lt;abbrev_strategy_id_hash&gt;/]]]</code>. <code>symbol</code> is a <code>string</code> type (e.g. <code>ETHPERP</code>), <code>trader_address</code> should be an <code>address_s</code> type, <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
                   </tr>
                </tbody>
             </table>
-            <p>This is a endpoint can be used for a variety of use-cases:</p>
+            <p>This endpoint can be used for a variety of use-cases:</p>
             <ul>
                <li>L3 order book: An L3 order book is a granular, order-by-order view of the entire market for any given symbol (i.e. no aggregation). You are welcome to consume this data and aggregate as you see fit. You can obtain this order book view using a topic such as <code>STATE/BOOK_ORDER/ETHPERP/</code>, where <code>ETHPERP</code> is an example market you may be requesting.</li>
-               <li>Open orders: You can obtain your open orders in a given strategy via this REST endpoint at any given time using a topic such as <code>STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/</code>, where <code>0xe36ea790bc9d7ab70c55260c66d52b1eca985f84</code> is an example Ethereum address you are trading with and <code>0x2576ebd1</code> is the first 4 bytes of the hash of the strategy you are trading from (e.g. <code>main</code>)</li>
+               <li>Open orders: You can obtain your open orders for a given trader and strategy via this REST endpoint at any given time using a topic such as <code>STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/</code>, where <code>0xe36ea790bc9d7ab70c55260c66d52b1eca985f84</code> is an example Ethereum address you are trading with and <code>0x2576ebd1</code> is the first 4 bytes of the hash of the strategy you are trading from (e.g. <code>main</code>)</li>
             </ul>
             <h3 id="response-3">Response</h3>
             <blockquote>
@@ -425,7 +425,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
     <span class="hljs-attr">&quot;c&quot;</span>: [{
         <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/0x56de91db6731ea375171888896c87234f6b2a49513e7890d48/&quot;</span>,
         <span class="hljs-attr">&quot;c&quot;</span>: {
-            <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-number">0</span>,
+            <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Bid&quot;</span>,
             <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;5.42&quot;</span>,
             <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;2381.92&quot;</span>,
             <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0xe36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
@@ -435,7 +435,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
     }, {
         <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/0x67069f8829cbdfa2a0c2b215e80c05482699ac1d1dfb6f4c20/&quot;</span>,
         <span class="hljs-attr">&quot;c&quot;</span>: {
-            <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-number">1</span>,
+            <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Ask&quot;</span>,
             <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;2&quot;</span>,
             <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;2390&quot;</span>,
             <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0xe36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
@@ -472,7 +472,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>string</td>
                      <td>c[n].t</td>
-                     <td>Book order topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/BOOK_ORDER/&lt;symbol&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;/&lt;order_hash&gt;/</code>. <code>symbol</code> is a <code>string</code> type (e.g. <code>ETHPERP</code>), <code>trader_address</code> should be a lower-cased <code>bytes32_s</code> type, <code>abbrev_strategy_id_hash</code> is a <code>bytes32_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>), and &#39;order_hash&#39; is a <code>bytes_s</code> type representing the first 25-bytes of the order&#39;s unique hash.</td>
+                     <td>Book order topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/BOOK_ORDER/&lt;symbol&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;/&lt;order_hash&gt;/</code>. <code>symbol</code> is a <code>string</code> type (e.g. <code>ETHPERP</code>), <code>trader_address</code> should be an <code>address_s</code> type, <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>), and &#39;order_hash&#39; is a <code>bytes_s</code> type representing the first 25-bytes of the order&#39;s unique hash.</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -482,7 +482,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>int</td>
                      <td>c[n].c.side</td>
-                     <td>Order side (<code>0=Bid</code>, <code>1=Ask</code>)</td>
+                     <td>Order side (<code>Bid</code>, <code>Ask</code>)</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
@@ -521,6 +521,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
             <p>WS endpoint URL: ws://localhost:8765</p>
             <h2 id="commands">Commands</h2>
             <p>The websocket API offers commands for placing and canceling orders, as well as withdrawals. Since commands modify system state, these requests must include an <a href="https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md">EIP-712 signature</a>. Examples are included in the <a href="samples.md">sample code</a>.</p>
+            <p><strong>Please keep in mind, all sample command requests displayed below are NOT encrypted. The reason for this is to more clearly display the formats of the various commands you may send. You MUST encrypt these messages prior to sending them to the exchange.</strong></p>
             <h3 id="place-order">Place order</h3>
             <h4 id="request-4">Request</h4>
             <blockquote>
@@ -1084,7 +1085,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>string</td>
                      <td>c</td>
-                     <td>Subscription topic of the format <code>STATE/TRADER/[&lt;chain_discriminant&gt;/][[&lt;trader_address&gt;/]]</code>. <code>trader_address</code> should be a lowercased <code>bytes32_s</code> type.</td>
+                     <td>Subscription topic of the format <code>STATE/TRADER/[&lt;chain_discriminant&gt;/][[&lt;trader_address&gt;/]]</code>. <code>trader_address</code> should be an <code>address_s</code> type.</td>
                   </tr>
                </tbody>
             </table>
@@ -1153,7 +1154,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>string</td>
                      <td>c.itemData[n].t</td>
-                     <td><code>Trader</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/TRADER/&lt;chain_discriminant&gt;/&lt;trader_address&gt;/</code>. <code>trader_address</code> should be a lower-cased <code>bytes32_s</code> type.</td>
+                     <td><code>Trader</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/TRADER/&lt;chain_discriminant&gt;/&lt;trader_address&gt;/</code>. <code>trader_address</code> should be an <code>address_s</code> type.</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -1239,7 +1240,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>string</td>
                      <td>c.itemData.t</td>
-                     <td><code>Trader</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/TRADER/&lt;chain_discriminant&gt;/&lt;trader_address&gt;/</code>. <code>trader_address</code> should be a lower-cased <code>bytes32_s</code> type.</td>
+                     <td><code>Trader</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/TRADER/&lt;chain_discriminant&gt;/&lt;trader_address&gt;/</code>. <code>trader_address</code> should be a <code>address_s</code> type.</td>
                   </tr>
                   <tr>
                      <td>string</td>
@@ -1314,7 +1315,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>string</td>
                      <td>c</td>
-                     <td>Subscription topic of the format <code>STATE/STRATEGY/[&lt;chain_discriminant&gt;/][[&lt;trader_address&gt;/]][[[&lt;abbrev_strategy_id_hash&gt;/]]]</code>. <code>trader_address</code> should be a lowercased <code>bytes32_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes32_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
+                     <td>Subscription topic of the format <code>STATE/STRATEGY/[&lt;chain_discriminant&gt;/][[&lt;trader_address&gt;/]][[[&lt;abbrev_strategy_id_hash&gt;/]]]</code>. <code>trader_address</code> should be an <code>address_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
                   </tr>
                </tbody>
             </table>
@@ -1380,7 +1381,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>string</td>
                      <td>c.itemData[n].t</td>
-                     <td><code>Strategy</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/STRATEGY/&lt;chain_discriminant&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;</code>. <code>trader_address</code> should be a lower-cased <code>bytes32_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes32_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
+                     <td><code>Strategy</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/STRATEGY/&lt;chain_discriminant&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;</code>. <code>trader_address</code> should be an <code>address_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -1484,7 +1485,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>string</td>
                      <td>c.itemData.t</td>
-                     <td><code>Strategy</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/STRATEGY/&lt;chain_discriminant&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;</code>. <code>trader_address</code> should be a lower-cased <code>bytes32_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes32_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
+                     <td><code>Strategy</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/STRATEGY/&lt;chain_discriminant&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;</code>. <code>trader_address</code> should be an <code>address_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
                   </tr>
                   <tr>
                      <td>string</td>
@@ -1575,7 +1576,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>string</td>
                      <td>c</td>
-                     <td>Subscription topic of the format <code>STATE/POSITION/[&lt;symbol&gt;/][[&lt;chain_discriminant&gt;/]][[[&lt;trader_address&gt;/]]][[[[&lt;abbrev_strategy_id_hash&gt;/]]]]</code>. <code>symbol</code> is of <code>string</code> type (e.g. <code>ETHPERP</code>), <code>trader_address</code> should be a lowercased <code>bytes32_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes32_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
+                     <td>Subscription topic of the format <code>STATE/POSITION/[&lt;symbol&gt;/][[&lt;chain_discriminant&gt;/]][[[&lt;trader_address&gt;/]]][[[[&lt;abbrev_strategy_id_hash&gt;/]]]]</code>. <code>symbol</code> is of <code>string</code> type (e.g. <code>ETHPERP</code>), <code>trader_address</code> should be an <code>address_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
                   </tr>
                </tbody>
             </table>
@@ -1637,7 +1638,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>string</td>
                      <td>c.itemData[n].t</td>
-                     <td><code>Position</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/POSITION/&lt;symbol&gt;/&lt;chain_discriminant&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;</code>. <code>symbol</code> is of <code>string</code> type, <code>trader_address</code> should be a lower-cased <code>bytes32_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes32_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
+                     <td><code>Position</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/POSITION/&lt;symbol&gt;/&lt;chain_discriminant&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;</code>. <code>symbol</code> is of <code>string</code> type, <code>trader_address</code> should be an <code>address_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -1750,7 +1751,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>string</td>
                      <td>c.itemData.t</td>
-                     <td><code>Position</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/POSITION/&lt;symbol&gt;/&lt;chain_discriminant&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;</code>. <code>symbol</code> is of <code>string</code> type, <code>trader_address</code> should be a lower-cased <code>bytes32_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes32_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
+                     <td><code>Position</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/POSITION/&lt;symbol&gt;/&lt;chain_discriminant&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;</code>. <code>symbol</code> is of <code>string</code> type, <code>trader_address</code> should be an <code>address_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -1825,7 +1826,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>string</td>
                      <td>c</td>
-                     <td>Subscription topic of the format <code>STATE/BOOK_ORDER/[&lt;symbol&gt;/][[&lt;trader_address&gt;/]][[[&lt;abbrev_strategy_id_hash&gt;/]]]</code>. <code>symbol</code> is of <code>string</code> type (e.g. <code>ETHPERP</code>), <code>trader_address</code> should be a lower-cased <code>bytes32_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes32_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
+                     <td>Subscription topic of the format <code>STATE/BOOK_ORDER/[&lt;symbol&gt;/][[&lt;trader_address&gt;/]][[[&lt;abbrev_strategy_id_hash&gt;/]]]</code>. <code>symbol</code> is of <code>string</code> type (e.g. <code>ETHPERP</code>), <code>trader_address</code> should be an <code>address_s</code> type and <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>).</td>
                   </tr>
                </tbody>
             </table>
@@ -1905,7 +1906,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>string</td>
                      <td>c.itemData[n].t</td>
-                     <td><code>BookOrder</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/BOOK_ORDER/&lt;symbol&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;/&lt;order_hash&gt;/</code>. <code>symbol</code> is of <code>string</code> type, <code>trader_address</code> should be a lower-cased <code>bytes32_s</code> type, <code>abbrev_strategy_id_hash</code> is a <code>bytes32_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>), and <code>order_hash</code> is of <code>bytes_s</code> type representing the first 25 bytes of the order&#39;s unique hash.</td>
+                     <td><code>BookOrder</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/BOOK_ORDER/&lt;symbol&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;/&lt;order_hash&gt;/</code>. <code>symbol</code> is of <code>string</code> type, <code>trader_address</code> should be an <code>address_s</code> type, <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>), and <code>order_hash</code> is of <code>bytes_s</code> type representing the first 25 bytes of the order&#39;s unique hash.</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -2015,7 +2016,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                   <tr>
                      <td>string</td>
                      <td>c.itemData.t</td>
-                     <td><code>BookOrder</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/BOOK_ORDER/&lt;symbol&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;/&lt;order_hash&gt;/</code>. <code>symbol</code> is of <code>string</code> type, <code>trader_address</code> should be a lower-cased <code>bytes32_s</code> type, <code>abbrev_strategy_id_hash</code> is a <code>bytes32_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>), and <code>order_hash</code> is of <code>bytes_s</code> type representing the first 25 bytes of the order&#39;s unique hash.</td>
+                     <td><code>BookOrder</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/BOOK_ORDER/&lt;symbol&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;/&lt;order_hash&gt;/</code>. <code>symbol</code> is of <code>string</code> type, <code>trader_address</code> should be an <code>address_s</code> type, <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>), and <code>order_hash</code> is of <code>bytes_s</code> type representing the first 25 bytes of the order&#39;s unique hash.</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -3247,7 +3248,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             <h3 id="samples">Samples</h3>
             <p><strong>Please feel free to use these ground truth samples to validate your EIP-712 hashing implementation for correctness.</strong> For the following samples, assume a <code>chainId = 42</code> and <code>verifyingContract = 0x80ead6c2d69acc72dad76fb3151820a9b5d6a9e9</code>.</p>
             <h4 id="place-order-2">Place order</h4>
-            <p>The following sample order placement data results in an EIP-712 hash of: <code>0xe1eaae57e5c637b25e588c7e6b92f34288a989e6a5cb6deab44db297d12fb852</code>.</p>
+            <p>The following sample order placement data results in an EIP-712 hash of: <code>0x6bdd72b4b9ffff78e8faf419cb6e12f9fa9aed99869f55ef2b5f68de6b658345</code>.</p>
             <table>
                <thead>
                   <tr>
@@ -3270,7 +3271,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                   <tr>
                      <td>side</td>
-                     <td>&quot;Bid&quot;</td>
+                     <td>&quot;Ask&quot;</td>
                   </tr>
                   <tr>
                      <td>orderType</td>
@@ -3278,15 +3279,15 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                   <tr>
                      <td>nonce</td>
-                     <td>&quot;0x3136323338333730373432343739363630303000000000000000000000000000&quot;</td>
+                     <td>&quot;0x3136323735363831333834363032353830303000000000000000000000000000&quot;</td>
                   </tr>
                   <tr>
                      <td>amount</td>
-                     <td>7.11</td>
+                     <td>8.4</td>
                   </tr>
                   <tr>
                      <td>price</td>
-                     <td>2497.69</td>
+                     <td>2329.9</td>
                   </tr>
                   <tr>
                      <td>stopPrice</td>
@@ -3295,7 +3296,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                </tbody>
             </table>
             <h4 id="cancel-order-2">Cancel order</h4>
-            <p>The following sample cancellation data results in an EIP-712 hash of: <code>0x1eb6b329caf5f45b2402453f713c016abee1fa8a4df722ee5bafce58f0b8d053</code>.</p>
+            <p>The following sample cancellation data results in an EIP-712 hash of: <code>0x4e66b356549c78264c084a4b3fdcd542119725e0310db11aec048c0a06d3d250</code>.</p>
             <table>
                <thead>
                   <tr>
@@ -3310,11 +3311,11 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                   <tr>
                      <td>orderHash</td>
-                     <td>&quot;0xbc9ea45d017a031120db603f40ff3dc6003f41e531e69a7fdfe2ebc438032b7d&quot;</td>
+                     <td>&quot;0xff942700e46eb66ca2f8ca53530b57a09579ffa84221149a4400000000000000&quot;</td>
                   </tr>
                   <tr>
                      <td>nonce</td>
-                     <td>&quot;0x3136323338333734323633363939323230303000000000000000000000000000&quot;</td>
+                     <td>&quot;0x3136323735363833383437323639313330303000000000000000000000000000&quot;</td>
                   </tr>
                </tbody>
             </table>
@@ -4072,7 +4073,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
-            <p>The following sample <code>BookOrder</code> materials generates the following encoded key: <code>0x038522582404003d940b7e18acdf6c6f4740f7226245a796d53b6f2ffb9a8ca4</code>.</p>
+            <p>The following sample <code>BookOrder</code> materials generates the following encoded key: <code>0x038522582404009fcf480aa9606f5bbb64ab36e642566bd893f715b346df244e</code>.</p>
             <table>
                <thead>
                   <tr>
@@ -4087,7 +4088,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                   <tr>
                      <td>order_hash</td>
-                     <td>&quot;0x3d940b7e18acdf6c6f4740f7226245a796d53b6f2ffb9a8ca4ABABABABABABAB&quot;</td>
+                     <td>&quot;0x9fcf480aa9606f5bbb64ab36e642566bd893f715b346df244eABABABABABABAB&quot;</td>
                   </tr>
                </tbody>
             </table>
@@ -4109,13 +4110,13 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
     <span class="hljs-keyword">return</span> Decimal(<span class="hljs-built_in">str</span>(val)) / <span class="hljs-number">10</span> ** decimals
 
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_encoded_value</span>(<span class="hljs-params">self, side: <span class="hljs-built_in">int</span>, amount: Decimal, price: Decimal, trader_address: <span class="hljs-built_in">str</span>, strategy_id_hash: <span class="hljs-built_in">bytes</span></span>):</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_encoded_value</span>(<span class="hljs-params">self, side: <span class="hljs-built_in">int</span>, amount: Decimal, price: Decimal, trader_address: <span class="hljs-built_in">str</span>, strategy_id_hash: <span class="hljs-built_in">str</span>, book_ordinal: <span class="hljs-built_in">int</span></span>):</span>
     <span class="hljs-comment"># BookOrder item discriminant</span>
     item_type = <span class="hljs-number">3</span>
 
     <span class="hljs-comment"># Scale amount and price to DDX grains</span>
     <span class="hljs-keyword">return</span> encode_single(
-        <span class="hljs-string">&quot;(uint8,(uint8,uint128,uint128,address,bytes32))&quot;</span>,
+        <span class="hljs-string">&quot;(uint8,(uint8,uint128,uint128,address,bytes32,uint64))&quot;</span>,
         [
             self.item_type,
             [
@@ -4123,7 +4124,8 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                 to_base_unit_amount(amount, <span class="hljs-number">18</span>),
                 to_base_unit_amount(price, <span class="hljs-number">18</span>),
                 trader_address,
-                strategy_id_hash,
+                <span class="hljs-built_in">bytes</span>.fromhex(strategy_id_hash[<span class="hljs-number">2</span>:]),
+                book_ordinal,
             ],
         ],
     )
@@ -4131,9 +4133,9 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_decoded_value</span>(<span class="hljs-params">abi_encoded_value: <span class="hljs-built_in">str</span></span>):</span>
     (
         item_type,
-        (side, amount, price, trader_address, strategy_id_hash),
+        (side, amount, price, trader_address, strategy_id_hash, book_ordinal),
     ) = decode_single(
-        <span class="hljs-string">&quot;(uint8,(uint8,uint128,uint128,address,bytes32))&quot;</span>,
+        <span class="hljs-string">&quot;(uint8,(uint8,uint128,uint128,address,bytes32,uint64))&quot;</span>,
         w3.toBytes(hexstr=abi_encoded_value),
     )
     
@@ -4143,7 +4145,8 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         to_unit_amount(amount, <span class="hljs-number">18</span>),
         to_unit_amount(price, <span class="hljs-number">18</span>),
         trader_address,
-        strategy_id_hash[:<span class="hljs-number">4</span>],
+        <span class="hljs-string">f&quot;0x<span class="hljs-subst">{strategy_id_hash[:<span class="hljs-number">4</span>].<span class="hljs-built_in">hex</span>()}</span>&quot;</span>,
+        book_ordinal,
     )</code></pre>
             <p>A <code>BookOrder</code> leaf holds the following data:</p>
             <table>
@@ -4176,14 +4179,19 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                      <td>The order creator&#39;s Ethereum address</td>
                   </tr>
                   <tr>
-                     <td>bytes</td>
+                     <td>string</td>
                      <td>strategy_id_hash</td>
                      <td>First 4 bytes of strategy ID hash this order belongs to</td>
                   </tr>
+                  <tr>
+                     <td>int</td>
+                     <td>book_ordinal</td>
+                     <td>Numerical sequencing identifier for a BookOrder, which can be used to sort orders at any given price level</td>
+                  </tr>
                </tbody>
             </table>
-            <p>These contents are always stored in the tree in ABI-encoded form: <code>(uint8,(uint8,uint128,uint128,address,bytes32))</code>. Meaning, you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree. A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain variables, is shown on the right.</p>
-            <p>The following sample <code>BookOrder</code> materials generates the following ABI-encoded value: <code>0x00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001158e460913d0000000000000000000000000000000000000000000000000000d8d726b7177a80000000000000000000000000000603699848c84529987e14ba32c8a66def67e9ece2576ebd100000000000000000000000000000000000000000000000000000000</code>.</p>
+            <p>These contents are always stored in the tree in ABI-encoded form: <code>(uint8,(uint8,uint128,uint128,address,bytes32,uint64))</code>. Meaning, you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree. A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain variables, is shown on the right.</p>
+            <p>The following sample <code>BookOrder</code> materials generates the following ABI-encoded value: <code>0x00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001158e460913d0000000000000000000000000000000000000000000000000000d8d726b7177a80000000000000000000000000000603699848c84529987e14ba32c8a66def67e9ece2576ebd1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003</code>.</p>
             <table>
                <thead>
                   <tr>
@@ -4211,6 +4219,10 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>strategy_id_hash</td>
                      <td>&quot;0x2576ebd1&quot;</td>
+                  </tr>
+                  <tr>
+                     <td>book_ordinal</td>
+                     <td></td>
                   </tr>
                </tbody>
             </table>
@@ -4255,13 +4267,15 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     <span class="hljs-keyword">return</span> zpad32_right(
             ItemType.PRICE.to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
             + pack_bytes(symbol)
-            <span class="hljs-comment"># TODO (apalepu): Uncomment once this is added on Rust side</span>
-            <span class="hljs-comment"># + index_price_hash[:26]</span>
+            + <span class="hljs-built_in">bytes</span>.fromhex(index_price_hash[<span class="hljs-number">2</span>:])
         )
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">decode_key</span>(<span class="hljs-params">price_key: <span class="hljs-built_in">bytes</span></span>):</span>
-    <span class="hljs-comment"># symbol</span>
-    <span class="hljs-keyword">return</span> unpack_bytes(price_key[<span class="hljs-number">1</span>:<span class="hljs-number">7</span>])</code></pre>
+    <span class="hljs-comment"># symbol, index price hash</span>
+    <span class="hljs-keyword">return</span> (
+            unpack_bytes(price_key[<span class="hljs-number">1</span>:<span class="hljs-number">7</span>]),
+            <span class="hljs-string">f&quot;0x<span class="hljs-subst">{leaf_key[<span class="hljs-number">7</span>:].<span class="hljs-built_in">hex</span>()}</span>&quot;</span>,
+        )</code></pre>
             <p>The location of a <code>Price</code> leaf is determined by its key, which is encoded as follows:</p>
             <table>
                <thead>
@@ -4285,7 +4299,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
-            <p>The following sample <code>Price</code> materials generates the following encoded key: <code>0x0485225824040000000000000000000000000000000000000000000000000000</code>.</p>
+            <p>The following sample <code>Price</code> materials generates the following encoded key: <code>0x0485225824040023c2b28e94b9dfcb8630a369fed134cdb6689dcb2528578779</code>.</p>
             <table>
                <thead>
                   <tr>
@@ -4300,7 +4314,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                   <tr>
                      <td>index_price_hash</td>
-                     <td>&quot;0x3d940b7e18acdf6c6f4740f7226245a796d53b6f2ffb9a8ca4ABABABABABABAB&quot;</td>
+                     <td>&quot;0x23c2b28e94b9dfcb8630a369fed134cdb6689dcb2528578779ABABABABABABAB&quot;</td>
                   </tr>
                </tbody>
             </table>
@@ -4328,38 +4342,38 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
 
     <span class="hljs-comment"># Scale index price and ema to DDX grains</span>
     price_encoding = encode_single(
-        <span class="hljs-string">&quot;(uint8,(uint128,bytes32,uint128))&quot;</span>,
+        <span class="hljs-string">&quot;(uint8,(uint128,uint256,uint64))&quot;</span>,
         [
             self.item_type,
             [
                 to_base_unit_amount(index_price, <span class="hljs-number">18</span>),
-                index_price_hash,
                 to_base_unit_amount(<span class="hljs-built_in">abs</span>(ema), <span class="hljs-number">18</span>),
+                ordinal,
             ],
         ],
     )
     <span class="hljs-keyword">if</span> self.ema &lt; <span class="hljs-number">0</span>:
         price_encoding_byte_array = <span class="hljs-built_in">bytearray</span>(price_encoding)
-        price_encoding_byte_array[-<span class="hljs-number">17</span>] = <span class="hljs-number">1</span>
+        price_encoding_byte_array[-<span class="hljs-number">49</span>] = <span class="hljs-number">1</span>
         price_encoding = <span class="hljs-built_in">bytes</span>(price_encoding_byte_array)
 
     <span class="hljs-keyword">return</span> price_encoding
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_decoded_value</span>(<span class="hljs-params">abi_encoded_value: <span class="hljs-built_in">str</span></span>):</span>
     price_encoding_byte_array = <span class="hljs-built_in">bytearray</span>(<span class="hljs-built_in">bytes</span>.fromhex(abi_encoded_value[<span class="hljs-number">2</span>:]))
-    multiplier = -<span class="hljs-number">1</span> <span class="hljs-keyword">if</span> price_encoding_byte_array[-<span class="hljs-number">17</span>] == <span class="hljs-number">1</span> <span class="hljs-keyword">else</span> <span class="hljs-number">1</span>
-    price_encoding_byte_array[-<span class="hljs-number">17</span>] = <span class="hljs-number">0</span>
+    multiplier = -<span class="hljs-number">1</span> <span class="hljs-keyword">if</span> price_encoding_byte_array[-<span class="hljs-number">49</span>] == <span class="hljs-number">1</span> <span class="hljs-keyword">else</span> <span class="hljs-number">1</span>
+    price_encoding_byte_array[-<span class="hljs-number">49</span>] = <span class="hljs-number">0</span>
     abi_encoded_value = <span class="hljs-built_in">bytes</span>(price_encoding_byte_array).<span class="hljs-built_in">hex</span>()
 
-    (item_type, (index_price, index_price_hash, ema)) = decode_single(
-        <span class="hljs-string">&quot;(uint8,(uint128,bytes32,uint128))&quot;</span>, w3.toBytes(hexstr=abi_encoded_value),
+    (item_type, (index_price, ema, ordinal)) = decode_single(
+        <span class="hljs-string">&quot;(uint8,(uint128,uint256,uint64))&quot;</span>, w3.toBytes(hexstr=abi_encoded_value),
     )
 
     <span class="hljs-comment"># Scale index price and ema from DDX grains</span>
     <span class="hljs-keyword">return</span> (
         to_unit_amount(index_price, <span class="hljs-number">18</span>),
-        index_price_hash,
         to_unit_amount(ema * multiplier, <span class="hljs-number">18</span>),
+        ordinal,
     )</code></pre>
             <p>A <code>Price</code> leaf holds the following data:</p>
             <table>
@@ -4377,19 +4391,19 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                      <td>Composite index price perpetual is tracking</td>
                   </tr>
                   <tr>
-                     <td>bytes</td>
-                     <td>index_price_hash</td>
-                     <td>Unique hash of index price</td>
-                  </tr>
-                  <tr>
                      <td>decimal</td>
                      <td>ema</td>
                      <td>EMA component of price, tracking the difference between the DerivaDEX order book price and the underlying</td>
                   </tr>
+                  <tr>
+                     <td>int</td>
+                     <td>ordinal</td>
+                     <td>Numerical sequencing identifier for PriceCheckpoint that created this Price state leaf, can be used to arrange Price leaves in order of entry</td>
+                  </tr>
                </tbody>
             </table>
-            <p>These contents are always stored in the tree in ABI-encoded form: <code>(uint8,(uint128,bytes32,uint128))</code>. Meaning, you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree. A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain variables, is shown on the right. It&#39;s demonstrated in the code sample, but it&#39;s worth highlighting that the <code>ema</code> component, which can be a negative value, is ABI-encoded to a 32-byte value where the first 16 bytes will either be <code>0x00000000000000000000000000000000</code> (positive) or <code>0x00000000000000000000000000000001</code> (negative), and the next 16 bytes is the absolute value of the <code>ema</code>.</p>
-            <p>The following sample <code>Price</code> materials generates the following ABI-encoded value: <code>0x000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000d8d726b7177a800003ad520dd6051f521d43b7b834450b663b7782df758823a8e6a9845cdc86139690000000000000000000000000000000000000000000000000000000000000000</code>.</p>
+            <p>These contents are always stored in the tree in ABI-encoded form: <code>(uint8,(uint128,uint256,uint64))</code>. Meaning, you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree. A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain variables, is shown on the right. It&#39;s demonstrated in the code sample, but it&#39;s worth highlighting that the <code>ema</code> component, which can be a negative value, is ABI-encoded to a 32-byte value where the first 16 bytes will either be <code>0x00000000000000000000000000000000</code> (positive) or <code>0x00000000000000000000000000000001</code> (negative), and the next 16 bytes is the absolute value of the <code>ema</code>.</p>
+            <p>The following sample <code>Price</code> materials generates the following ABI-encoded value: <code>0x000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000d8d726b7177a8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000</code>.</p>
             <table>
                <thead>
                   <tr>
@@ -4403,11 +4417,11 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                      <td>250</td>
                   </tr>
                   <tr>
-                     <td>index_price_hash</td>
-                     <td>&#39;0x3ad520dd6051f521d43b7b834450b663b7782df758823a8e6a9845cdc8613969&#39;</td>
+                     <td>ema</td>
+                     <td>0</td>
                   </tr>
                   <tr>
-                     <td>ema</td>
+                     <td>ordinal</td>
                      <td>0</td>
                   </tr>
                </tbody>
@@ -4553,9 +4567,12 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             + <span class="hljs-built_in">bytes</span>.fromhex(trader_address[<span class="hljs-number">2</span>:])
         )
 
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">decode_key</span>(<span class="hljs-params">book_order_key: <span class="hljs-built_in">bytes</span></span>):</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">decode_key</span>(<span class="hljs-params">stats_key: <span class="hljs-built_in">bytes</span></span>):</span>
     <span class="hljs-comment"># chain_discriminant, trader_address</span>
-    <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>.from_bytes(stats_key[<span class="hljs-number">1</span>:<span class="hljs-number">2</span>], <span class="hljs-string">&quot;little&quot;</span>), <span class="hljs-string">f&quot;0x<span class="hljs-subst">{stats_key[<span class="hljs-number">2</span>:<span class="hljs-number">22</span>].<span class="hljs-built_in">hex</span>()}</span>&quot;</span></code></pre>
+    <span class="hljs-keyword">return</span> (
+        <span class="hljs-built_in">int</span>.from_bytes(stats_key[<span class="hljs-number">1</span>:<span class="hljs-number">2</span>], <span class="hljs-string">&quot;little&quot;</span>),
+        <span class="hljs-string">f&quot;0x<span class="hljs-subst">{stats_key[<span class="hljs-number">2</span>:<span class="hljs-number">22</span>].<span class="hljs-built_in">hex</span>()}</span>&quot;</span>,
+    )</code></pre>
             <p>The location of a <code>Stats</code> leaf is determined by its key, which is encoded as follows:</p>
             <table>
                <thead>
@@ -4592,6 +4609,10 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </thead>
                <tbody>
+                  <tr>
+                     <td>chain_discriminant</td>
+                     <td>0</td>
+                  </tr>
                   <tr>
                      <td>trader_address</td>
                      <td>&quot;0x0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</td>
@@ -4662,7 +4683,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                </tbody>
             </table>
             <p>These contents are always stored in the tree in ABI-encoded form: <code>(uint8,(uint128,uint128))</code>. Meaning, you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree. A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain variables, is shown on the right.</p>
-            <p>The following sample <code>Stats</code> materials generates the following ABI-encoded value: <code>0x000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000340aad21b3b70000000000000000000000000000000000000000000000000000340aad21b3b700000</code>.</p>
+            <p>The following sample <code>Stats</code> materials generates the following ABI-encoded value: <code>0x000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000032d26d12e980b60000000000000000000000000000000000000000000000000030fe0cfcba2f4700000</code>.</p>
             <table>
                <thead>
                   <tr>
@@ -4673,11 +4694,11 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                <tbody>
                   <tr>
                      <td>maker_volume</td>
-                     <td>60</td>
+                     <td>15000</td>
                   </tr>
                   <tr>
-                     <td>capitalization</td>
-                     <td>60</td>
+                     <td>taker_volume</td>
+                     <td>14460</td>
                   </tr>
                </tbody>
             </table>
@@ -4804,7 +4825,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         }
     ]
 }</code></pre>
-            <p>A <code>PartialFill</code> transaction is a scenario where the taker order has been partially filled across 1 or more maker orders and thus has a remaining order that enters the order book. The event portion of the transaction response consists of a 2-item array. The first item is a list of <code>Fill</code> events and the second item is the remaining <code>Post</code> event.</p>
+            <p>A <code>PartialFill</code> transaction is a scenario where the taker order has been partially filled across 1 or more maker orders and thus has a remaining order that enters the order book. The event portion of the transaction response consists of a 2-item array. The first item is a list of <code>TradeFill</code> events and the second item is the remaining <code>Post</code> event.</p>
             <h4 id="complete-fill">Complete fill</h4>
             <blockquote>
                <p>Sample CompleteFill (JSON)</p>
@@ -4843,7 +4864,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-attr">&quot;makerOrderRemainingAmount&quot;</span>: <span class="hljs-string">&quot;2.54&quot;</span>
     }]
 }</code></pre>
-            <p>A <code>CompleteFill</code> is a scenario where the taker order has been completely filled across 1 or more maker orders. The event portion of the transaction response consists of a list of <code>Fill</code> events.</p>
+            <p>A <code>CompleteFill</code> is a scenario where the taker order has been completely filled across 1 or more maker orders. The event portion of the transaction response consists of a list of <code>TradeFill</code> events.</p>
             <h4 id="post-1">Post</h4>
             <blockquote>
                <p>Sample Post (JSON)</p>
@@ -5076,7 +5097,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             <blockquote>
                <p>Sample Withdraw (JSON)</p>
             </blockquote>
-            <pre class="highlight "><code> {
+            <pre class="highlight json"><code> {
     <span class="hljs-attr">&quot;event&quot;</span>: {
         <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;1000&quot;</span>,
         <span class="hljs-attr">&quot;currency&quot;</span>: <span class="hljs-string">&quot;0xb69e673309512a9d726f87304c6984054f87a93b&quot;</span>,
@@ -5223,7 +5244,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             </table>
             <h4 id="pnl-settlement">PNL Settlement</h4>
             <blockquote>
-               <p>Sample PNLSettlement (JSON)</p>
+               <p>Sample PnlSettlement (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
     <span class="hljs-attr">&quot;event&quot;</span>: {
@@ -5368,9 +5389,9 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
-            <h4 id="fill-1">Fill</h4>
+            <h4 id="tradefill">TradeFill</h4>
             <blockquote>
-               <p>Sample Fill (JSON)</p>
+               <p>Sample TradeFill (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
     <span class="hljs-attr">&quot;event&quot;</span>: {
@@ -5406,7 +5427,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-attr">&quot;makerOrderRemainingAmount&quot;</span>: <span class="hljs-string">&quot;2.54&quot;</span>
     }
 }</code></pre>
-            <p>A <code>Fill</code> is when there is a fill / match that has taken place. Technically, a <code>Fill</code> is not a transaction in it of itself, but rather a part of <code>CompleteFill</code>, <code>PartialFill</code>, and <code>Liquidation</code> transactions. We often look to these individual <code>Fill</code> events as their own dedicated transaction type, however, for Traders to subscribe to and follow as they would other transactions. The event portion of the transaction has attributes defined as follows:</p>
+            <p>A <code>TradeFill</code> is when there is a fill / match that has taken place. Technically, a <code>TradeFill</code> is not a transaction in it of itself, but rather a part of <code>CompleteFill</code> and <code>PartialFill</code> transactions. We often look to these individual <code>TradeFill</code> events as their own dedicated transaction type, however, for Traders to subscribe to and follow as they would other transactions. The event portion of the transaction has attributes defined as follows:</p>
             <table>
                <thead>
                   <tr>

@@ -83,7 +83,7 @@ You may obtain the `Trader` leaf details for any trader address with the followi
 
 type | field | description 
 ------ | ---- | -------
-string | topic | Must be of the format `STATE/TRADER/[<chain_discriminant>/][[<trader_address>/]]`. `chain_discriminant` should be set to `0` for now and `trader_address` should be a lower-cased `bytes32_s` type.
+string | topic | Must be of the format `STATE/TRADER/[<chain_discriminant>/][[<trader_address>/]]`. `chain_discriminant` should be set to `0` for now and `trader_address` should be an `address_s` type.
 
 ### Response
 
@@ -116,7 +116,7 @@ type | field | description
 string | t | Whether HTTP request was successful or not
 list | c | HTTP response result returning a list of `Trader` leaves
 dict | c[n] | An individual `Trader` leaf, containing the identifying key information and its contents
-string | c[n].t | `Trader` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/TRADER/<chain_discriminant>/<trader_address>/`. `trader_address` should be a lower-cased `bytes32_s` type.
+string | c[n].t | `Trader` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/TRADER/<chain_discriminant>/<trader_address>/`. `trader_address` should be an `address_s` type.
 dict | c[n].c | `Trader` leaf contents
 decimal_s | c[n].c.freeDDXBalance | Trader's free DDX collateral (available for use on the exchange)
 decimal_s | c[n].c.frozenDDXBalance | Trader's frozen DDX collateral (available for withdrawal)
@@ -141,7 +141,7 @@ You may obtain the `Strategy` leaf details for any trader and strategy id with t
 
 type | field | description 
 ------ | ---- | -------
-string | topic | Must be of the format `STATE/STRATEGY/[<chain_discriminant>/][[<trader_address>/]][[[abbrev_strategy_id_hash]]]`. `trader_address` should be a lower-cased `bytes32_s` type and `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+string | topic | Must be of the format `STATE/STRATEGY/[<chain_discriminant>/][[<trader_address>/]][[[abbrev_strategy_id_hash]]]`. `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 
 ### Response
 
@@ -171,11 +171,11 @@ type | field | description
 string | t | Whether HTTP request was successful or not
 list | c | HTTP response result returning a list of `Strategy` leaves
 dict | c[n] | An individual `Strategy` leaf, containing the identifying key information and its contents
-string | c[n].t | `Strategy` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/STRATEGY/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>/`. `trader_address` should be a lower-cased `bytes32_s` type and `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4 bytes of the hash of the strategy id (e.g. `main`).
+string | c[n].t | `Strategy` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/STRATEGY/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>/`. `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4 bytes of the hash of the strategy id (e.g. `main`).
 dict | c[n].c | `Strategy` leaf contents
 string | c[n].c.strategyId | Cross-margined strategy identifier. Currently only `main` is supported.
 dict<address_s, decimal_s> | c[n].c.freeCollateral | Strategy's free collateral (available for trading) mapping from ERC-20 collateral token address to amount
-dict<address_s, decimal_s> | c[n].c.frozenCollateral | Strategy's free collateral (available for withdrawal) mapping from ERC-20 collateral token address to amount
+dict<address_s, decimal_s> | c[n].c.frozenCollateral | Strategy's frozen collateral (available for withdrawal) mapping from ERC-20 collateral token address to amount
 int | c[n].c.maxLeverage | Strategy's maximum leverage setting
 bool | c[n].c.frozen | Flag indicating whether strategy is tokenized (`true`) or not (`false`). Currently only `false` is supported
 
@@ -199,7 +199,7 @@ You may obtain the `Position` leaf details for any symbol, chain discriminant, t
 
 type | field | description 
 ------ | ---- | -------
-string | topic | Must be of the format `STATE/POSITION/[<symbol>/][[<chain_discriminant>/]][[[<trader_address>/]]][[[[<abbrev_strategy_id_hash>/]]]]`. `symbol` is a `string` type (e.g. `ETHPERP`), `trader_address` should be a lower-cased `bytes32_s` type and `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4 bytes of the hash of the strategy id (e.g. `main`).
+string | topic | Must be of the format `STATE/POSITION/[<symbol>/][[<chain_discriminant>/]][[[<trader_address>/]]][[[[<abbrev_strategy_id_hash>/]]]]`. `symbol` is a `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4 bytes of the hash of the strategy id (e.g. `main`).
 
 ### Response
 
@@ -210,7 +210,7 @@ string | topic | Must be of the format `STATE/POSITION/[<symbol>/][[<chain_discr
 	"c": [{
 		"t": "STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
 		"c": {
-			"side": 1,
+			"side": "Long",
 			"balance": "0.1",
 			"avgEntryPrice": "2300"
 		}
@@ -225,9 +225,9 @@ type | field | description
 string | t | Whether HTTP request was successful or not
 list | c | HTTP response result returning a list of `Position` leaves
 dict | c[n] | An individual `Position` leaf, containing the identifying key information and its contents
-string | c[n].t | `Position` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/POSITION/<symbol>/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>`. `symbol` is a `string` type (e.g. `ETHPERP`), `trader_address` should be a lower-cased `bytes32_s` type and `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+string | c[n].t | `Position` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/POSITION/<symbol>/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>`. `symbol` is a `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 dict | c[n].c | `Position` leaf contents
-int | c[n].c.side | Position side (`1=Long`, `2=Short`)
+int | c[n].c.side | Position side (`Long`, `Short`)
 decimal_s | c[n].c.balance | Size of position
 decimal_s | c[n].c.avgEntryPrice | Average entry price of position
 
@@ -250,13 +250,13 @@ You may obtain book order information (`BookOrder` leaves) for any symbol, trade
 
 type | field | description 
 ------ | ---- | -------
-string | topic | Must be of the format `STATE/BOOK_ORDER/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is a `string` type (e.g. `ETHPERP`), `trader_address` should be a lower-cased `bytes32_s` type, `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+string | topic | Must be of the format `STATE/BOOK_ORDER/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is a `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_s` type, `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 
-This is a endpoint can be used for a variety of use-cases:
+This endpoint can be used for a variety of use-cases:
 - L3 order book: An L3 order book is a granular, order-by-order view of the entire market for any given symbol (i.e. no
 aggregation). You are welcome to consume this data and aggregate as you see fit. You can obtain this order book view using
 a topic such as `STATE/BOOK_ORDER/ETHPERP/`, where `ETHPERP` is an example market you may be requesting.
-- Open orders: You can obtain your open orders in a given strategy via this REST endpoint at any given time using a topic
+- Open orders: You can obtain your open orders for a given trader and strategy via this REST endpoint at any given time using a topic
 such as `STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/`, where `0xe36ea790bc9d7ab70c55260c66d52b1eca985f84` is
 an example Ethereum address you are trading with and `0x2576ebd1` is the first 4 bytes of the hash of the strategy
 you are trading from (e.g. `main`)
@@ -270,7 +270,7 @@ you are trading from (e.g. `main`)
 	"c": [{
 		"t": "STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/0x56de91db6731ea375171888896c87234f6b2a49513e7890d48/",
 		"c": {
-			"side": 0,
+			"side": "Bid",
 			"amount": "5.42",
 			"price": "2381.92",
 			"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
@@ -280,7 +280,7 @@ you are trading from (e.g. `main`)
 	}, {
 		"t": "STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/0x67069f8829cbdfa2a0c2b215e80c05482699ac1d1dfb6f4c20/",
 		"c": {
-			"side": 1,
+			"side": "Ask",
 			"amount": "2",
 			"price": "2390",
 			"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
@@ -298,9 +298,9 @@ type | field | description
 string | t | Whether HTTP request was successful or not
 list | c | HTTP response result returning a list of open `BookOrder` leaves
 dict | c[n] | An individual `BookOrder` leaf, containing the identifying key information and its contents
-string | c[n].t | Book order topic (corresponding to its key), containing identifying information. This key is of the format `STATE/BOOK_ORDER/<symbol>/<trader_address>/<abbrev_strategy_id_hash>/<order_hash>/`. `symbol` is a `string` type (e.g. `ETHPERP`), `trader_address` should be a lower-cased `bytes32_s` type, `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`), and 'order_hash' is a `bytes_s` type representing the first 25-bytes of the order's unique hash.
+string | c[n].t | Book order topic (corresponding to its key), containing identifying information. This key is of the format `STATE/BOOK_ORDER/<symbol>/<trader_address>/<abbrev_strategy_id_hash>/<order_hash>/`. `symbol` is a `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_s` type, `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`), and 'order_hash' is a `bytes_s` type representing the first 25-bytes of the order's unique hash.
 dict | c[n].c | `BookOrder` leaf contents
-int | c[n].c.side | Order side (`0=Bid`, `1=Ask`)
+int | c[n].c.side | Order side (`Bid`, `Ask`)
 decimal_s | c[n].c.amount | Size of order
 decimal_s | c[n].c.price | Price order is currently resting at
 address_s | c[n].c.traderAddress | Trader's Ethereum address responsible for this maker order
@@ -322,6 +322,8 @@ WS endpoint URL: ws://localhost:8765
 ## Commands
 
 The websocket API offers commands for placing and canceling orders, as well as withdrawals. Since commands modify system state, these requests must include an [EIP-712 signature](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md). Examples are included in the [sample code](samples.md).
+
+**Please keep in mind, all sample command requests displayed below are NOT encrypted. The reason for this is to more clearly display the formats of the various commands you may send. You MUST encrypt these messages prior to sending them to the exchange.**
 
 ### Place order
 
@@ -609,7 +611,7 @@ You may subscribe to updates for any trader's `Trader` data.
 type | field | description 
 ------ | ---- | -------
 string | t | WebSocket message type - must be `Subscribe`
-string | c | Subscription topic of the format `STATE/TRADER/[<chain_discriminant>/][[<trader_address>/]]`. `trader_address` should be a lowercased `bytes32_s` type.
+string | c | Subscription topic of the format `STATE/TRADER/[<chain_discriminant>/][[<trader_address>/]]`. `trader_address` should be an `address_s` type.
 
 #### Response
 
@@ -650,7 +652,7 @@ string | e | Websocket message event, which in the case of a snapshot, will be `
 dict | c | Websocket message content, containing a snapshot of `Trader` leaf data based on the topic subscribed to
 list | c.itemData | Contains a list of the snapshotted `Trader` leaf data
 dict | c.itemData[n] | An individual `Trader` leaf as part of the snapshot
-string | c.itemData[n].t | `Trader` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/TRADER/<chain_discriminant>/<trader_address>/`. `trader_address` should be a lower-cased `bytes32_s` type.
+string | c.itemData[n].t | `Trader` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/TRADER/<chain_discriminant>/<trader_address>/`. `trader_address` should be an `address_s` type.
 dict | c.itemData[n].c | `Trader` leaf contents
 decimal_s | c.itemData[n].c.freeDDXBalance | Trader's free DDX collateral (available for use on the exchange)
 decimal_s | c.itemData[n].c.frozenDDXBalance | Trader's frozen DDX collateral (available for withdrawal)
@@ -696,7 +698,7 @@ string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which in the case of an update, will be `Update`
 dict | c | Websocket message content, containing the `Trader` leaf update event data
 dict | c.itemData | Contains the new `Trader` leaf data
-string | c.itemData.t | `Trader` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/TRADER/<chain_discriminant>/<trader_address>/`. `trader_address` should be a lower-cased `bytes32_s` type.
+string | c.itemData.t | `Trader` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/TRADER/<chain_discriminant>/<trader_address>/`. `trader_address` should be a `address_s` type.
 string | c.itemData.c | `Trader` leaf contents
 decimal_s | c.itemData.c.freeDDXBalance | Trader's free DDX collateral (available for use on the exchange)
 decimal_s | c.itemData.c.frozenDDXBalance | Trader's frozen DDX collateral (available for withdrawal)
@@ -739,7 +741,7 @@ You may subscribe to updates for any trader's `Strategy` data.
 type | field | description 
 ------ | ---- | -------
 string | t | WebSocket message type - must be `Subscribe`
-string | c | Subscription topic of the format `STATE/STRATEGY/[<chain_discriminant>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `trader_address` should be a lowercased `bytes32_s` type and `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+string | c | Subscription topic of the format `STATE/STRATEGY/[<chain_discriminant>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 
 #### Response
 
@@ -777,7 +779,7 @@ string | e | Websocket message event, which in the case of a snapshot, will be `
 dict | c | Websocket message content, containing a snapshot of `Strategy` leaf data based on the topic subscribed to
 list | c.itemData | Contains a list of the snapshotted `Strategy` leaf data
 dict | c.itemData[n] | An individual `Strategy` leaf as part of the snapshot
-string | c.itemData[n].t | `Strategy` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/STRATEGY/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>`. `trader_address` should be a lower-cased `bytes32_s` type and `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+string | c.itemData[n].t | `Strategy` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/STRATEGY/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>`. `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 dict | c.itemData[n].c | `Strategy` leaf contents
 string | c.itemData[n].c.strategyId | Cross-margined strategy identifier. Currently only `main` is supported.
 dict<address_s, decimal_s> | c.itemData[n].c.freeCollateral | Strategy's free collateral (available for trading) mapping from ERC-20 collateral token address to amount
@@ -829,7 +831,7 @@ string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which in the case of an update, will be `Update`
 dict | c | Websocket message content, containing the `Strategy` leaf update event data
 dict | c.itemData | Contains the new `Strategy` leaf data
-string | c.itemData.t | `Strategy` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/STRATEGY/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>`. `trader_address` should be a lower-cased `bytes32_s` type and `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+string | c.itemData.t | `Strategy` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/STRATEGY/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>`. `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 string | c.itemData.c | `Strategy` leaf contents
 string | c.itemData.c.strategyId | Cross-margined strategy identifier. Currently only `main` is supported.
 dict<address_s, decimal_s> | c.itemData.c.freeCollateral | Strategy's free collateral (available for trading) mapping from ERC-20 collateral token address to amount
@@ -880,7 +882,7 @@ You may subscribe to updates for any trader's `Position` data.
 type | field | description 
 ------ | ---- | -------
 string | t | WebSocket message type - must be `Subscribe`
-string | c | Subscription topic of the format `STATE/POSITION/[<symbol>/][[<chain_discriminant>/]][[[<trader_address>/]]][[[[<abbrev_strategy_id_hash>/]]]]`. `symbol` is of `string` type (e.g. `ETHPERP`), `trader_address` should be a lowercased `bytes32_s` type and `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+string | c | Subscription topic of the format `STATE/POSITION/[<symbol>/][[<chain_discriminant>/]][[[<trader_address>/]]][[[[<abbrev_strategy_id_hash>/]]]]`. `symbol` is of `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 
 #### Response
 
@@ -914,7 +916,7 @@ string | e | Websocket message event, which in the case of a snapshot, will be `
 dict | c | Websocket message content, containing a snapshot of `Position` leaf data based on the topic subscribed to
 list | c.itemData | Contains a list of the snapshotted `Position` leaf data
 dict | c.itemData[n] | An individual `Position` leaf as part of the snapshot
-string | c.itemData[n].t | `Position` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/POSITION/<symbol>/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>`. `symbol` is of `string` type, `trader_address` should be a lower-cased `bytes32_s` type and `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+string | c.itemData[n].t | `Position` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/POSITION/<symbol>/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>`. `symbol` is of `string` type, `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 dict | c.itemData[n].c | `Position` leaf contents
 string | c.itemData[n].c.side | Position side (`Long`, `Short`)
 decimal_s | c.itemData[n].c.balance | Position size
@@ -983,7 +985,7 @@ string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which in the case of an update, will be `Update`
 dict | c | Websocket message content containing the updated `Position` leaf data
 list | c.itemData | Contains a an entry for the `Position` leaf data
-string | c.itemData.t | `Position` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/POSITION/<symbol>/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>`. `symbol` is of `string` type, `trader_address` should be a lower-cased `bytes32_s` type and `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+string | c.itemData.t | `Position` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/POSITION/<symbol>/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>`. `symbol` is of `string` type, `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 dict | c.itemData.c | `Position` leaf contents
 string | c.itemData.c.side | Position side (`Long`, `Short`)
 decimal_s | c.itemData.c.balance | Position size
@@ -1026,7 +1028,7 @@ You may subscribe to updates to orders in the order book.
 type | field | description 
 ------ | ---- | -------
 string | t | WebSocket message type - must be `Subscribe`
-string | c | Subscription topic of the format `STATE/BOOK_ORDER/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is of `string` type (e.g. `ETHPERP`), `trader_address` should be a lower-cased `bytes32_s` type and `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+string | c | Subscription topic of the format `STATE/BOOK_ORDER/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is of `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 
 Like its REST counterpart, this is endpoint can be used for a variety of purposes. You can subscribe to `BookOrder` state updates to track:
 - L3 order book: An L3 order book is a granular, order-by-order view of the entire market for any given symbol (i.e. no aggregation). You can subscribe to a market's order book using a topic such as `STATE/BOOK_ORDER/ETHPERP`, where `ETHPERP` is an example market you may be requesting. This will send an initial `Partial` response with all of the `BookOrder` leaf entries making up the order book, and subsequently, `Update` messages with any new, canceled, or updated orders in the book. You are welcome to process this data in any local order book data structure you see fit.
@@ -1079,7 +1081,7 @@ string | e | Websocket message event, which in the case of a snapshot, will be `
 dict | c | Websocket message content, containing a snapshot of `BookOrder` leaf data based on the topic subscribed to
 list | c.itemData | Contains a list of the snapshotted `BookOrder` leaf data
 dict | c.itemData[n] | An individual `BookOrder` leaf as part of the snapshot
-string | c.itemData[n].t | `BookOrder` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/BOOK_ORDER/<symbol>/<trader_address>/<abbrev_strategy_id_hash>/<order_hash>/`. `symbol` is of `string` type, `trader_address` should be a lower-cased `bytes32_s` type, `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`), and `order_hash` is of `bytes_s` type representing the first 25 bytes of the order's unique hash.
+string | c.itemData[n].t | `BookOrder` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/BOOK_ORDER/<symbol>/<trader_address>/<abbrev_strategy_id_hash>/<order_hash>/`. `symbol` is of `string` type, `trader_address` should be an `address_s` type, `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`), and `order_hash` is of `bytes_s` type representing the first 25 bytes of the order's unique hash.
 dict | c.itemData[n].c | `BookOrder` leaf contents
 string | c.itemData[n].c.side | Order side (`Bid`, `Ask`)
 decimal_s | c.itemData[n].c.amount | Order size
@@ -1134,7 +1136,7 @@ string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which in the case of a snapshot, will be `Partial`
 dict | c | Websocket message content, containing a snapshot of `BookOrder` leaf data based on the topic subscribed to
 dict | c.itemData | Contains the updated `BookOrder` leaf data
-string | c.itemData.t | `BookOrder` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/BOOK_ORDER/<symbol>/<trader_address>/<abbrev_strategy_id_hash>/<order_hash>/`. `symbol` is of `string` type, `trader_address` should be a lower-cased `bytes32_s` type, `abbrev_strategy_id_hash` is a `bytes32_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`), and `order_hash` is of `bytes_s` type representing the first 25 bytes of the order's unique hash.
+string | c.itemData.t | `BookOrder` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/BOOK_ORDER/<symbol>/<trader_address>/<abbrev_strategy_id_hash>/<order_hash>/`. `symbol` is of `string` type, `trader_address` should be an `address_s` type, `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`), and `order_hash` is of `bytes_s` type representing the first 25 bytes of the order's unique hash.
 dict | c.itemData.c | `BookOrder` leaf contents
 string | c.itemData.c.side | Order side (`Bid`, `Ask`)
 decimal_s | c.itemData.c.amount | Order size
@@ -1898,29 +1900,29 @@ To derive the final EIP-712 hash of the typed data you will sign, you will need 
 
 #### Place order
 
-The following sample order placement data results in an EIP-712 hash of: `0xe1eaae57e5c637b25e588c7e6b92f34288a989e6a5cb6deab44db297d12fb852`.
+The following sample order placement data results in an EIP-712 hash of: `0x6bdd72b4b9ffff78e8faf419cb6e12f9fa9aed99869f55ef2b5f68de6b658345`.
 
 field | value
 -----|------
 traderAddress  |  "0x4DbaEb213F91B022D0f238a2510380BE149b091a"
 symbol  |  "ETHPERP"
 strategy |  "main"
-side |  "Bid"
+side |  "Ask"
 orderType |  "Limit"
-nonce |  "0x3136323338333730373432343739363630303000000000000000000000000000"
-amount |  7.11
-price |  2497.69
+nonce |  "0x3136323735363831333834363032353830303000000000000000000000000000"
+amount |  8.4
+price |  2329.9
 stopPrice |  0
 
 #### Cancel order
 
-The following sample cancellation data results in an EIP-712 hash of: `0x1eb6b329caf5f45b2402453f713c016abee1fa8a4df722ee5bafce58f0b8d053`.
+The following sample cancellation data results in an EIP-712 hash of: `0x4e66b356549c78264c084a4b3fdcd542119725e0310db11aec048c0a06d3d250`.
 
 field | value
 -----|------
 symbol  |  "ETHPERP"
-orderHash |  "0xbc9ea45d017a031120db603f40ff3dc6003f41e531e69a7fdfe2ebc438032b7d"
-nonce |  "0x3136323338333734323633363939323230303000000000000000000000000000"
+orderHash |  "0xff942700e46eb66ca2f8ca53530b57a09579ffa84221149a4400000000000000"
+nonce |  "0x3136323735363833383437323639313330303000000000000000000000000000"
 
 
 ## Trader API <> Auditor
@@ -2485,12 +2487,12 @@ Bytes | Value
 [1, 6] | Symbol (5-bit encoded/packed)
 [7, 31] | First 25 bytes of order's unique hash
 
-The following sample `BookOrder` materials generates the following encoded key: `0x038522582404003d940b7e18acdf6c6f4740f7226245a796d53b6f2ffb9a8ca4`.
+The following sample `BookOrder` materials generates the following encoded key: `0x038522582404009fcf480aa9606f5bbb64ab36e642566bd893f715b346df244e`.
 
 field | value
 -----|------
 symbol  |  "ETHPERP"
-order_hash  |  "0x3d940b7e18acdf6c6f4740f7226245a796d53b6f2ffb9a8ca4ABABABABABABAB"
+order_hash  |  "0x9fcf480aa9606f5bbb64ab36e642566bd893f715b346df244eABABABABABABAB"
 
 ##### Value definition
 
@@ -2510,13 +2512,13 @@ def to_base_unit_amount(val, decimals):
 def to_unit_amount(val, decimals):
     return Decimal(str(val)) / 10 ** decimals
 
-def abi_encoded_value(self, side: int, amount: Decimal, price: Decimal, trader_address: str, strategy_id_hash: bytes):
+def abi_encoded_value(self, side: int, amount: Decimal, price: Decimal, trader_address: str, strategy_id_hash: str, book_ordinal: int):
     # BookOrder item discriminant
     item_type = 3
 
     # Scale amount and price to DDX grains
     return encode_single(
-        "(uint8,(uint8,uint128,uint128,address,bytes32))",
+        "(uint8,(uint8,uint128,uint128,address,bytes32,uint64))",
         [
             self.item_type,
             [
@@ -2524,7 +2526,8 @@ def abi_encoded_value(self, side: int, amount: Decimal, price: Decimal, trader_a
                 to_base_unit_amount(amount, 18),
                 to_base_unit_amount(price, 18),
                 trader_address,
-                strategy_id_hash,
+                bytes.fromhex(strategy_id_hash[2:]),
+                book_ordinal,
             ],
         ],
     )
@@ -2532,9 +2535,9 @@ def abi_encoded_value(self, side: int, amount: Decimal, price: Decimal, trader_a
 def abi_decoded_value(abi_encoded_value: str):
     (
         item_type,
-        (side, amount, price, trader_address, strategy_id_hash),
+        (side, amount, price, trader_address, strategy_id_hash, book_ordinal),
     ) = decode_single(
-        "(uint8,(uint8,uint128,uint128,address,bytes32))",
+        "(uint8,(uint8,uint128,uint128,address,bytes32,uint64))",
         w3.toBytes(hexstr=abi_encoded_value),
     )
     
@@ -2544,7 +2547,8 @@ def abi_decoded_value(abi_encoded_value: str):
         to_unit_amount(amount, 18),
         to_unit_amount(price, 18),
         trader_address,
-        strategy_id_hash[:4],
+        f"0x{strategy_id_hash[:4].hex()}",
+        book_ordinal,
     )
 ```
 
@@ -2556,15 +2560,16 @@ int | side | Side of order (`Bid=0`, `Ask=1`)
 decimal | amount | Amount/size of order
 decimal | price | Price the order has been placed at
 address_s | trader_address | The order creator's Ethereum address
-bytes | strategy_id_hash | First 4 bytes of strategy ID hash this order belongs to
+string | strategy_id_hash | First 4 bytes of strategy ID hash this order belongs to
+int | book_ordinal | Numerical sequencing identifier for a BookOrder, which can be used to sort orders at any given price level 
 
-These contents are always stored in the tree in ABI-encoded form: `(uint8,(uint8,uint128,uint128,address,bytes32))`. Meaning,
+These contents are always stored in the tree in ABI-encoded form: `(uint8,(uint8,uint128,uint128,address,bytes32,uint64))`. Meaning,
 you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading
 data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree.
 A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain
 variables, is shown on the right.
 
-The following sample `BookOrder` materials generates the following ABI-encoded value: `0x00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001158e460913d0000000000000000000000000000000000000000000000000000d8d726b7177a80000000000000000000000000000603699848c84529987e14ba32c8a66def67e9ece2576ebd100000000000000000000000000000000000000000000000000000000`.
+The following sample `BookOrder` materials generates the following ABI-encoded value: `0x00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001158e460913d0000000000000000000000000000000000000000000000000000d8d726b7177a80000000000000000000000000000603699848c84529987e14ba32c8a66def67e9ece2576ebd1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003`.
 
 field | value
 -----|------
@@ -2573,6 +2578,7 @@ amount  |  20
 price  |  250
 trader_address  |  "0x603699848c84529987E14Ba32C8a66DEF67E9eCE"
 strategy_id_hash  |  "0x2576ebd1"
+book_ordinal  |  
 
 
 
@@ -2619,13 +2625,15 @@ def encode_key(symbol: str, index_price_hash: str):
     return zpad32_right(
             ItemType.PRICE.to_bytes(1, byteorder="little")
             + pack_bytes(symbol)
-            # TODO (apalepu): Uncomment once this is added on Rust side
-            # + index_price_hash[:26]
+            + bytes.fromhex(index_price_hash[2:])
         )
 
 def decode_key(price_key: bytes):
-    # symbol
-    return unpack_bytes(price_key[1:7])
+    # symbol, index price hash
+    return (
+            unpack_bytes(price_key[1:7]),
+            f"0x{leaf_key[7:].hex()}",
+        )
 ```
 
 The location of a `Price` leaf is determined by its key, which is encoded as
@@ -2637,12 +2645,12 @@ Bytes | Value
 [1, 6] | Symbol (5-bit encoded/packed)
 [7, 31] | 25 bytes of index price's unique hash
 
-The following sample `Price` materials generates the following encoded key: `0x0485225824040000000000000000000000000000000000000000000000000000`.
+The following sample `Price` materials generates the following encoded key: `0x0485225824040023c2b28e94b9dfcb8630a369fed134cdb6689dcb2528578779`.
 
 field | value
 -----|------
 symbol  |  "ETHPERP"
-index_price_hash  |  "0x3d940b7e18acdf6c6f4740f7226245a796d53b6f2ffb9a8ca4ABABABABABABAB"
+index_price_hash  |  "0x23c2b28e94b9dfcb8630a369fed134cdb6689dcb2528578779ABABABABABABAB"
 
 ##### Value definition
 
@@ -2668,38 +2676,38 @@ def abi_encoded_value(self, index_price: Decimal, index_price_hash: bytes, ema: 
 
     # Scale index price and ema to DDX grains
     price_encoding = encode_single(
-        "(uint8,(uint128,bytes32,uint128))",
+        "(uint8,(uint128,uint256,uint64))",
         [
             self.item_type,
             [
                 to_base_unit_amount(index_price, 18),
-                index_price_hash,
                 to_base_unit_amount(abs(ema), 18),
+                ordinal,
             ],
         ],
     )
     if self.ema < 0:
         price_encoding_byte_array = bytearray(price_encoding)
-        price_encoding_byte_array[-17] = 1
+        price_encoding_byte_array[-49] = 1
         price_encoding = bytes(price_encoding_byte_array)
 
     return price_encoding
 
 def abi_decoded_value(abi_encoded_value: str):
     price_encoding_byte_array = bytearray(bytes.fromhex(abi_encoded_value[2:]))
-    multiplier = -1 if price_encoding_byte_array[-17] == 1 else 1
-    price_encoding_byte_array[-17] = 0
+    multiplier = -1 if price_encoding_byte_array[-49] == 1 else 1
+    price_encoding_byte_array[-49] = 0
     abi_encoded_value = bytes(price_encoding_byte_array).hex()
 
-    (item_type, (index_price, index_price_hash, ema)) = decode_single(
-        "(uint8,(uint128,bytes32,uint128))", w3.toBytes(hexstr=abi_encoded_value),
+    (item_type, (index_price, ema, ordinal)) = decode_single(
+        "(uint8,(uint128,uint256,uint64))", w3.toBytes(hexstr=abi_encoded_value),
     )
 
     # Scale index price and ema from DDX grains
     return (
         to_unit_amount(index_price, 18),
-        index_price_hash,
         to_unit_amount(ema * multiplier, 18),
+        ordinal,
     )
 ```
 
@@ -2708,10 +2716,10 @@ A `Price` leaf holds the following data:
 type | field | description
 ----- | ------------ | ---------
 decimal | index_price | Composite index price perpetual is tracking
-bytes | index_price_hash | Unique hash of index price
 decimal | ema | EMA component of price, tracking the difference between the DerivaDEX order book price and the underlying
+int | ordinal | Numerical sequencing identifier for PriceCheckpoint that created this Price state leaf, can be used to arrange Price leaves in order of entry
 
-These contents are always stored in the tree in ABI-encoded form: `(uint8,(uint128,bytes32,uint128))`. Meaning,
+These contents are always stored in the tree in ABI-encoded form: `(uint8,(uint128,uint256,uint64))`. Meaning,
 you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading
 data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree.
 A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain
@@ -2720,13 +2728,13 @@ the `ema` component, which can be a negative value, is ABI-encoded to a 32-byte 
 `0x00000000000000000000000000000000` (positive) or `0x00000000000000000000000000000001` (negative), and the next 16 bytes
 is the absolute value of the `ema`.
 
-The following sample `Price` materials generates the following ABI-encoded value: `0x000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000d8d726b7177a800003ad520dd6051f521d43b7b834450b663b7782df758823a8e6a9845cdc86139690000000000000000000000000000000000000000000000000000000000000000`.
+The following sample `Price` materials generates the following ABI-encoded value: `0x000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000d8d726b7177a8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000`.
 
 field | value
 -----|------
 index_price  |  250
-index_price_hash  |  '0x3ad520dd6051f521d43b7b834450b663b7782df758823a8e6a9845cdc8613969'
 ema  |  0
+ordinal  |  0
 
 
 #### Insurance fund
@@ -2850,9 +2858,12 @@ def encode_key(trader_address: str):
             + bytes.fromhex(trader_address[2:])
         )
 
-def decode_key(book_order_key: bytes):
+def decode_key(stats_key: bytes):
     # chain_discriminant, trader_address
-    return int.from_bytes(stats_key[1:2], "little"), f"0x{stats_key[2:22].hex()}"
+    return (
+        int.from_bytes(stats_key[1:2], "little"),
+        f"0x{stats_key[2:22].hex()}",
+    )
 ```
 
 The location of a `Stats` leaf is determined by its key, which is encoded as
@@ -2869,6 +2880,7 @@ The following sample `Stats` materials generates the following encoded key: `0x0
 
 field | value
 -----|------
+chain_discriminant  |  0
 trader_address  |  "0x0x603699848c84529987E14Ba32C8a66DEF67E9eCE"
 
 ##### Value definition
@@ -2927,12 +2939,12 @@ data from a snapshot of the state), and will need to encode it back again if you
 A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain
 variables, is shown on the right.
 
-The following sample `Stats` materials generates the following ABI-encoded value: `0x000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000340aad21b3b70000000000000000000000000000000000000000000000000000340aad21b3b700000`.
+The following sample `Stats` materials generates the following ABI-encoded value: `0x000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000032d26d12e980b60000000000000000000000000000000000000000000000000030fe0cfcba2f4700000`.
 
 field | value
 -----|------
-maker_volume | 60
-capitalization | 60
+maker_volume | 15000
+taker_volume | 14460
 
 
 ### Transactions
@@ -3015,7 +3027,7 @@ Each of these transaction types as received from the Trader API are described at
 
 A `PartialFill` transaction is a scenario where the taker order has been partially filled across 1 or more
 maker orders and thus has a remaining order that enters the order book. The event portion of the transaction response consists of a 2-item array. The
-first item is a list of `Fill` events and the second item is the remaining `Post` event.
+first item is a list of `TradeFill` events and the second item is the remaining `Post` event.
 
 #### Complete fill
 
@@ -3058,7 +3070,7 @@ first item is a list of `Fill` events and the second item is the remaining `Post
 ```
 
 A `CompleteFill` is a scenario where the taker order has been completely filled across 1 or more maker orders.
-The event portion of the transaction response consists of a list of `Fill` events.
+The event portion of the transaction response consists of a list of `TradeFill` events.
 
 
 #### Post
@@ -3178,7 +3190,7 @@ string | event.updateType | Action corresponding to either "Deposit" or "Withdra
 #### Withdraw
 
 > Sample Withdraw (JSON)
-```
+```json
  {
     "event": {
         "amount": "1000",
@@ -3252,7 +3264,7 @@ bytes32_s | event.symbol.indexPriceHash | Index price hash
 
 #### PNL Settlement
 
-> Sample PNLSettlement (JSON)
+> Sample PnlSettlement (JSON)
 ```json
 {
     "event": {
@@ -3329,9 +3341,9 @@ decimal_s | event.ddxDistributed | Total DDX distributed for trade mining for th
 int | event.tradeMiningEpochId | Interval counter for when trade mining occurred
 
 
-#### Fill
+#### TradeFill
 
-> Sample Fill (JSON)
+> Sample TradeFill (JSON)
 ```json
 {
     "event": {
@@ -3369,7 +3381,7 @@ int | event.tradeMiningEpochId | Interval counter for when trade mining occurred
 }
 ```
 
-A `Fill` is when there is a fill / match that has taken place. Technically, a `Fill` is not a transaction in it of itself, but rather a part of `CompleteFill`, `PartialFill`, and `Liquidation` transactions. We often look to these individual `Fill` events as their own dedicated transaction type, however, for Traders to subscribe to and follow as they would other transactions. The event portion of the transaction has attributes defined as follows:
+A `TradeFill` is when there is a fill / match that has taken place. Technically, a `TradeFill` is not a transaction in it of itself, but rather a part of `CompleteFill` and `PartialFill` transactions. We often look to these individual `TradeFill` events as their own dedicated transaction type, however, for Traders to subscribe to and follow as they would other transactions. The event portion of the transaction has attributes defined as follows:
 
 type | field | description
 -----|----- | ---------------------
