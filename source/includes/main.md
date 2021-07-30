@@ -13,12 +13,12 @@ To begin interacting with the DerivaDEX ecosystem programmatically, you generall
 cryptographically secure)
 2. Run the Auditor client locally (validates the system and serves a local REST and WebSocket API)
 3. Connect to the local Auditor WebSocket API (submit and cancel orders via `commands` or subscribe to state and transaction updates propagated
-in real time from the exchange) & REST API (retrieve state entries) 
+in real time from the exchange) & REST API (retrieve state entries)
 
 This set up provides you with the security, integrity, and trust model of
 a robust decentralized system, with the performance and API experience of a centralized exchange.
 
-Additionally, it's a good idea to familiarize yourself with the [DerivaDEX types terminology](#Types) and [hashing & signing schemes](#signatures--hashing), although the examples and sample client libraries abstract much of this complexity away. 
+Additionally, it's a good idea to familiarize yourself with the [DerivaDEX types terminology](#Types) and [hashing & signing schemes](#signatures--hashing), although the examples and sample client libraries abstract much of this complexity away.
 
 
 ## Auditor API
@@ -39,6 +39,23 @@ Otherwise, you are more than welcome to just check out the Setup section to get 
 needs.
 
 ## Setup
+
+### Using Docker
+
+The preferred method of running the Auditor is to utilize the published Docker images at the [DerivaDEX docker registry](https://hub.docker.com/repository/docker/derivadex/ddx-auditor). For those who prefer to run the Auditor from source, refer to the next section (titled "From source"). To run the Auditor with docker, follow these steps from the DerivaDEX `trading_clients` repository (< 5 minutes):
+
+```bash
+# Download the ddx-auditor docker image
+docker pull derivadex/ddx-auditor:1.0.0
+
+# Create a docker network to allow market making bots to connect to the auditor.
+docker network create auditor-net
+
+# Run the docker container with a configuration file.
+docker run --name "ddx-auditor" -d --env-file .env --network auditor-net derivadex/ddx-auditor:1.0.0
+```
+
+### From source
 
 To run the Auditor locally, follow these steps from the DerivaDEX `trading_clients` repository (< 5 minutes):
 
@@ -80,7 +97,7 @@ e.g. topic = STATE/TRADER/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/
 
 You may obtain the `Trader` leaf details for any trader address with the following query parameter definition:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | topic | Must be of the format `STATE/TRADER/[<chain_discriminant>/][[<trader_address>/]]`. `chain_discriminant` should be set to `0` for now and `trader_address` should be an `address_s` type.
 
@@ -110,7 +127,7 @@ string | topic | Must be of the format `STATE/TRADER/[<chain_discriminant>/][[<t
 
 A sample response back is shown on the right, with fields defined as follows:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | Whether HTTP request was successful or not
 list | c | HTTP response result returning a list of `Trader` leaves
@@ -138,7 +155,7 @@ e.g. topic = STATE/STRATEGY/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576e
 
 You may obtain the `Strategy` leaf details for any trader and strategy id with the following query parameter definition:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | topic | Must be of the format `STATE/STRATEGY/[<chain_discriminant>/][[<trader_address>/]][[[abbrev_strategy_id_hash]]]`. `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 
@@ -165,7 +182,7 @@ string | topic | Must be of the format `STATE/STRATEGY/[<chain_discriminant>/][[
 
 A sample response back is shown on the right, with fields defined as follows:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | Whether HTTP request was successful or not
 list | c | HTTP response result returning a list of `Strategy` leaves
@@ -196,7 +213,7 @@ e.g. topic = STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
 
 You may obtain the `Position` leaf details for any symbol, chain discriminant, trader, and strategy id with the following query parameter definition:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | topic | Must be of the format `STATE/POSITION/[<symbol>/][[<chain_discriminant>/]][[[<trader_address>/]]][[[[<abbrev_strategy_id_hash>/]]]]`. `symbol` is a `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4 bytes of the hash of the strategy id (e.g. `main`).
 
@@ -219,7 +236,7 @@ string | topic | Must be of the format `STATE/POSITION/[<symbol>/][[<chain_discr
 
 A sample response back is shown on the right, with fields defined as follows:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | Whether HTTP request was successful or not
 list | c | HTTP response result returning a list of `Position` leaves
@@ -247,7 +264,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
 
 You may obtain book order information (`BookOrder` leaves) for any symbol, trader, and strategy id with the following query parameter definition:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | topic | Must be of the format `STATE/BOOK_ORDER/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is a `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_s` type, `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 
@@ -292,7 +309,7 @@ you are trading from (e.g. `main`)
 
 A sample response back is shown on the right, with fields defined as follows:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | Whether HTTP request was successful or not
 list | c | HTTP response result returning a list of open `BookOrder` leaves
@@ -351,14 +368,14 @@ The websocket API offers commands for placing and canceling orders, as well as w
 
 You can place new orders by specifying specific attributes in the `Order` command's request payload. These requests are subject to a set of validations.
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type, which in this case will be `Request`
 dict | c | WebSocket message contents
 string | t.t | Command type, which in this case will be `Order`
 dict | c.c | Command contents containing the order being placed
 address_s | c.c.traderAddress | Trader's Ethereum address (same as the one that facilitated the deposit)
-string  | c.c.symbol | Name of the market to trade. Currently, this is limited to `ETHPERP`, but new symbols are coming soon! 
+string  | c.c.symbol | Name of the market to trade. Currently, this is limited to `ETHPERP`, but new symbols are coming soon!
 string | c.c.strategy | Name of the cross-margined strategy this trade belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
 string | c.c.side | Side of trade, either `Bid` (buy/long) or an `Ask` (sell/short)
 string | c.c.orderType | Order type, either `Limit` or `Market`. Other order types coming soon!
@@ -387,7 +404,7 @@ To be more explicit, all of these fields must be passed in, even if not all of t
 ```
 
 A place order `command` returns a response receipt, which confirms that an Operator has received the request and has sequenced it for processing. The receipt `type` will be either `Sequenced` or `Error`.
- 
+
 A successful `command` returns a `Sequenced` receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the security guarantees associated with Intel SGX TEEs.
 
 type | field | description
@@ -443,7 +460,7 @@ string | t | WebSocket message type, which in this case will be `Request`
 dict | c | WebSocket message contents
 string | t.t | Command type, which in this case will be `CancelOrder`
 dict | c.c | Command contents containing the order being canceled
-string | c.c.symbol | Currently always `ETHPERP`. New symbols coming soon! 
+string | c.c.symbol | Currently always `ETHPERP`. New symbols coming soon!
 bytes32_s | c.c.orderHash| The first 25 bytes of the order's unique hash that is being canceled.
 bytes32_s | c.c.nonce | An incrementing numeric identifier for this request that is unique per user for all time
 bytes_s | c.c.signature | EIP-712 signature of the order cancellation request
@@ -466,7 +483,7 @@ As described in the `Signatures & hashing` section, the `orderHash` is something
 ```
 
 A cancel order `command` returns a response receipt, which confirms that an Operator has received the request and has sequenced it for processing. The receipt `type` will be either `Sequenced` or `Error`.
- 
+
 A successful `command` returns a `Received` receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the security guarantees associated with Intel SGX TEEs.
 
 type | field | description
@@ -516,7 +533,7 @@ string | msg | Error message
 }
 ```
 
-You can signal withdrawal intents to the Operators by specifying specific attributes in the `Withdraw` command's request payload. Withdrawal is a 2-step process: submitting a withdrawal intent, and performing a smart contract withdrawal. Once a withdrawal intent is initiated, you won't be able to trade with the collateral you are attempting to withdraw. You will only be able to formally initiate a smart contract withdrawal/token transfer once the epoch in which you signal your withdrawal desire has concluded. 
+You can signal withdrawal intents to the Operators by specifying specific attributes in the `Withdraw` command's request payload. Withdrawal is a 2-step process: submitting a withdrawal intent, and performing a smart contract withdrawal. Once a withdrawal intent is initiated, you won't be able to trade with the collateral you are attempting to withdraw. You will only be able to formally initiate a smart contract withdrawal/token transfer once the epoch in which you signal your withdrawal desire has concluded.
 
 type | field | description
 ---- | --- | -----------------
@@ -547,7 +564,7 @@ bytes_s | c.c.signature | EIP-712 signature for the withdrawal request
 ```
 
 A withdraw `command` returns a response receipt, which confirms that an Operator has received the request and has sequenced it for processing. The receipt `type` will be either `Received` or `Error`.
- 
+
 A successful `command` returns a `Received` receipt from the Operator. DerivaDEX Operators execute code within a trusted execution environment. The enclaveSignature affirms that this environment has the security guarantees associated with Intel SGX TEEs.
 
 type | field | description
@@ -607,7 +624,7 @@ You may subscribe to updates for any trader's `Trader` data.
 	"c": "STATE/TRADER/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/"
 }
 ```
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type - must be `Subscribe`
 string | c | Subscription topic of the format `STATE/TRADER/[<chain_discriminant>/][[<trader_address>/]]`. `trader_address` should be an `address_s` type.
@@ -644,7 +661,7 @@ string | c | Subscription topic of the format `STATE/TRADER/[<chain_discriminant
 Upon subscription, you will first receive an initial snapshot of the current trader data. A sample response is shown
 on the right, with fields defined as follows:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which in the case of a snapshot, will be `Partial`
@@ -691,7 +708,7 @@ address_s | c.itemData[n].c.referralAddress | The Ethereum address of the trader
 After the initial snapshot response, you will receive streaming `Update` messages with updates to the strategy leaf. A sample response is shown
 on the right, with fields defined as follows:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which in the case of an update, will be `Update`
@@ -737,7 +754,7 @@ You may subscribe to updates for any trader's `Strategy` data.
 	"c": "STATE/STRATEGY/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/"
 }
 ```
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type - must be `Subscribe`
 string | c | Subscription topic of the format `STATE/STRATEGY/[<chain_discriminant>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
@@ -771,7 +788,7 @@ string | c | Subscription topic of the format `STATE/STRATEGY/[<chain_discrimina
 Upon subscription, you will first receive an initial snapshot of the current strategy data. A sample response is shown
 on the right, with fields defined as follows:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which in the case of a snapshot, will be `Partial`
@@ -824,7 +841,7 @@ dict | c.eventTrigger | The transaction log event that triggered an update. Sinc
 After the initial snapshot response, you will receive streaming `Update` messages with updates to the strategy leaf. A sample response is shown
 on the right, with fields defined as follows:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which in the case of an update, will be `Update`
@@ -878,7 +895,7 @@ You may subscribe to updates for any trader's `Position` data.
 	"c": "STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/"
 }
 ```
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type - must be `Subscribe`
 string | c | Subscription topic of the format `STATE/POSITION/[<symbol>/][[<chain_discriminant>/]][[[<trader_address>/]]][[[[<abbrev_strategy_id_hash>/]]]]`. `symbol` is of `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
@@ -908,7 +925,7 @@ string | c | Subscription topic of the format `STATE/POSITION/[<symbol>/][[<chai
 Upon subscription, you will first receive an initial snapshot of the current position data. A sample response is shown
 on the right, with fields defined as follows:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which in the case of a snapshot, will be `Partial`
@@ -978,7 +995,7 @@ dict | c.eventTrigger | The transaction log event that triggered an update. Sinc
 After the initial snapshot response, you will receive streaming `Update` messages with updates to the `Position` leaf. A sample response is shown
 on the right, with fields defined as follows:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which in the case of an update, will be `Update`
@@ -1024,7 +1041,7 @@ You may subscribe to updates to orders in the order book.
 	"c": "STATE/BOOK_ORDER/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/"
 }
 ```
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type - must be `Subscribe`
 string | c | Subscription topic of the format `STATE/BOOK_ORDER/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is of `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
@@ -1073,7 +1090,7 @@ Like its REST counterpart, this is endpoint can be used for a variety of purpose
 Upon subscription, you will first receive an initial snapshot of the orders you have subscribed to. A sample response is shown
 on the right, with fields defined as follows:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which in the case of a snapshot, will be `Partial`
@@ -1129,7 +1146,7 @@ After the initial snapshot response, you will receive streaming `Update` message
 on the right, with fields defined as follows:
 
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which in the case of a snapshot, will be `Partial`
@@ -1182,7 +1199,7 @@ You may subscribe to new posted orders on DerivaDEX. A post transaction occurs w
 	"c": "TX_LOG/POST/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/"
 }
 ```
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type - must be `Subscribe`
 string | c | Subscription topic of the format `TX_LOG/POST/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is of `string` type (e.g. `ETHPERP`), `trader_address` is of `address_s` type corresponding to the trader's Ethereum address and `abbrev_strategy_id_hash` is of `bytes_s` type corresponding to the first 4 bytes of the hash of the strategy to which this fill belongs (e.g. `main`).
@@ -1215,7 +1232,7 @@ string | c | Subscription topic of the format `TX_LOG/POST/[<symbol>/][[<trader_
 
 After subscription, you will receive streaming `Update` messages with new strategy updates defined as follows:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which will be `Update`
@@ -1260,7 +1277,7 @@ You may subscribe to new strategy updates on DerivaDEX. A strategy update can ta
 	"c": "TX_LOG/STRATEGY_UPDATE/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/"
 }
 ```
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type - must be `Subscribe`
 string | c | Subscription topic of the format `TX_LOG/STRATEGY_UPDATE/[<trader_address>/][[<abbrev_strategy_id_hash>/]]`. `trader_address` is of `address_s` type corresponding to the trader's Ethereum address and `abbrev_strategy_id_hash` is of `bytes_s` type corresponding to the first 4 bytes of the hash of the strategy to which this fill belongs (e.g. `main`).
@@ -1291,7 +1308,7 @@ string | c | Subscription topic of the format `TX_LOG/STRATEGY_UPDATE/[<trader_a
 
 After subscription, you will receive streaming `Update` messages with new strategy updates defined as follows:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which will be `Update`
@@ -1328,7 +1345,7 @@ You may subscribe to new price updates on DerivaDEX.
 	"c": "TX_LOG/PRICE_CHECKPOINT/ETHPERP/"
 }
 ```
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type - must be `Subscribe`
 string | c | Subscription topic of the format `TX_LOG/PRICE_CHECKPOINT/[<symbol>/]`. `symbol` is of `string` type and corresponds to a given market (e.g. `ETHPERP`).
@@ -1357,7 +1374,7 @@ string | c | Subscription topic of the format `TX_LOG/PRICE_CHECKPOINT/[<symbol>
 
 After subscription, you will receive streaming `Update` messages with new price checkpoints defined as follows:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which will be `Update`
@@ -1404,7 +1421,7 @@ You may subscribe to new fill on DerivaDEX. A fill can take place as part of a `
 	"c": "TX_LOG/FILL/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/"
 }
 ```
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type - must be `Subscribe`
 string | c | Subscription topic of the format `TX_LOG/FILL/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is of `string` type and corresponds to a given market (e.g. `ETHPERP`), `trader_address` is of `address_s` type corresponding to the trader's Ethereum address, and `abbrev_strategy_id_hash` is of `bytes_s` type corresponding to the first 4 bytes of the hash of the strategy to which this fill belongs (e.g. `main`).
@@ -1458,7 +1475,7 @@ string | c | Subscription topic of the format `TX_LOG/FILL/[<symbol>/][[<trader_
 
 After subscription, you will receive streaming `Update` messages with new price checkpoints defined as follows:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which will be `Update`
@@ -1505,7 +1522,7 @@ will be able to determine that these `fill` events are in fact the same by looki
 # Appendix
 
 The appendix covers some additional information for those of you wanting to dive a bit deeper into some of the
-above topics. 
+above topics.
 
 
 ## Types
@@ -1575,21 +1592,21 @@ w3 = Web3(Web3.HTTPProvider("https://kovan.infura.io/v3/<your_api_key>"))
 # Open up the ABI shown above saved at a file location, in this case `trader_abi.json` is the filename
 with open('trader_abi.json') as f:
     trader_abi = json.load(f)
-    
+
     # Create an trader_abi contract wrapper
     trader_contract = w3.eth.contract(address=Web3.toChecksumAddress('0x80ead6c2d69acc72dad76fb3151820a9b5d6a9e9'), abi=trader_abi)
-    
+
     # Deposit 1000 USDC
     trader_contract.functions.deposit('0xc4f290a59d66a2e06677ed27422a1106049d9e72', encode_single("bytes32", 'main'.encode("utf8")), 1000000000).transact()
 ```
 
-DerivaDEX is a decentralized exchange. As such, trading is non-custodial. Users are responsible for their own funds, which are deposited to the DerivaDEX smart contracts on Ethereum for trading. 
+DerivaDEX is a decentralized exchange. As such, trading is non-custodial. Users are responsible for their own funds, which are deposited to the DerivaDEX smart contracts on Ethereum for trading.
 
 To deposit funds on DerivaDEX, first ensure that you have created an Ethereum account. The deposit interaction is between a user and the DerivaDEX smart contracts. To be more explicit, you will not be utilizing the API to facilitate a deposit. The DerivaDEX Solidity smart contracts adhere to the [Diamond Standard](https://medium.com/derivadex/the-diamond-standard-a-new-paradigm-for-upgradeability-569121a08954). The `deposit` smart contract function you will need to use is located in the `Trader` facet, at the address of the main `DerivaDEX` proxy contract (`0x80ead6c2d69acc72dad76fb3151820a9b5d6a9e9`).
 
 Note: Valid deposit collateral is curated by the smart contract and is managed by governance.
 
-field | description 
+field | description
 ------ | -----------
 _collateralAddress | ERC-20 token address deposited as collateral
 _strategyId | Strategy ID (encoded as a 32-byte value) being funded. The `strategy` refers to the cross-margined bucket this trade belongs to. Currently, there is only the default `main` strategy, but support for multiple strategies is coming soon!
@@ -1643,7 +1660,7 @@ function compute_eip712_domain_struct_hash(string memory _name, string memory _v
         "address verifyingContract",
         ")"
     ));
-    
+
     bytes32 domainStructHash = keccak256(abi.encodePacked(
         domainSchemaHash,
         keccak256(bytes(_name)),
@@ -1651,7 +1668,7 @@ function compute_eip712_domain_struct_hash(string memory _name, string memory _v
         _chainId,
         uint256(_verifyingContract)
     ));
-    
+
     return domainStructHash;
 }
 ```
@@ -1670,7 +1687,7 @@ def compute_eip712_domain_struct_hash(chain_id, verifying_contract):
         + b"address verifyingContract"
         + b")"
     )
-    
+
     return keccak(
         eip712_domain_separator_schema_hash
         + keccak(b"DerivaDEX")
@@ -1714,7 +1731,7 @@ function compute_eip712_message_struct_hash(address _traderAddress, bytes32 _sym
         "uint256 stopPrice",
         ")"
     ));
-    
+
     bytes32 messageStructHash = keccak256(abi.encodePacked(
         eip712SchemaHash,
         uint256(_traderAddress),
@@ -1727,7 +1744,7 @@ function compute_eip712_message_struct_hash(address _traderAddress, bytes32 _sym
         _price,
         _stopPrice
     ));
-    
+
     return messageStructHash;
 }
 ```
@@ -1752,11 +1769,11 @@ def compute_eip712_message_struct_hash(trader_address: str, symbol: str, strateg
         + b"uint256 stopPrice"
         + b")"
     )
-    
+
     # Ensure decimal value has no more than 18 decimals of precision
     def round_to_unit(val):
         return val.quantize(Decimal(".000000000000000001"), rounding=ROUND_DOWN)
-    
+
     # Scale up to DDX grains format (i.e. multiply by 1e18)
     def to_base_unit_amount(val, decimals):
         return int(round_to_unit(val) * 10 ** decimals)
@@ -1766,7 +1783,7 @@ def compute_eip712_message_struct_hash(trader_address: str, symbol: str, strateg
         if order_side == 'Bid':
             return 0
         return 1
-    
+
     # Convert order type string to int representation
     def order_type_to_int(order_type: str) -> int:
         if order_type == 'Limit':
@@ -1821,14 +1838,14 @@ function compute_eip712_message_struct_hash(bytes32 _symbol, bytes32 _orderHash,
         "bytes32 nonce",
         ")"
     ));
-    
+
     bytes32 messageStructHash = keccak256(abi.encodePacked(
         eip712SchemaHash,
         _symbol,
         _orderHash,
         _nonce,
     ));
-    
+
     return messageStructHash;
 }
 ```
@@ -1847,7 +1864,7 @@ def compute_eip712_message_struct_hash(symbol: str, order_hash: str, nonce: str)
         + b"bytes32 nonce"
         + b")"
     )
-    
+
     return keccak(
         eip712_schema_hash
         + len(symbol).to_bytes(1, byteorder="little")
@@ -2539,7 +2556,7 @@ def abi_decoded_value(abi_encoded_value: str):
         "(uint8,(uint8,uint128,uint128,address,bytes32,uint64))",
         w3.toBytes(hexstr=abi_encoded_value),
     )
-    
+
     # Scale amount and price from DDX grains
     return (
         side,
@@ -2560,7 +2577,7 @@ decimal | amount | Amount/size of order
 decimal | price | Price the order has been placed at
 address_s | trader_address | The order creator's Ethereum address
 string | strategy_id_hash | First 4 bytes of strategy ID hash this order belongs to
-int | book_ordinal | Numerical sequencing identifier for a BookOrder, which can be used to sort orders at any given price level 
+int | book_ordinal | Numerical sequencing identifier for a BookOrder, which can be used to sort orders at any given price level
 
 These contents are always stored in the tree in ABI-encoded form: `(uint8,(uint8,uint128,uint128,address,bytes32,uint64))`. Meaning,
 you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading
@@ -2577,7 +2594,7 @@ amount  |  20
 price  |  250
 trader_address  |  "0x603699848c84529987E14Ba32C8a66DEF67E9eCE"
 strategy_id_hash  |  "0x2576ebd1"
-book_ordinal  |  
+book_ordinal  |
 
 
 
@@ -2949,10 +2966,10 @@ taker_volume | 14460
 ### Transactions
 
 Transactions refer to the state-changing events that modify the SMT and its leaves (thus the root hash)
-described above. 
+described above.
 
 There are 12 various types of transactions on DerivaDEX. The full set of transactions along with their corresponding numeric discrimants can be seen in the table below:
-                   
+
 Event | Discriminant
 -----| ------------
 PartialFill | 0
@@ -3424,13 +3441,13 @@ import time
 def get_url(self) -> str:
     # Initialize a Web3 account from a private key
     web3_account = w3.eth.account.from_key("<private_key>")
-    
+
     # Retrieve current UNIX time in nanoseconds to derive a unique, monotonically-increasing nonce
     nonce = str(time.time_ns())
 
     # abi.encode(['bytes32'], [nonce])
     encoded_nonce = encode_single("bytes32", nonce.encode("utf8")).hex()
-    
+
     # Prefix the encoded nonce with ETH prefix to prepare for signing
     prefixed_message = encode_defunct(hexstr=encoded_nonce)
 
@@ -3446,7 +3463,7 @@ def get_url(self) -> str:
 
 The steps to connect to the DerivaDEX API (in other words, how the Auditor is connecting to the Trader API on your behalf) are:
 
-1. Generate a string (`nonce`) that is greater than the last value used for this address. Requests with a nonce less than or equal to the previous value will be rejected. For this reason, we **STRONGLY** recommend using [Unix time](https://en.wikipedia.org/wiki/Unix_time) in nanoseconds, but users may opt to maintain their own sequence counter if they really know what they are doing and are comfortable with the risk. 
+1. Generate a string (`nonce`) that is greater than the last value used for this address. Requests with a nonce less than or equal to the previous value will be rejected. For this reason, we **STRONGLY** recommend using [Unix time](https://en.wikipedia.org/wiki/Unix_time) in nanoseconds, but users may opt to maintain their own sequence counter if they really know what they are doing and are comfortable with the risk.
 2. ABI encode the `nonce` to a 32-byte value ('bytes32').
 3. `keccak256` hash the encoded nonce without the ETH prefix.
 4. Prefix the hash from above with the ETH prefix.
@@ -3474,7 +3491,7 @@ You may subscribe to the SMT state leaves and transaction log in raw fashion (mu
 
 type | field | description
 -----|----- | ---------------------
-string[] | events | Events being subscribed to. There is only one event that can be subscribed to, the `TxLogUpdate` event. 
+string[] | events | Events being subscribed to. There is only one event that can be subscribed to, the `TxLogUpdate` event.
 
 #### Subscription response
 > Receipt (success) format (JSON)
@@ -3493,7 +3510,7 @@ A successful `subscription` returns a `Subscribed` receipt from the Operator.
 
 type | field | description
 ------ | ---- | -----------
-string | message | Success message 
+string | message | Success message
 
 > Receipt (error) format (JSON)
 ```json
@@ -3509,7 +3526,7 @@ An erroneous `subscription` returns an `Error` receipt from the Operator.
 
 type | field | description
 ------ | ---- | -----------
-string | message | Error message 
+string | message | Error message
 
 
 #### Event response
@@ -3567,7 +3584,7 @@ of the DerivaDEX exchange.
 The response is a 2-item array, with the first item referencing the state snapshot and the second referencing the transactions, as shown in the sample on the right. The types and fields that
 make up this response are described in the table below:
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type, pertaining to the topic subscribed to, which in this case will be `TxLogUpdate`
 string | e | WebSocket message event, which in this case will be `Partial`
@@ -3616,9 +3633,9 @@ dict | c[1][n].event | Event data (structure and contents are different dependin
 
 From this point onwards, you will receive `Update` messages, with individual transactions that you can apply to your local state you have constructed using the `Partial` to always stay up-to-date.
 You may notice that the transaction log entries streamed in these update messages are identical to the individual
-transaction entries shown in the second part of the `Partial` response above. 
+transaction entries shown in the second part of the `Partial` response above.
 
-type | field | description 
+type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type, pertaining to the topic subscribed to, which in this case will be `TxLogUpdate`
 string | e | WebSocket message event, which in this case will be `Update`
@@ -3638,25 +3655,25 @@ dict | c[0].event | Event data (structure and contents are different depending o
 
 ## Order notional
 
-You will not be able to place orders exceeding $1,000,000 in notional. The notional value of an order 
+You will not be able to place orders exceeding $1,000,000 in notional. The notional value of an order
 is computed as follows: `notional = order_amount * mark_price`.
 
 ## OMF < IMF
 
-You will not be able to place orders if the resulting open margin fraction (OMF) would become less 
-than the initial margin fraction (IMF). 
+You will not be able to place orders if the resulting open margin fraction (OMF) would become less
+than the initial margin fraction (IMF).
 
 ## Max taker price deviation
 
-You will not be able to place a limit order at a price more than 2% through the best level on the other side of the 
-book. In other words, you cannot place a limit buy order at a price greater than 2% higher than the lowest available offer. 
-Conversely, you cannot place a limit sell order at a price less than 2% lower than the highest available bid. If there 
+You will not be able to place a limit order at a price more than 2% through the best level on the other side of the
+book. In other words, you cannot place a limit buy order at a price greater than 2% higher than the lowest available offer.
+Conversely, you cannot place a limit sell order at a price less than 2% lower than the highest available bid. If there
 is no liquidity on the other side of the book, the mark price is used instead.
 
 ## Self-match prevention
 
-You will not be able to trade against yourself. Although this is technically not an API validation, it is worth mentioning here 
-regardless. The self-match rules are such that the remainder of the incoming order will be canceled if it were to self-match. 
+You will not be able to trade against yourself. Although this is technically not an API validation, it is worth mentioning here
+regardless. The self-match rules are such that the remainder of the incoming order will be canceled if it were to self-match.
 
 
 # Rate limits
