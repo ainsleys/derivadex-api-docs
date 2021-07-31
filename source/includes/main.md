@@ -42,7 +42,7 @@ needs.
 
 ### Using Docker
 
-The preferred method of running the Auditor is to utilize the published Docker images at the [DerivaDEX docker registry](https://hub.docker.com/repository/docker/derivadex/ddx-auditor). For those who prefer to run the Auditor from source, refer to the next section (titled "From source"). To run the Auditor with docker, follow these steps from the DerivaDEX `trading_clients` repository (< 5 minutes):
+The preferred method of running the Auditor is to utilize the published Docker images at the [DerivaDEX docker registry](https://hub.docker.com/repository/docker/derivadex/ddx-auditor). For those who prefer to run the Auditor from source, refer to the [From source](#from-source) section. To run the Auditor with docker, follow these steps from the DerivaDEX `trading_clients` repository (< 5 minutes):
 
 ```bash
 # Download the ddx-auditor docker image
@@ -57,7 +57,7 @@ docker run --name "ddx-auditor" -d --env-file .env --network auditor-net derivad
 
 ### From source
 
-To run the Auditor locally, follow these steps from the DerivaDEX `trading_clients` repository (< 5 minutes):
+To run the Auditor from source, follow these steps from the DerivaDEX `trading_clients` repository (< 5 minutes):
 
 1. If you don't already have it, we recommend setting up [Anaconda/Python(>3)](https://docs.anaconda.com/anaconda/install/index.html) on your machine
 
@@ -80,7 +80,8 @@ The local Auditor running exposes a simple REST API for your consumption. The cu
 available endpoints are described below, but you are of course more than welcome to add your own or modify
 the Auditor implementation to expose a REST interface that best suits your needs.
 
-REST endpoint URL: http://localhost:8766
+REST endpoint URL (if running using Docker): http://ddx-auditor:8766
+REST endpoint URL (if running using source): http://localhost:8766
 
 ## Trader
 
@@ -333,7 +334,8 @@ You can use the WebSocket API to place `commands` on the exchange or receive dat
 1) Leaf events: for when a state item changes
 2) Transaction log events: for when a state-changing transaction has been emitted. These events are what triggers state to change.
 
-WS endpoint URL: ws://localhost:8765
+WS endpoint URL (if running using Docker): ws://localhost:8765
+WS endpoint URL (if running using source): ws://ddx-auditor:8765
 
 ## Commands
 
@@ -1939,6 +1941,96 @@ field | value
 symbol  |  "ETHPERP"
 orderHash |  "0xff942700e46eb66ca2f8ca53530b57a09579ffa84221149a4400000000000000"
 nonce |  "0x3136323735363833383437323639313330303000000000000000000000000000"
+
+
+## Encryption
+
+> Sample encryption (JSON)
+```json
+// Sample unencrypted order placement request
+{
+	"t": "Request",
+	"c": {
+		"t": "Order",
+		"c": {
+			"traderAddress": "0xc10f3E99a255CC053b8E9A62c9C416485fdCd20b",
+			"symbol": "ETHPERP",
+			"strategy": "main",
+			"side": "Ask",
+			"orderType": "Limit",
+			"nonce": "0x3136323737363235343138383430383030303000000000000000000000000000",
+			"amount": 10.6,
+			"price": 2472.1,
+			"stopPrice": 0,
+			"signature": "0x1b1f419961c742861a41396f14892ea4a665b7b89086637d37d53ec20364a7ef3aaf1e1472867f5a18fa3f27a2748ed16c603eccd13472cfd61d43df1c3ed22a1b"
+		}
+	}
+}
+
+// Sample encrypted order placement request
+{
+	"t": "Request",
+	"c": "0x3bb4fec9257fb81c846c075fb3944151838c32ce41dadb585049fa7788ae591bb970ea295993d42b238e95595fde09d80d675aa960112533cf61ed4b91b9d77dd3f97d6ecf1cf809800854a11b43d27c5da51d69f550463bddeb471be94fb6a17de3e54cf99665be081ec7f8c24b7eebaef691baa27de167e448ed3a0facf6af0c4fec0e856f56515590c40479cf95f6e25918a42a60b4c15b4362614f91bfbd67eba6a6aad6de9edd45ba5fa7fc33e4473fb9e94a14f492c65bfecc08ff97d7c3126d6ce697aa955234e98ebb027fb042500122c299826267deb278b44a7dfc7f06fad6174f448f4fb41ce13e1003c2013b6de2e9a0bf3d9871658c84644fc41d7e5482bd4efad8370172e64b7220d2a2e596c9a5b3ce38997bae79200b3b62839e47bc6aa876128cb6d4430e18b1f51588d7741161e1a9734d0e203d725c9f4d7dae174a0e75fcdb3882c23590437fbc3330046b150bc90818e7b1c3a42571b62363343f2e46bc7cf6fcd0dfd2550ec83d453641d7a236a3a6677e806125b0c50246d5f26c2db3f61ebc78b955d5095d8b0cd7f4929f5bc2adf53c455b2170f546a09d2e11b463db6cc582a771c6aaad96c3c56123d5010643e584849e6f7cf998495e28b018b4c00bcb64a3aa2b7b7e0cb3faea33c7034887c86a15d5c0a01db2c8bc27a4b6ec2acc2e06ccabde4a64962ab3aec63f36"
+}
+```
+
+> Sample encryption implementation (Python)
+```python
+def encrypt_with_nonce(msg: str) -> bytes:
+    """
+    Encrypt the JSON-stringified command contents
+
+    Parameters
+    ----------
+    msg : str
+        JSON-stringified command contents
+    """
+
+    network_public_key = PublicKey(
+        bytes.fromhex(
+            "0x0215cad31f884747d1c870458fea0c8e580044577be35276cbfbf6c212c813e722"[2:]
+        )
+    )
+    my_secret_key = PrivateKey(get_random_bytes(32))
+    my_public_key = my_secret_key.public_key
+    shared_pub = network_public_key.multiply(my_secret_key.secret)
+    keccak_256 = keccak.new(digest_bits=256)
+    keccak_256.update(shared_pub.format())
+    derived_key = keccak_256.digest()[:16]
+    nonce = get_random_bytes(12)
+
+    cipher = AES.new(derived_key, AES.MODE_GCM, nonce=nonce)
+    encoded_message = msg.encode("utf8")
+    ciphertext, tag = cipher.encrypt_and_digest(
+        len(encoded_message).to_bytes(4, byteorder="big") + encoded_message
+    )
+
+    return ciphertext + tag + nonce + my_public_key.format()
+
+```
+
+DerivaDEX is a front-running resistant decentralized exchange, achieved with sending encrypted data that can only be
+decrypted from inside the Operator's trusted hardware. All `commands` must be encrypted using an AES-GCM128 scheme. The
+encryption steps are as follows:
+
+1. Generate an 16-byte (128-bit) ECDH shared key using the operator's public key (`0x0215cad31f884747d1c870458fea0c8e580044577be35276cbfbf6c212c813e722`) and a 32-byte private key of your choosing (you can randomly generate this each time you are sending a `command`). Make sure you are using a `keccak256` ECDH key generation scheme, but since you need a 16-byte shared key, make sure you take only the first 16 bytes of the 32-byte key generated.
+
+2. Generate a 12-byte random nonce
+
+3. Setup the payload you want to encrypt, which is the bytes-encoded `command`'s contents prefixed with a 4-byte value indicating the length of this bytes-encoded `command`'s contents
+
+4. Generate the ciphertext and MAC tag using AES-GCM128
+
+5. Return the encrypted bytes in the format of [ciphertext][tag][nonce][client_public_key_compressed_format]
+
+
+To validate your encryption implementation for correctness (assuming you are not using the DerivaDEX Python client library), please reference what follows and the display on the right:
+
+- Step 1: Assuming a random client secret key of `0xfa2751cb3d428e917226a46141f6d91448e73e07fba672dc2b80de492e6138da`, you should arrive at a ECDH shared key of `0xc0d7c330fe00314a35751f74260cec81`
+- Step 2: Assume a random nonce of `0x64a3aa2b7b7e0cb3faea33c7`
+- Step 3: Assuming a stringified unencrypted order placement message content of the following form `{"t": "Order", "c": {"traderAddress": "0xc10f3E99a255CC053b8E9A62c9C416485fdCd20b", "symbol": "ETHPERP", "strategy": "main", "side": "Ask", "orderType": "Limit", "nonce": "0x3136323737363235343138383430383030303000000000000000000000000000", "amount": 10.6, "price": 2472.1, "stopPrice": 0, "signature": "0x1b1f419961c742861a41396f14892ea4a665b7b89086637d37d53ec20364a7ef3aaf1e1472867f5a18fa3f27a2748ed16c603eccd13472cfd61d43df1c3ed22a1b"}}`, you should arrive at a bytes-encoded payload (prefixed with the length) to encrypt of: `0x000001b77b2274223a20224f72646572222c202263223a207b2274726164657241646472657373223a2022307863313066334539396132353543433035336238453941363263394334313634383566644364323062222c202273796d626f6c223a202245544850455250222c20227374726174656779223a20226d61696e222c202273696465223a202241736b222c20226f7264657254797065223a20224c696d6974222c20226e6f6e6365223a2022307833313336333233373337333633323335333433313338333833343330333833303330333033303030303030303030303030303030303030303030303030303030222c2022616d6f756e74223a2031302e362c20227072696365223a20323437322e312c202273746f705072696365223a20302c20227369676e6174757265223a2022307831623166343139393631633734323836316134313339366631343839326561346136363562376238393038363633376433376435336563323033363461376566336161663165313437323836376635613138666133663237613237343865643136633630336563636431333437326366643631643433646631633365643232613162227d7d`
+- Step 4: The above will generate a ciphertext of `0x3bb4fec9257fb81c846c075fb3944151838c32ce41dadb585049fa7788ae591bb970ea295993d42b238e95595fde09d80d675aa960112533cf61ed4b91b9d77dd3f97d6ecf1cf809800854a11b43d27c5da51d69f550463bddeb471be94fb6a17de3e54cf99665be081ec7f8c24b7eebaef691baa27de167e448ed3a0facf6af0c4fec0e856f56515590c40479cf95f6e25918a42a60b4c15b4362614f91bfbd67eba6a6aad6de9edd45ba5fa7fc33e4473fb9e94a14f492c65bfecc08ff97d7c3126d6ce697aa955234e98ebb027fb042500122c299826267deb278b44a7dfc7f06fad6174f448f4fb41ce13e1003c2013b6de2e9a0bf3d9871658c84644fc41d7e5482bd4efad8370172e64b7220d2a2e596c9a5b3ce38997bae79200b3b62839e47bc6aa876128cb6d4430e18b1f51588d7741161e1a9734d0e203d725c9f4d7dae174a0e75fcdb3882c23590437fbc3330046b150bc90818e7b1c3a42571b62363343f2e46bc7cf6fcd0dfd2550ec83d453641d7a236a3a6677e806125b0c50246d5f26c2db3f61ebc78b955d5095d8b0cd7f4929f5bc2adf53c455b2170f546a09d2e11b463db6cc582a771c6aaad96c3c56123d5010643e5` and a tag of `0x84849e6f7cf998495e28b018b4c00bcb`
+- Step 5: After deriving the public key from the secret key from Step 1 (`0x034887c86a15d5c0a01db2c8bc27a4b6ec2acc2e06ccabde4a64962ab3aec63f36`), you will arrive at the final encrypted message of: `0x3bb4fec9257fb81c846c075fb3944151838c32ce41dadb585049fa7788ae591bb970ea295993d42b238e95595fde09d80d675aa960112533cf61ed4b91b9d77dd3f97d6ecf1cf809800854a11b43d27c5da51d69f550463bddeb471be94fb6a17de3e54cf99665be081ec7f8c24b7eebaef691baa27de167e448ed3a0facf6af0c4fec0e856f56515590c40479cf95f6e25918a42a60b4c15b4362614f91bfbd67eba6a6aad6de9edd45ba5fa7fc33e4473fb9e94a14f492c65bfecc08ff97d7c3126d6ce697aa955234e98ebb027fb042500122c299826267deb278b44a7dfc7f06fad6174f448f4fb41ce13e1003c2013b6de2e9a0bf3d9871658c84644fc41d7e5482bd4efad8370172e64b7220d2a2e596c9a5b3ce38997bae79200b3b62839e47bc6aa876128cb6d4430e18b1f51588d7741161e1a9734d0e203d725c9f4d7dae174a0e75fcdb3882c23590437fbc3330046b150bc90818e7b1c3a42571b62363343f2e46bc7cf6fcd0dfd2550ec83d453641d7a236a3a6677e806125b0c50246d5f26c2db3f61ebc78b955d5095d8b0cd7f4929f5bc2adf53c455b2170f546a09d2e11b463db6cc582a771c6aaad96c3c56123d5010643e584849e6f7cf998495e28b018b4c00bcb64a3aa2b7b7e0cb3faea33c7034887c86a15d5c0a01db2c8bc27a4b6ec2acc2e06ccabde4a64962ab3aec63f36`
 
 
 ## Trader API <> Auditor
