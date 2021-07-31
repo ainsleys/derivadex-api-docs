@@ -42,10 +42,10 @@
             <ol>
                <li>Deposit funds to the exchange via Ethereum via an Ethereum client (these funds are controlled by you and only you, and are cryptographically secure)</li>
                <li>Run the Auditor client locally (validates the system and serves a local REST and WebSocket API)</li>
-               <li>Connect to the local Auditor WebSocket API (submit and cancel orders via <code>commands</code> or subscribe to state and transaction updates propagated in real time from the exchange) &amp; REST API (retrieve state entries) </li>
+               <li>Connect to the local Auditor WebSocket API (submit and cancel orders via <code>commands</code> or subscribe to state and transaction updates propagated in real time from the exchange) &amp; REST API (retrieve state entries)</li>
             </ol>
             <p>This set up provides you with the security, integrity, and trust model of a robust decentralized system, with the performance and API experience of a centralized exchange.</p>
-            <p>Additionally, it&#39;s a good idea to familiarize yourself with the <a href="#Types">DerivaDEX types terminology</a> and <a href="#signatures--hashing">hashing &amp; signing schemes</a>, although the examples and sample client libraries abstract much of this complexity away. </p>
+            <p>Additionally, it&#39;s a good idea to familiarize yourself with the <a href="#Types">DerivaDEX types terminology</a> and <a href="#signatures--hashing">hashing &amp; signing schemes</a>, although the examples and sample client libraries abstract much of this complexity away.</p>
             <h2 id="auditor-api">Auditor API</h2>
             <p>The pre-packaged Pythonic Auditor connects to the DerivaDEX WebSocket Trader API upon initialization and underpins an extremely powerful, efficient, and easy-to-use setup for programmatic traders by allowing you to:</p>
             <ol>
@@ -56,7 +56,18 @@
             <p><strong>Please be extra careful to always do your own testing and validation of any of this tooling.</strong></p>
             <p>DerivaDEX&#39;s data model is powered by a Sparse Merkle Tree data store and a transaction log of state-modifying transitions. While these are emitted in raw formats by the DerivaDEX Trader API, they are not the most easily-consumable. Thus, the Auditor provides a worthwhile abstraction that efficiently allows you to locally maintain your own data validation while exposing an API for your easy consumption. If you would like to dive deeper into how the Auditor processes the state and raw transactions on DerivaDEX or would like to write your own Auditor tooling (in a different language perhaps, or to expose an interface more to your liking), please check out the <a href="#trader-api--auditor">Trader API &lt;&gt; Auditor</a> section. Otherwise, you are more than welcome to just check out the Setup section to get the Python tooling running and serving your trading needs.</p>
             <h2 id="setup">Setup</h2>
-            <p>To run the Auditor locally, follow these steps from the DerivaDEX <code>trading_clients</code> repository (&lt; 5 minutes):</p>
+            <h3 id="using-docker">Using Docker</h3>
+            <p>The preferred method of running the Auditor is to utilize the published Docker images at the <a href="https://hub.docker.com/repository/docker/derivadex/ddx-auditor">DerivaDEX docker registry</a>. For those who prefer to run the Auditor from source, refer to the <a href="#from-source">From source</a> section. To run the Auditor with docker, follow these steps from the DerivaDEX <code>trading_clients</code> repository (&lt; 5 minutes):</p>
+            <pre class="highlight bash"><code><span class="hljs-comment"># Download the ddx-auditor docker image</span>
+docker pull derivadex/ddx-auditor:1.0.0
+
+<span class="hljs-comment"># Create a docker network to allow market making bots to connect to the auditor.</span>
+docker network create auditor-net
+
+<span class="hljs-comment"># Run the docker container with a configuration file.</span>
+docker run --name <span class="hljs-string">&quot;ddx-auditor&quot;</span> -d --env-file .env --network auditor-net derivadex/ddx-auditor:1.0.0</code></pre>
+            <h3 id="from-source">From source</h3>
+            <p>To run the Auditor from source, follow these steps from the DerivaDEX <code>trading_clients</code> repository (&lt; 5 minutes):</p>
             <ol>
                <li>
                   <p>If you don&#39;t already have it, we recommend setting up <a href="https://docs.anaconda.com/anaconda/install/index.html">Anaconda/Python(&gt;3)</a> on your machine</p>
@@ -78,7 +89,7 @@
             <p>Voila! You now have the Auditor running locally validating the <strong>entire</strong> DerivaDEX exchange, and serving as a local REST &amp; WebSocket API for whatever your trading needs may be!</p>
             <h1 id="rest-api">REST API</h1>
             <p>The local Auditor running exposes a simple REST API for your consumption. The currently available endpoints are described below, but you are of course more than welcome to add your own or modify the Auditor implementation to expose a REST interface that best suits your needs.</p>
-            <p>REST endpoint URL: <a href="http://localhost:8766">http://localhost:8766</a></p>
+            <p>REST endpoint URL (if running using Docker): <a href="http://ddx-auditor:8766">http://ddx-auditor:8766</a> REST endpoint URL (if running using source): <a href="http://localhost:8766">http://localhost:8766</a></p>
             <h2 id="trader">Trader</h2>
             <h3 id="request">Request</h3>
             <blockquote>
@@ -520,7 +531,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
                <li>Leaf events: for when a state item changes</li>
                <li>Transaction log events: for when a state-changing transaction has been emitted. These events are what triggers state to change.</li>
             </ol>
-            <p>WS endpoint URL: ws://localhost:8765</p>
+            <p>WS endpoint URL (if running using Docker): ws://localhost:8765 WS endpoint URL (if running using source): ws://ddx-auditor:8765</p>
             <h2 id="commands">Commands</h2>
             <p>The websocket API offers commands for placing and canceling orders, as well as withdrawals. Since commands modify system state, these requests must include an <a href="https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md">EIP-712 signature</a>. Examples are included in the <a href="samples.md">sample code</a>.</p>
             <p><strong>Please keep in mind, all sample command requests displayed below are NOT encrypted. The reason for this is to more clearly display the formats of the various commands you may send. You MUST encrypt these messages prior to sending them to the exchange.</strong></p>
@@ -895,7 +906,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
         }
     }
 }</code></pre>
-            <p>You can signal withdrawal intents to the Operators by specifying specific attributes in the <code>Withdraw</code> command&#39;s request payload. Withdrawal is a 2-step process: submitting a withdrawal intent, and performing a smart contract withdrawal. Once a withdrawal intent is initiated, you won&#39;t be able to trade with the collateral you are attempting to withdraw. You will only be able to formally initiate a smart contract withdrawal/token transfer once the epoch in which you signal your withdrawal desire has concluded. </p>
+            <p>You can signal withdrawal intents to the Operators by specifying specific attributes in the <code>Withdraw</code> command&#39;s request payload. Withdrawal is a 2-step process: submitting a withdrawal intent, and performing a smart contract withdrawal. Once a withdrawal intent is initiated, you won&#39;t be able to trade with the collateral you are attempting to withdraw. You will only be able to formally initiate a smart contract withdrawal/token transfer once the epoch in which you signal your withdrawal desire has concluded.</p>
             <table>
                <thead>
                   <tr>
@@ -2772,7 +2783,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84
             </table>
             <p>Please keep in mind that due to the subscription topic methodology, in the scenario where you don&#39;t specify a particular <code>trader_address</code> and <code>abbrev_strategy_id_hash</code> (e.g. a topic of the format <code>TX_LOG/FILL/ETHPERP/</code>), you will receive 2 <code>fill</code> event responses back on this WebSocket stream per <code>fill</code>, where the two response topics correspond to both the maker and taker&#39;s <code>trader_address</code> and <code>abbrev_strategy_id_hash</code>. You will be able to determine that these <code>fill</code> events are in fact the same by looking at the <code>requestIndex</code> and/or the equivalent pair of <code>makerOutcome</code> and <code>takerOutcome</code> in both events.</p>
             <h1 id="appendix">Appendix</h1>
-            <p>The appendix covers some additional information for those of you wanting to dive a bit deeper into some of the above topics. </p>
+            <p>The appendix covers some additional information for those of you wanting to dive a bit deeper into some of the above topics.</p>
             <h2 id="types">Types</h2>
             <p>The types labeled throughout this document in the request and response parameters may be familiar to those who have a background in Ethereum. In any case, please refer to the table below for additional information on the terminology used here. This reference in conjunction with the JSON samples should provide enough clarity:</p>
             <table>
@@ -2879,13 +2890,13 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
 <span class="hljs-comment"># Open up the ABI shown above saved at a file location, in this case `trader_abi.json` is the filename</span>
 <span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">&#x27;trader_abi.json&#x27;</span>) <span class="hljs-keyword">as</span> f:
     trader_abi = json.load(f)
-    
+
     <span class="hljs-comment"># Create an trader_abi contract wrapper</span>
     trader_contract = w3.eth.contract(address=Web3.toChecksumAddress(<span class="hljs-string">&#x27;0x80ead6c2d69acc72dad76fb3151820a9b5d6a9e9&#x27;</span>), abi=trader_abi)
-    
+
     <span class="hljs-comment"># Deposit 1000 USDC</span>
     trader_contract.functions.deposit(<span class="hljs-string">&#x27;0xc4f290a59d66a2e06677ed27422a1106049d9e72&#x27;</span>, encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, <span class="hljs-string">&#x27;main&#x27;</span>.encode(<span class="hljs-string">&quot;utf8&quot;</span>)), <span class="hljs-number">1000000000</span>).transact()</code></pre>
-            <p>DerivaDEX is a decentralized exchange. As such, trading is non-custodial. Users are responsible for their own funds, which are deposited to the DerivaDEX smart contracts on Ethereum for trading. </p>
+            <p>DerivaDEX is a decentralized exchange. As such, trading is non-custodial. Users are responsible for their own funds, which are deposited to the DerivaDEX smart contracts on Ethereum for trading.</p>
             <p>To deposit funds on DerivaDEX, first ensure that you have created an Ethereum account. The deposit interaction is between a user and the DerivaDEX smart contracts. To be more explicit, you will not be utilizing the API to facilitate a deposit. The DerivaDEX Solidity smart contracts adhere to the <a href="https://medium.com/derivadex/the-diamond-standard-a-new-paradigm-for-upgradeability-569121a08954">Diamond Standard</a>. The <code>deposit</code> smart contract function you will need to use is located in the <code>Trader</code> facet, at the address of the main <code>DerivaDEX</code> proxy contract (<code>0x80ead6c2d69acc72dad76fb3151820a9b5d6a9e9</code>).</p>
             <p>Note: Valid deposit collateral is curated by the smart contract and is managed by governance.</p>
             <table>
@@ -2943,7 +2954,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-string">&quot;address verifyingContract&quot;</span>,
         <span class="hljs-string">&quot;)&quot;</span>
     ));
-    
+
     <span class="hljs-keyword">bytes32</span> domainStructHash = <span class="hljs-built_in">keccak256</span>(<span class="hljs-built_in">abi</span>.<span class="hljs-built_in">encodePacked</span>(
         domainSchemaHash,
         <span class="hljs-built_in">keccak256</span>(<span class="hljs-keyword">bytes</span>(_name)),
@@ -2951,7 +2962,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         _chainId,
         <span class="hljs-keyword">uint256</span>(_verifyingContract)
     ));
-    
+
     <span class="hljs-keyword">return</span> domainStructHash;
 }</code></pre><pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single
 <span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
@@ -2966,7 +2977,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         + <span class="hljs-string">b&quot;address verifyingContract&quot;</span>
         + <span class="hljs-string">b&quot;)&quot;</span>
     )
-    
+
     <span class="hljs-keyword">return</span> keccak(
         eip712_domain_separator_schema_hash
         + keccak(<span class="hljs-string">b&quot;DerivaDEX&quot;</span>)
@@ -3028,7 +3039,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-string">&quot;uint256 stopPrice&quot;</span>,
         <span class="hljs-string">&quot;)&quot;</span>
     ));
-    
+
     <span class="hljs-keyword">bytes32</span> messageStructHash = <span class="hljs-built_in">keccak256</span>(<span class="hljs-built_in">abi</span>.<span class="hljs-built_in">encodePacked</span>(
         eip712SchemaHash,
         <span class="hljs-keyword">uint256</span>(_traderAddress),
@@ -3041,7 +3052,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         _price,
         _stopPrice
     ));
-    
+
     <span class="hljs-keyword">return</span> messageStructHash;
 }</code></pre><pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single
 <span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
@@ -3062,11 +3073,11 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         + <span class="hljs-string">b&quot;uint256 stopPrice&quot;</span>
         + <span class="hljs-string">b&quot;)&quot;</span>
     )
-    
+
     <span class="hljs-comment"># Ensure decimal value has no more than 18 decimals of precision</span>
     <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">round_to_unit</span>(<span class="hljs-params">val</span>):</span>
         <span class="hljs-keyword">return</span> val.quantize(Decimal(<span class="hljs-string">&quot;.000000000000000001&quot;</span>), rounding=ROUND_DOWN)
-    
+
     <span class="hljs-comment"># Scale up to DDX grains format (i.e. multiply by 1e18)</span>
     <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
         <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(round_to_unit(val) * <span class="hljs-number">10</span> ** decimals)
@@ -3076,7 +3087,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-keyword">if</span> order_side == <span class="hljs-string">&#x27;Bid&#x27;</span>:
             <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>
         <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>
-    
+
     <span class="hljs-comment"># Convert order type string to int representation</span>
     <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">order_type_to_int</span>(<span class="hljs-params">order_type: <span class="hljs-built_in">str</span></span>) -&gt; int:</span>
         <span class="hljs-keyword">if</span> order_type == <span class="hljs-string">&#x27;Limit&#x27;</span>:
@@ -3170,14 +3181,14 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-string">&quot;bytes32 nonce&quot;</span>,
         <span class="hljs-string">&quot;)&quot;</span>
     ));
-    
+
     <span class="hljs-keyword">bytes32</span> messageStructHash = <span class="hljs-built_in">keccak256</span>(<span class="hljs-built_in">abi</span>.<span class="hljs-built_in">encodePacked</span>(
         eip712SchemaHash,
         _symbol,
         _orderHash,
         _nonce,
     ));
-    
+
     <span class="hljs-keyword">return</span> messageStructHash;
 }</code></pre><pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single
 <span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
@@ -3192,7 +3203,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         + <span class="hljs-string">b&quot;bytes32 nonce&quot;</span>
         + <span class="hljs-string">b&quot;)&quot;</span>
     )
-    
+
     <span class="hljs-keyword">return</span> keccak(
         eip712_schema_hash
         + <span class="hljs-built_in">len</span>(symbol).to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
@@ -3321,6 +3332,95 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
+            <h2 id="encryption">Encryption</h2>
+            <blockquote>
+               <p>Sample encryption (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code><span class="hljs-comment">// Sample unencrypted order placement request</span>
+{
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Request&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: {
+        <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Order&quot;</span>,
+        <span class="hljs-attr">&quot;c&quot;</span>: {
+            <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0xc10f3E99a255CC053b8E9A62c9C416485fdCd20b&quot;</span>,
+            <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
+            <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
+            <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Ask&quot;</span>,
+            <span class="hljs-attr">&quot;orderType&quot;</span>: <span class="hljs-string">&quot;Limit&quot;</span>,
+            <span class="hljs-attr">&quot;nonce&quot;</span>: <span class="hljs-string">&quot;0x3136323737363235343138383430383030303000000000000000000000000000&quot;</span>,
+            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-number">10.6</span>,
+            <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-number">2472.1</span>,
+            <span class="hljs-attr">&quot;stopPrice&quot;</span>: <span class="hljs-number">0</span>,
+            <span class="hljs-attr">&quot;signature&quot;</span>: <span class="hljs-string">&quot;0x1b1f419961c742861a41396f14892ea4a665b7b89086637d37d53ec20364a7ef3aaf1e1472867f5a18fa3f27a2748ed16c603eccd13472cfd61d43df1c3ed22a1b&quot;</span>
+        }
+    }
+}
+
+<span class="hljs-comment">// Sample encrypted order placement request</span>
+{
+    <span class="hljs-attr">&quot;t&quot;</span>: <span class="hljs-string">&quot;Request&quot;</span>,
+    <span class="hljs-attr">&quot;c&quot;</span>: <span class="hljs-string">&quot;0x3bb4fec9257fb81c846c075fb3944151838c32ce41dadb585049fa7788ae591bb970ea295993d42b238e95595fde09d80d675aa960112533cf61ed4b91b9d77dd3f97d6ecf1cf809800854a11b43d27c5da51d69f550463bddeb471be94fb6a17de3e54cf99665be081ec7f8c24b7eebaef691baa27de167e448ed3a0facf6af0c4fec0e856f56515590c40479cf95f6e25918a42a60b4c15b4362614f91bfbd67eba6a6aad6de9edd45ba5fa7fc33e4473fb9e94a14f492c65bfecc08ff97d7c3126d6ce697aa955234e98ebb027fb042500122c299826267deb278b44a7dfc7f06fad6174f448f4fb41ce13e1003c2013b6de2e9a0bf3d9871658c84644fc41d7e5482bd4efad8370172e64b7220d2a2e596c9a5b3ce38997bae79200b3b62839e47bc6aa876128cb6d4430e18b1f51588d7741161e1a9734d0e203d725c9f4d7dae174a0e75fcdb3882c23590437fbc3330046b150bc90818e7b1c3a42571b62363343f2e46bc7cf6fcd0dfd2550ec83d453641d7a236a3a6677e806125b0c50246d5f26c2db3f61ebc78b955d5095d8b0cd7f4929f5bc2adf53c455b2170f546a09d2e11b463db6cc582a771c6aaad96c3c56123d5010643e584849e6f7cf998495e28b018b4c00bcb64a3aa2b7b7e0cb3faea33c7034887c86a15d5c0a01db2c8bc27a4b6ec2acc2e06ccabde4a64962ab3aec63f36&quot;</span>
+}</code></pre>
+            <blockquote>
+               <p>Sample encryption implementation (Python)</p>
+            </blockquote>
+            <pre class="highlight python"><code><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">encrypt_with_nonce</span>(<span class="hljs-params">msg: <span class="hljs-built_in">str</span></span>) -&gt; bytes:</span>
+    <span class="hljs-string">&quot;&quot;&quot;
+    Encrypt the JSON-stringified command contents
+
+    Parameters
+    ----------
+    msg : str
+        JSON-stringified command contents
+    &quot;&quot;&quot;</span>
+
+    network_public_key = PublicKey(
+        <span class="hljs-built_in">bytes</span>.fromhex(
+            <span class="hljs-string">&quot;0x0215cad31f884747d1c870458fea0c8e580044577be35276cbfbf6c212c813e722&quot;</span>[<span class="hljs-number">2</span>:]
+        )
+    )
+    my_secret_key = PrivateKey(get_random_bytes(<span class="hljs-number">32</span>))
+    my_public_key = my_secret_key.public_key
+    shared_pub = network_public_key.multiply(my_secret_key.secret)
+    keccak_256 = keccak.new(digest_bits=<span class="hljs-number">256</span>)
+    keccak_256.update(shared_pub.<span class="hljs-built_in">format</span>())
+    derived_key = keccak_256.digest()[:<span class="hljs-number">16</span>]
+    nonce = get_random_bytes(<span class="hljs-number">12</span>)
+
+    cipher = AES.new(derived_key, AES.MODE_GCM, nonce=nonce)
+    encoded_message = msg.encode(<span class="hljs-string">&quot;utf8&quot;</span>)
+    ciphertext, tag = cipher.encrypt_and_digest(
+        <span class="hljs-built_in">len</span>(encoded_message).to_bytes(<span class="hljs-number">4</span>, byteorder=<span class="hljs-string">&quot;big&quot;</span>) + encoded_message
+    )
+
+    <span class="hljs-keyword">return</span> ciphertext + tag + nonce + my_public_key.<span class="hljs-built_in">format</span>()
+</code></pre>
+            <p>DerivaDEX is a front-running resistant decentralized exchange, achieved with sending encrypted data that can only be decrypted from inside the Operator&#39;s trusted hardware. All <code>commands</code> must be encrypted using an AES-GCM128 scheme. The encryption steps are as follows:</p>
+            <ol>
+               <li>
+                  <p>Generate an 16-byte (128-bit) ECDH shared key using the operator&#39;s public key (<code>0x0215cad31f884747d1c870458fea0c8e580044577be35276cbfbf6c212c813e722</code>) and a 32-byte private key of your choosing (you can randomly generate this each time you are sending a <code>command</code>). Make sure you are using a <code>keccak256</code> ECDH key generation scheme, but since you need a 16-byte shared key, make sure you take only the first 16 bytes of the 32-byte key generated.</p>
+               </li>
+               <li>
+                  <p>Generate a 12-byte random nonce</p>
+               </li>
+               <li>
+                  <p>Setup the payload you want to encrypt, which is the bytes-encoded <code>command</code>&#39;s contents prefixed with a 4-byte value indicating the length of this bytes-encoded <code>command</code>&#39;s contents</p>
+               </li>
+               <li>
+                  <p>Generate the ciphertext and MAC tag using AES-GCM128</p>
+               </li>
+               <li>
+                  <p>Return the encrypted bytes in the format of [ciphertext][tag][nonce][client_public_key_compressed_format]</p>
+               </li>
+            </ol>
+            <p>To validate your encryption implementation for correctness (assuming you are not using the DerivaDEX Python client library), please reference what follows and the display on the right:</p>
+            <ul>
+               <li>Step 1: Assuming a random client secret key of <code>0xfa2751cb3d428e917226a46141f6d91448e73e07fba672dc2b80de492e6138da</code>, you should arrive at a ECDH shared key of <code>0xc0d7c330fe00314a35751f74260cec81</code></li>
+               <li>Step 2: Assume a random nonce of <code>0x64a3aa2b7b7e0cb3faea33c7</code></li>
+               <li>Step 3: Assuming a stringified unencrypted order placement message content of the following form <code>{&quot;t&quot;: &quot;Order&quot;, &quot;c&quot;: {&quot;traderAddress&quot;: &quot;0xc10f3E99a255CC053b8E9A62c9C416485fdCd20b&quot;, &quot;symbol&quot;: &quot;ETHPERP&quot;, &quot;strategy&quot;: &quot;main&quot;, &quot;side&quot;: &quot;Ask&quot;, &quot;orderType&quot;: &quot;Limit&quot;, &quot;nonce&quot;: &quot;0x3136323737363235343138383430383030303000000000000000000000000000&quot;, &quot;amount&quot;: 10.6, &quot;price&quot;: 2472.1, &quot;stopPrice&quot;: 0, &quot;signature&quot;: &quot;0x1b1f419961c742861a41396f14892ea4a665b7b89086637d37d53ec20364a7ef3aaf1e1472867f5a18fa3f27a2748ed16c603eccd13472cfd61d43df1c3ed22a1b&quot;}}</code>, you should arrive at a bytes-encoded payload (prefixed with the length) to encrypt of: <code>0x000001b77b2274223a20224f72646572222c202263223a207b2274726164657241646472657373223a2022307863313066334539396132353543433035336238453941363263394334313634383566644364323062222c202273796d626f6c223a202245544850455250222c20227374726174656779223a20226d61696e222c202273696465223a202241736b222c20226f7264657254797065223a20224c696d6974222c20226e6f6e6365223a2022307833313336333233373337333633323335333433313338333833343330333833303330333033303030303030303030303030303030303030303030303030303030222c2022616d6f756e74223a2031302e362c20227072696365223a20323437322e312c202273746f705072696365223a20302c20227369676e6174757265223a2022307831623166343139393631633734323836316134313339366631343839326561346136363562376238393038363633376433376435336563323033363461376566336161663165313437323836376635613138666133663237613237343865643136633630336563636431333437326366643631643433646631633365643232613162227d7d</code></li>
+               <li>Step 4: The above will generate a ciphertext of <code>0x3bb4fec9257fb81c846c075fb3944151838c32ce41dadb585049fa7788ae591bb970ea295993d42b238e95595fde09d80d675aa960112533cf61ed4b91b9d77dd3f97d6ecf1cf809800854a11b43d27c5da51d69f550463bddeb471be94fb6a17de3e54cf99665be081ec7f8c24b7eebaef691baa27de167e448ed3a0facf6af0c4fec0e856f56515590c40479cf95f6e25918a42a60b4c15b4362614f91bfbd67eba6a6aad6de9edd45ba5fa7fc33e4473fb9e94a14f492c65bfecc08ff97d7c3126d6ce697aa955234e98ebb027fb042500122c299826267deb278b44a7dfc7f06fad6174f448f4fb41ce13e1003c2013b6de2e9a0bf3d9871658c84644fc41d7e5482bd4efad8370172e64b7220d2a2e596c9a5b3ce38997bae79200b3b62839e47bc6aa876128cb6d4430e18b1f51588d7741161e1a9734d0e203d725c9f4d7dae174a0e75fcdb3882c23590437fbc3330046b150bc90818e7b1c3a42571b62363343f2e46bc7cf6fcd0dfd2550ec83d453641d7a236a3a6677e806125b0c50246d5f26c2db3f61ebc78b955d5095d8b0cd7f4929f5bc2adf53c455b2170f546a09d2e11b463db6cc582a771c6aaad96c3c56123d5010643e5</code> and a tag of <code>0x84849e6f7cf998495e28b018b4c00bcb</code></li>
+               <li>Step 5: After deriving the public key from the secret key from Step 1 (<code>0x034887c86a15d5c0a01db2c8bc27a4b6ec2acc2e06ccabde4a64962ab3aec63f36</code>), you will arrive at the final encrypted message of: <code>0x3bb4fec9257fb81c846c075fb3944151838c32ce41dadb585049fa7788ae591bb970ea295993d42b238e95595fde09d80d675aa960112533cf61ed4b91b9d77dd3f97d6ecf1cf809800854a11b43d27c5da51d69f550463bddeb471be94fb6a17de3e54cf99665be081ec7f8c24b7eebaef691baa27de167e448ed3a0facf6af0c4fec0e856f56515590c40479cf95f6e25918a42a60b4c15b4362614f91bfbd67eba6a6aad6de9edd45ba5fa7fc33e4473fb9e94a14f492c65bfecc08ff97d7c3126d6ce697aa955234e98ebb027fb042500122c299826267deb278b44a7dfc7f06fad6174f448f4fb41ce13e1003c2013b6de2e9a0bf3d9871658c84644fc41d7e5482bd4efad8370172e64b7220d2a2e596c9a5b3ce38997bae79200b3b62839e47bc6aa876128cb6d4430e18b1f51588d7741161e1a9734d0e203d725c9f4d7dae174a0e75fcdb3882c23590437fbc3330046b150bc90818e7b1c3a42571b62363343f2e46bc7cf6fcd0dfd2550ec83d453641d7a236a3a6677e806125b0c50246d5f26c2db3f61ebc78b955d5095d8b0cd7f4929f5bc2adf53c455b2170f546a09d2e11b463db6cc582a771c6aaad96c3c56123d5010643e584849e6f7cf998495e28b018b4c00bcb64a3aa2b7b7e0cb3faea33c7034887c86a15d5c0a01db2c8bc27a4b6ec2acc2e06ccabde4a64962ab3aec63f36</code></li>
+            </ul>
             <h2 id="trader-api--auditor">Trader API &lt;&gt; Auditor</h2>
             <p>As mentioned in the <a href="#auditor-api">Auditor API</a> section above, the Auditor is an abstraction that exposes a more convenient and familiar API for programmatic traders. It&#39;s connects more directly to the DerivaDEX Trader API&#39;s transaction log WebSocket endpoint. This endpoint provides a snapshot of the Sparse Merkle Tree and streaming transaction&#39;s that transition the state of this data store. Technically, to trade on DerivaDEX you won&#39;t need to understand all of these details as this has been abstracted away using the setup presented above. However, if you are interested in 1) learning more about how the system works, 2) considering rewriting the Auditor, or 3) exploring connecting to the Trader API directly, you should read on to best understand the data you will be working with.</p>
             <h3 id="sparse-merkle-tree-state">Sparse merkle tree (state)</h3>
@@ -4140,7 +4240,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-string">&quot;(uint8,(uint8,uint128,uint128,address,bytes32,uint64))&quot;</span>,
         w3.toBytes(hexstr=abi_encoded_value),
     )
-    
+
     <span class="hljs-comment"># Scale amount and price from DDX grains</span>
     <span class="hljs-keyword">return</span> (
         side,
@@ -4705,7 +4805,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                </tbody>
             </table>
             <h3 id="transactions">Transactions</h3>
-            <p>Transactions refer to the state-changing events that modify the SMT and its leaves (thus the root hash) described above. </p>
+            <p>Transactions refer to the state-changing events that modify the SMT and its leaves (thus the root hash) described above.</p>
             <p>There are 12 various types of transactions on DerivaDEX. The full set of transactions along with their corresponding numeric discrimants can be seen in the table below:</p>
             <table>
                <thead>
@@ -5583,13 +5683,13 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">get_url</span>(<span class="hljs-params">self</span>) -&gt; str:</span>
     <span class="hljs-comment"># Initialize a Web3 account from a private key</span>
     web3_account = w3.eth.account.from_key(<span class="hljs-string">&quot;&lt;private_key&gt;&quot;</span>)
-    
+
     <span class="hljs-comment"># Retrieve current UNIX time in nanoseconds to derive a unique, monotonically-increasing nonce</span>
     nonce = <span class="hljs-built_in">str</span>(time.time_ns())
 
     <span class="hljs-comment"># abi.encode([&#x27;bytes32&#x27;], [nonce])</span>
     encoded_nonce = encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, nonce.encode(<span class="hljs-string">&quot;utf8&quot;</span>)).<span class="hljs-built_in">hex</span>()
-    
+
     <span class="hljs-comment"># Prefix the encoded nonce with ETH prefix to prepare for signing</span>
     prefixed_message = encode_defunct(hexstr=encoded_nonce)
 
@@ -5603,7 +5703,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     <span class="hljs-keyword">return</span> <span class="hljs-string">f&quot;wss://beta.derivadex.io/trader/v1?token=<span class="hljs-subst">{encoded_nonce}</span><span class="hljs-subst">{signed_message.signature.<span class="hljs-built_in">hex</span>()[<span class="hljs-number">2</span>:]}</span>&quot;</span></code></pre>
             <p>The steps to connect to the DerivaDEX API (in other words, how the Auditor is connecting to the Trader API on your behalf) are:</p>
             <ol>
-               <li>Generate a string (<code>nonce</code>) that is greater than the last value used for this address. Requests with a nonce less than or equal to the previous value will be rejected. For this reason, we <strong>STRONGLY</strong> recommend using <a href="https://en.wikipedia.org/wiki/Unix_time">Unix time</a> in nanoseconds, but users may opt to maintain their own sequence counter if they really know what they are doing and are comfortable with the risk. </li>
+               <li>Generate a string (<code>nonce</code>) that is greater than the last value used for this address. Requests with a nonce less than or equal to the previous value will be rejected. For this reason, we <strong>STRONGLY</strong> recommend using <a href="https://en.wikipedia.org/wiki/Unix_time">Unix time</a> in nanoseconds, but users may opt to maintain their own sequence counter if they really know what they are doing and are comfortable with the risk.</li>
                <li>ABI encode the <code>nonce</code> to a 32-byte value (&#39;bytes32&#39;).</li>
                <li><code>keccak256</code> hash the encoded nonce without the ETH prefix.</li>
                <li>Prefix the hash from above with the ETH prefix.</li>
@@ -5874,7 +5974,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         }
     }]
 }</code></pre>
-            <p>From this point onwards, you will receive <code>Update</code> messages, with individual transactions that you can apply to your local state you have constructed using the <code>Partial</code> to always stay up-to-date. You may notice that the transaction log entries streamed in these update messages are identical to the individual transaction entries shown in the second part of the <code>Partial</code> response above. </p>
+            <p>From this point onwards, you will receive <code>Update</code> messages, with individual transactions that you can apply to your local state you have constructed using the <code>Partial</code> to always stay up-to-date. You may notice that the transaction log entries streamed in these update messages are identical to the individual transaction entries shown in the second part of the <code>Partial</code> response above.</p>
             <table>
                <thead>
                   <tr>
@@ -5950,11 +6050,11 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             <h2 id="order-notional">Order notional</h2>
             <p>You will not be able to place orders exceeding $1,000,000 in notional. The notional value of an order is computed as follows: <code>notional = order_amount * mark_price</code>.</p>
             <h2 id="omf--imf">OMF &lt; IMF</h2>
-            <p>You will not be able to place orders if the resulting open margin fraction (OMF) would become less than the initial margin fraction (IMF). </p>
+            <p>You will not be able to place orders if the resulting open margin fraction (OMF) would become less than the initial margin fraction (IMF).</p>
             <h2 id="max-taker-price-deviation">Max taker price deviation</h2>
             <p>You will not be able to place a limit order at a price more than 2% through the best level on the other side of the book. In other words, you cannot place a limit buy order at a price greater than 2% higher than the lowest available offer. Conversely, you cannot place a limit sell order at a price less than 2% lower than the highest available bid. If there is no liquidity on the other side of the book, the mark price is used instead.</p>
             <h2 id="self-match-prevention">Self-match prevention</h2>
-            <p>You will not be able to trade against yourself. Although this is technically not an API validation, it is worth mentioning here regardless. The self-match rules are such that the remainder of the incoming order will be canceled if it were to self-match. </p>
+            <p>You will not be able to trade against yourself. Although this is technically not an API validation, it is worth mentioning here regardless. The self-match rules are such that the remainder of the incoming order will be canceled if it were to self-match.</p>
             <h1 id="rate-limits">Rate limits</h1>
             <p>The websocket API will (eventually) use tiers to determine rate limits for each ethereum account. Rate limits restrict the number of &quot;Commands&quot; an account can place per minute.</p>
             <p>Subscriptions are not rate limited.</p>
