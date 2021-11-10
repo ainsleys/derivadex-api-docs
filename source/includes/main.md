@@ -12,8 +12,9 @@ To begin interacting with the DerivaDEX ecosystem programmatically, you generall
 1. Deposit funds to the exchange via Ethereum via an Ethereum client (these funds are controlled by you and only you, and are
 cryptographically secure)
 2. Run the Auditor client locally (validates the system and serves a local REST and WebSocket API)
-3. Connect to the local Auditor WebSocket API (submit and cancel orders via `commands` or subscribe to state and transaction updates propagated
+3. Connect to the local Auditor WebSocket API (subscribe to state and transaction updates propagated
 in real time from the exchange) & REST API (retrieve state entries)
+4. Connect to the Operator REST API (submit and cancel orders via `commands`)
 
 This set up provides you with the security, integrity, and trust model of
 a robust decentralized system, with the performance and API experience of a centralized exchange.
@@ -23,18 +24,17 @@ Additionally, it's a good idea to familiarize yourself with the [DerivaDEX types
 
 ## Auditor API
 
-The pre-packaged Pythonic Auditor connects to the DerivaDEX WebSocket Trader API upon initialization and underpins
+The pre-packaged Pythonic Auditor connects to the DerivaDEX Operators WebSocket API upon initialization and underpins
 an extremely powerful, efficient, and easy-to-use setup for programmatic traders by allowing you to:
-1) place orders, cancel orders, and signal withdrawal of funds
-2) validate the honesty and integrity of the exchange's operations
-3) use the Auditor as a backend datastore and API to ensure you are verifiably up-to-date with the latest exchange data
+1) validate the honesty and integrity of the exchange's operations
+2) use the Auditor as a backend datastore and API to ensure you are verifiably up-to-date with the latest exchange data
 
 **Please be extra careful to always do your own testing and validation of any of this tooling.**
 
-DerivaDEX's data model is powered by a Sparse Merkle Tree data store and a transaction log of state-modifying transitions. While these are emitted in raw formats by the DerivaDEX Trader API, they are not
+DerivaDEX's data model is powered by a Sparse Merkle Tree data store and a transaction log of state-modifying transitions. While these are emitted in raw formats by the DerivaDEX Operators API, they are not
 the most easily-consumable. Thus, the Auditor provides a worthwhile abstraction that efficiently allows you to locally maintain your own data validation while exposing an API for your easy consumption.
 If you would like to dive deeper into how the Auditor processes the state and raw transactions on DerivaDEX or would
-like to write your own Auditor tooling (in a different language perhaps, or to expose an interface more to your liking), please check out the [Trader API <> Auditor](#trader-api--auditor) section.
+like to write your own Auditor tooling (in a different language perhaps, or to expose an interface more to your liking), please check out the [Operator API <> Auditor](#trader-api--auditor) section.
 Otherwise, you are more than welcome to just check out the Setup section to get the Python tooling running and serving your trading
 needs.
 
@@ -44,15 +44,27 @@ needs.
 
 The preferred method of running the Auditor is to utilize the published Docker images at the [DerivaDEX docker registry](https://hub.docker.com/repository/docker/derivadex/ddx-auditor). For those who prefer to run the Auditor from source, refer to the [From source](#from-source) section. To run the Auditor with docker, follow these steps from the DerivaDEX `trading_clients` repository (< 5 minutes):
 
+1. Clone the DerivaDEX `trading_clients` repo: `git clone git@gitlab.com:derivadex/trading_clients.git`
+2. Copy the `.config.template.json` file into a location of your choosing (we'll
+refer to this file path as `$CONFIG`). Since we're only discussing the auditor,
+we will only consider the `auditorDeployments` section, and you may set `mmDeployments` and `mtDeployments`
+to an empty array (i.e., `[]`).
+   - A common pattern traders have requested is to host the auditor by itself in a Kubernetes cluster,
+so there is a special boolean flag here if this is an approach you would like to take
+as well. This generates slightly different files to accommodate Kubernetes deployments. This is discussed
+in the [section](#kubernetes-deployment) below.
+3. Generate a docker compose file and environment variables file from the config
+by running the command `python compose_generator.py --config $CONFIG` from the root
+of the repo. Make sure to replace `$CONFIG` with your config!
+
+These three steps will generate files that are used by the command below. In the
+event that you change the configuration file, the old generated files will be
+overwritten. If this occurs, make sure to use the `--remove-orphans` flag when
+tearing the container down.
+
+You may now deploy the DerivaDEX auditor with the command below:
 ```bash
-# Download the ddx-auditor docker image
-docker pull derivadex/ddx-auditor:1.0.0
-
-# Create a docker network to allow market making bots to connect to the auditor.
-docker network create auditor-net
-
-# Run the docker container with a configuration file.
-docker run --name "ddx-auditor" -d --env-file .env --network auditor-net derivadex/ddx-auditor:1.0.0
+./compose-generated.bash up -d
 ```
 
 ### From source
@@ -74,297 +86,34 @@ You will immediately see logging messages (should be lots of green) with state i
 Voila! You now have the Auditor running locally validating the **entire** DerivaDEX exchange, and serving as a local REST & WebSocket API
 for whatever your trading needs may be!
 
-# REST API
+# Command API (Operator)
 
-The local Auditor running exposes a simple REST API for your consumption. The currently
-available endpoints are described below, but you are of course more than welcome to add your own or modify
-the Auditor implementation to expose a REST interface that best suits your needs.
+Sending commands or requests (placing orders, canceling orders, and withdrawing funds)
+is something you can do vs. the Operator directly.
 
-REST endpoint URL (if running using Docker): http://ddx-auditor:8766
-REST endpoint URL (if running using source): http://localhost:8766
-
-## Trader
-
-### Request
-
-> Sample Trader REST query
-```json
-GET /trader/topic={topic}
-
-e.g. topic = STATE/TRADER/
-e.g. topic = STATE/TRADER/0/
-e.g. topic = STATE/TRADER/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/
-```
-
-You may obtain the `Trader` leaf details for any trader address with the following query parameter definition:
-
-type | field | description
------- | ---- | -------
-string | topic | Must be of the format `STATE/TRADER/[<chain_discriminant>/][[<trader_address>/]]`. `chain_discriminant` should be set to `0` for now and `trader_address` should be an `address_s` type.
-
-### Response
-
-> Sample trader REST response
-```json
-{
-	"t": "Success",
-	"c": [{
-		"t": "STATE/TRADER/0/0xa8dda8d7f5310e4a9e24f8eba77e091ac264f872/",
-		"c": {
-			"freeDDXBalance": "2557.077625570776255707",
-			"frozenDDXBalance": "0",
-			"referralAddress": "0x0000000000000000000000000000000000000000"
-		}
-	}, {
-		"t": "STATE/TRADER/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/",
-		"c": {
-			"freeDDXBalance": "1917.808219178082191778",
-			"frozenDDXBalance": "0",
-			"referralAddress": "0x0000000000000000000000000000000000000000"
-		}
-	}]
-}
-```
-
-A sample response back is shown on the right, with fields defined as follows:
-
-type | field | description
------- | ---- | -------
-string | t | Whether HTTP request was successful or not
-list | c | HTTP response result returning a list of `Trader` leaves
-dict | c[n] | An individual `Trader` leaf, containing the identifying key information and its contents
-string | c[n].t | `Trader` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/TRADER/<chain_discriminant>/<trader_address>/`. `trader_address` should be an `address_s` type.
-dict | c[n].c | `Trader` leaf contents
-decimal_s | c[n].c.freeDDXBalance | Trader's free DDX collateral (available for use on the exchange)
-decimal_s | c[n].c.frozenDDXBalance | Trader's frozen DDX collateral (available for withdrawal)
-address_s | c[n].c.referralAddress | The Ethereum address of the trader who referred this one
-
-
-## Strategy
-
-### Request
-
-> Sample Strategy REST query
-```json
-GET /strategy/topic={topic}
-
-e.g. topic = STATE/STRATEGY/
-e.g. topic = STATE/STRATEGY/0/
-e.g. topic = STATE/STRATEGY/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/
-e.g. topic = STATE/STRATEGY/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/
-```
-
-You may obtain the `Strategy` leaf details for any trader and strategy id with the following query parameter definition:
-
-type | field | description
------- | ---- | -------
-string | topic | Must be of the format `STATE/STRATEGY/[<chain_discriminant>/][[<trader_address>/]][[[abbrev_strategy_id_hash]]]`. `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
-
-### Response
-
-> Sample strategy REST response
-```json
-{
-	"t": "Success",
-	"c": [{
-		"t": "STATE/STRATEGY/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
-		"c": {
-			"strategyId": "main",
-			"freeCollateral": {
-				"0xb69e673309512a9d726f87304c6984054f87a93b": "1008.334242735906152015"
-			},
-			"frozenCollateral": {},
-			"maxLeverage": 20,
-			"frozen": false
-		}
-	}]
-}
-```
-
-A sample response back is shown on the right, with fields defined as follows:
-
-type | field | description
------- | ---- | -------
-string | t | Whether HTTP request was successful or not
-list | c | HTTP response result returning a list of `Strategy` leaves
-dict | c[n] | An individual `Strategy` leaf, containing the identifying key information and its contents
-string | c[n].t | `Strategy` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/STRATEGY/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>/`. `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4 bytes of the hash of the strategy id (e.g. `main`).
-dict | c[n].c | `Strategy` leaf contents
-string | c[n].c.strategyId | Cross-margined strategy identifier. Currently only `main` is supported.
-dict<address_s, decimal_s> | c[n].c.freeCollateral | Strategy's free collateral (available for trading) mapping from ERC-20 collateral token address to amount
-dict<address_s, decimal_s> | c[n].c.frozenCollateral | Strategy's frozen collateral (available for withdrawal) mapping from ERC-20 collateral token address to amount
-int | c[n].c.maxLeverage | Strategy's maximum leverage setting
-bool | c[n].c.frozen | Flag indicating whether strategy is tokenized (`true`) or not (`false`). Currently only `false` is supported
-
-
-## Position
-
-### Request
-
-> Sample Position REST query
-```json
-GET /position/topic={topic}
-
-e.g. topic = STATE/POSITION/
-e.g. topic = STATE/POSITION/ETHPERP/
-e.g. topic = STATE/POSITION/ETHPERP/0/
-e.g. topic = STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/
-e.g. topic = STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/
-```
-
-You may obtain the `Position` leaf details for any symbol, chain discriminant, trader, and strategy id with the following query parameter definition:
-
-type | field | description
------- | ---- | -------
-string | topic | Must be of the format `STATE/POSITION/[<symbol>/][[<chain_discriminant>/]][[[<trader_address>/]]][[[[<abbrev_strategy_id_hash>/]]]]`. `symbol` is a `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4 bytes of the hash of the strategy id (e.g. `main`).
-
-### Response
-
-> Sample Position REST response
-```json
-{
-	"t": "Success",
-	"c": [{
-		"t": "STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
-		"c": {
-			"side": "Long",
-			"balance": "0.1",
-			"avgEntryPrice": "2300"
-		}
-	}]
-}
-```
-
-A sample response back is shown on the right, with fields defined as follows:
-
-type | field | description
------- | ---- | -------
-string | t | Whether HTTP request was successful or not
-list | c | HTTP response result returning a list of `Position` leaves
-dict | c[n] | An individual `Position` leaf, containing the identifying key information and its contents
-string | c[n].t | `Position` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/POSITION/<symbol>/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>`. `symbol` is a `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
-dict | c[n].c | `Position` leaf contents
-int | c[n].c.side | Position side (`Long`, `Short`)
-decimal_s | c[n].c.balance | Size of position
-decimal_s | c[n].c.avgEntryPrice | Average entry price of position
-
-
-## Book order
-
-### Request
-
-> Sample BookOrder REST query
-```json
-GET /book_order/topic={topic}
-
-e.g. topic = STATE/BOOK_ORDER/
-e.g. topic = STATE/BOOK_ORDER/ETHPERP/
-e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/
-e.g. topic = STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/
-```
-
-You may obtain book order information (`BookOrder` leaves) for any symbol, trader, and strategy id with the following query parameter definition:
-
-type | field | description
------- | ---- | -------
-string | topic | Must be of the format `STATE/BOOK_ORDER/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is a `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_s` type, `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
-
-This endpoint can be used for a variety of use-cases:
-- L3 order book: An L3 order book is a granular, order-by-order view of the entire market for any given symbol (i.e. no
-aggregation). You are welcome to consume this data and aggregate as you see fit. You can obtain this order book view using
-a topic such as `STATE/BOOK_ORDER/ETHPERP/`, where `ETHPERP` is an example market you may be requesting.
-- Open orders: You can obtain your open orders for a given trader and strategy via this REST endpoint at any given time using a topic
-such as `STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/`, where `0xe36ea790bc9d7ab70c55260c66d52b1eca985f84` is
-an example Ethereum address you are trading with and `0x2576ebd1` is the first 4 bytes of the hash of the strategy
-you are trading from (e.g. `main`)
-
-### Response
-
-> Sample BookOrder REST response
-```json
-{
-	"t": "Success",
-	"c": [{
-		"t": "STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/0x56de91db6731ea375171888896c87234f6b2a49513e7890d48/",
-		"c": {
-			"side": "Bid",
-			"amount": "5.42",
-			"price": "2381.92",
-			"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
-			"strategyIdHash": "0x2576ebd1",
-            "bookOrdinal": 3
-		}
-	}, {
-		"t": "STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/0x67069f8829cbdfa2a0c2b215e80c05482699ac1d1dfb6f4c20/",
-		"c": {
-			"side": "Ask",
-			"amount": "2",
-			"price": "2390",
-			"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
-			"strategyIdHash": "0x2576ebd1",
-            "bookOrdinal": 4
-		}
-	}]
-}
-```
-
-A sample response back is shown on the right, with fields defined as follows:
-
-type | field | description
------- | ---- | -------
-string | t | Whether HTTP request was successful or not
-list | c | HTTP response result returning a list of open `BookOrder` leaves
-dict | c[n] | An individual `BookOrder` leaf, containing the identifying key information and its contents
-string | c[n].t | Book order topic (corresponding to its key), containing identifying information. This key is of the format `STATE/BOOK_ORDER/<symbol>/<trader_address>/<abbrev_strategy_id_hash>/<order_hash>/`. `symbol` is a `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_s` type, `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`), and 'order_hash' is a `bytes_s` type representing the first 25-bytes of the order's unique hash.
-dict | c[n].c | `BookOrder` leaf contents
-int | c[n].c.side | Order side (`Bid`, `Ask`)
-decimal_s | c[n].c.amount | Size of order
-decimal_s | c[n].c.price | Price order is currently resting at
-address_s | c[n].c.traderAddress | Trader's Ethereum address responsible for this maker order
-bytes_s | c[n].c.strategyIdHash | Trader's abbreviated strategy id hash (first 4 bytes of the hash of the strategy id) responsible for this maker order
-int | c[n].c.bookOrdinal | Numeric sequencing identifier for order, can be used to arrange multiple orders at the same price level in a locally-maintained order book
-
-
-# WebSocket API
-
-The local Auditor running exposes a simple WebSocket API for your consumption. The currently available endpoints are described below, but you are of course more than welcome to add your own or modify the Auditor implementation to expose a WebSocket interface that best suits your needs.
-
-You can use the WebSocket API to place `commands` on the exchange or receive data per `subscriptions`. Regarding subscriptions, we broadly group them into two categories:
-
-1) Leaf events: for when a state item changes
-2) Transaction log events: for when a state-changing transaction has been emitted. These events are what triggers state to change.
-
-WS endpoint URL (if running using Docker): ws://localhost:8765
-WS endpoint URL (if running using source): ws://ddx-auditor:8765
-
-## Commands
-
-The websocket API offers commands for placing and canceling orders, as well as withdrawals. Since commands modify system state, these requests must include an [EIP-712 signature](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md). Examples are included in the [sample code](samples.md).
+Since commands modify system state, these requests must include an [EIP-712 signature](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md). Examples are included in the [sample code](samples.md).
 
 **Please keep in mind, all sample command requests displayed below are NOT encrypted. The reason for this is to more clearly display the formats of the various commands you may send. You MUST encrypt these messages prior to sending them to the exchange.**
 
-### Place order
+## Place order
 
-#### Request
+### Request
 > Request format (JSON)
 ```json
 {
-	"t": "Request",
-	"c": {
-		"t": "Order",
-		"c": {
-			"traderAddress": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
-			"symbol": "ETHPERP",
-			"strategy": "main",
-			"side": "Bid",
-			"orderType": "Limit",
-			"nonce": "0x3136313839303336353634383833373230303000000000000000000000000000",
-			"amount": 10,
-			"price": 487.50,
-			"stopPrice": 0,
-			"signature": "0xd5a1ca6d40a030368710ab86d391e5d16164ea16d2c809894eefddd1658bb08c6898177aa492d4d45272ee41cb40f252327a23e8d1fc2af6904e8860d3f72b3b1b"
-		}
-	}
+    "t": "Order",
+    "c": {
+        "traderAddress": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
+        "symbol": "ETHPERP",
+        "strategy": "main",
+        "side": "Bid",
+        "orderType": "Limit",
+        "nonce": "0x3136313839303336353634383833373230303000000000000000000000000000",
+        "amount": 10,
+        "price": 487.50,
+        "stopPrice": 0,
+        "signature": "0xd5a1ca6d40a030368710ab86d391e5d16164ea16d2c809894eefddd1658bb08c6898177aa492d4d45272ee41cb40f252327a23e8d1fc2af6904e8860d3f72b3b1b"
+    }
 }
 ```
 
@@ -372,25 +121,23 @@ You can place new orders by specifying specific attributes in the `Order` comman
 
 type | field | description
 ------ | ---- | -------
-string | t | WebSocket message type, which in this case will be `Request`
-dict | c | WebSocket message contents
-string | t.t | Command type, which in this case will be `Order`
-dict | c.c | Command contents containing the order being placed
-address_s | c.c.traderAddress | Trader's Ethereum address (same as the one that facilitated the deposit)
-string  | c.c.symbol | Name of the market to trade. Currently, this is limited to `ETHPERP`, but new symbols are coming soon!
-string | c.c.strategy | Name of the cross-margined strategy this trade belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
-string | c.c.side | Side of trade, either `Bid` (buy/long) or an `Ask` (sell/short)
-string | c.c.orderType | Order type, either `Limit` or `Market`. Other order types coming soon!
-bytes32_s | c.c.nonce | An incrementing numeric identifier for this request that is unique per user for all time
-decimal | c.c.amount | The order amount/size requested
-decimal | c.c.price | The order price (If `orderType` is `Market`, this must be set to `0`)
-decimal | c.c.stopPrice | Currently, always set to `0` as stops are not implemented.
-bytes_s | c.c.signature | EIP-712 signature of the order placement intent
+string | t | Command type, which in this case will be `Order`
+dict | c | Command contents containing the order being placed
+address_s | c.traderAddress | Trader's Ethereum address (same as the one that facilitated the deposit)
+string  | c.symbol | Name of the market to trade. Currently, this is limited to `ETHPERP`, but new symbols are coming soon!
+string | c.strategy | Name of the cross-margined strategy this trade belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
+string | c.side | Side of trade, either `Bid` (buy/long) or an `Ask` (sell/short)
+string | c.orderType | Order type, either `Limit` or `Market`. Other order types coming soon!
+bytes32_s | cc.nonce | An incrementing numeric identifier for this request that is unique per user for all time
+decimal | c.amount | The order amount/size requested
+decimal | c.price | The order price (If `orderType` is `Market`, this must be set to `0`)
+decimal | c.stopPrice | Currently, always set to `0` as stops are not implemented.
+bytes_s | c.signature | EIP-712 signature of the order placement intent
 
 To be more explicit, all of these fields must be passed in, even if not all of the fields apply due to certain functionalities not currently implemented (i.e. stops) or the fact that prices aren't applicable in the case of market orders. Please follow the guidelines specified in the table above around these conditions.
 
 
-#### Response
+### Response
 > Receipt (success) format (JSON)
 ```json
 {
@@ -411,8 +158,8 @@ A successful `command` returns a `Sequenced` receipt from the Operator. DerivaDE
 
 type | field | description
 ------ | ---- | -----------
-string | t | WebSocket message type, which in this case will be `Sequenced`
-dict | c | WebSocket message contents
+string | t | Message type, which in this case will be `Sequenced`
+dict | c | Message contents
 bytes32_s | c.nonce | The same `nonce` that was passed in the initial request, which can be used to correlate your initial requests with receipts
 bytes32_s | c.requestHash | Hash of the request
 int | c.requestIndex | A ticket number which guarantees fair sequencing. All tickets are processed and handled by the exchange in order of this `requestIndex`.
@@ -435,22 +182,19 @@ type | field | description
 string | msg | Error message
 
 
-### Cancel order
+## Cancel order
 
-#### Request
+### Request
 > Request format (JSON)
 ```json
 {
-	"t": "Request",
-	"c": {
-		"t": "CancelOrder",
-		"c": {
-			"symbol": "ETHPERP",
-			"orderHash": "0xedee9c27b4fc64a481bd45c145eaf35806d6ad49ca0c68890a00000000000000",
-			"nonce": "0x3136323635353034303835323735383330303000000000000000000000000000",
-			"signature": "0xee6c271fc010e25fb28556b39f8999d832485b03335c9c4a5ceca84455ce6bb205483995f5240e62adeb50bda12ed8db67a990c0930e5512709b3bcff4a98ca01b"
-		}
-	}
+	"t": "CancelOrder",
+    "c": {
+        "symbol": "ETHPERP",
+        "orderHash": "0xedee9c27b4fc64a481bd45c145eaf35806d6ad49ca0c68890a00000000000000",
+        "nonce": "0x3136323635353034303835323735383330303000000000000000000000000000",
+        "signature": "0xee6c271fc010e25fb28556b39f8999d832485b03335c9c4a5ceca84455ce6bb205483995f5240e62adeb50bda12ed8db67a990c0930e5512709b3bcff4a98ca01b"
+    }
 }
 ```
 
@@ -458,18 +202,16 @@ You can cancel existing orders by specifying specific attributes in the `CancelO
 
 type | field | description
 -----|---- | -----------------------
-string | t | WebSocket message type, which in this case will be `Request`
-dict | c | WebSocket message contents
-string | t.t | Command type, which in this case will be `CancelOrder`
-dict | c.c | Command contents containing the order being canceled
-string | c.c.symbol | Currently always `ETHPERP`. New symbols coming soon!
-bytes32_s | c.c.orderHash| The first 25 bytes of the order's unique hash that is being canceled.
-bytes32_s | c.c.nonce | An incrementing numeric identifier for this request that is unique per user for all time
-bytes_s | c.c.signature | EIP-712 signature of the order cancellation request
+string | t | Command type, which in this case will be `CancelOrder`
+dict | c | Command contents containing the order being canceled
+string | c.symbol | Currently always `ETHPERP`. New symbols coming soon!
+bytes32_s | c.orderHash| The first 25 bytes of the order's unique hash that is being canceled.
+bytes32_s | c.nonce | An incrementing numeric identifier for this request that is unique per user for all time
+bytes_s | c.signature | EIP-712 signature of the order cancellation request
 
 As described in the `Signatures & hashing` section, the `orderHash` is something that you construct client-side prior to submitting the order to the exchange. In this regard, you have the `orderHash` for each order you submit irrespective of acknowledgement from the exchange. However, you likely will fire order cancellations after you have already had acknowledgement of placement receipt from the exchange. You can obtain the order hashes of your open orders using appropriately defined REST requests or WebSocket subscriptions.
 
-#### Response
+### Response
 > Receipt (success) format (JSON)
 ```json
 {
@@ -490,8 +232,8 @@ A successful `command` returns a `Received` receipt from the Operator. DerivaDEX
 
 type | field | description
 ------ | ---- | -----------
-string | t | WebSocket message type, which in this case will be `Sequenced`
-dict | c | WebSocket message contents
+string | t | Message type, which in this case will be `Sequenced`
+dict | c | Message contents
 bytes32_s | c.nonce | The same `nonce` that was passed in the initial request, which can be used to correlate your initial requests with receipts
 bytes32_s | c.requestHash | Hash of the request
 int | c.requestIndex | A ticket number which guarantees fair sequencing. All tickets are processed and handled by the exchange in order of this `requestIndex`.
@@ -514,24 +256,21 @@ type | field | description
 string | msg | Error message
 
 
-### Withdraw
+## Withdraw
 
-#### Request
+### Request
 > Request format (JSON)
 ```json
 {
-	"t": "Request",
-	"c": {
-		"t": "Withdraw",
-		"c": {
-			"traderAddress": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
-			"strategyId": "main",
-			"currency": "0x41082c820342539de44c1b404fead3b4b39e15d6",
-			"amount": 440.32,
-			"nonce": "0x3136313839303336353634383833373230303000000000000000000000000000",
-			"signature": "0xd5a1ca6d40a030368710ab86d391e5d16164ea16d2c809894eefddd1658bb08c6898177aa492d4d45272ee41cb40f252327a23e8d1fc2af6904e8860d3f72b3b1b"
-		}
-	}
+	"t": "Withdraw",
+    "c": {
+        "traderAddress": "0x603699848c84529987E14Ba32C8a66DEF67E9eCE",
+        "strategyId": "main",
+        "currency": "0x41082c820342539de44c1b404fead3b4b39e15d6",
+        "amount": 440.32,
+        "nonce": "0x3136313839303336353634383833373230303000000000000000000000000000",
+        "signature": "0xd5a1ca6d40a030368710ab86d391e5d16164ea16d2c809894eefddd1658bb08c6898177aa492d4d45272ee41cb40f252327a23e8d1fc2af6904e8860d3f72b3b1b"
+    }
 }
 ```
 
@@ -539,18 +278,16 @@ You can signal withdrawal intents to the Operators by specifying specific attrib
 
 type | field | description
 ---- | --- | -----------------
-string | t | WebSocket message type, which in this case will be `Request`
-dict | c | WebSocket message contents
-string | t.t | Command type, which in this case will be `Withdraw`
-dict | c.c | Command contents containing the withdrawal data
-address_s | c.c.traderAddress | Trader's Ethereum address (same as the one that facilitated the deposit)
-string | c.c.strategyId | Name of the cross-margined strategy this withdrawal belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
-address_s | c.c.currency | ERC-20 token address being withdrawn
-decimal | c.c.amount | Amount withdrawn (be sure to use the grains format specific to the collateral token being used (e.g. if you wanted to withdraw 1 USDC, you would enter 1000000 since the USDC token contract has 6 decimal places)
-bytes32_s | c.c.nonce | An incrementing numeric identifier for this request that is unique per user for all time
-bytes_s | c.c.signature | EIP-712 signature for the withdrawal request
+string | t | Command type, which in this case will be `Withdraw`
+dict | c | Command contents containing the withdrawal data
+address_s | c.traderAddress | Trader's Ethereum address (same as the one that facilitated the deposit)
+string | c.strategyId | Name of the cross-margined strategy this withdrawal belongs to. Currently, this is limited to the default `main` strategy, but support for multiple strategies is coming soon!
+address_s | c.currency | ERC-20 token address being withdrawn
+decimal | c.amount | Amount withdrawn (be sure to use the grains format specific to the collateral token being used (e.g. if you wanted to withdraw 1 USDC, you would enter 1000000 since the USDC token contract has 6 decimal places)
+bytes32_s | c.nonce | An incrementing numeric identifier for this request that is unique per user for all time
+bytes_s | c.signature | EIP-712 signature for the withdrawal request
 
-#### Response
+### Response
 > Receipt (success) format (JSON)
 ```json
 {
@@ -571,8 +308,8 @@ A successful `command` returns a `Received` receipt from the Operator. DerivaDEX
 
 type | field | description
 ------ | ---- | -----------
-string | t | WebSocket message type, which in this case will be `Sequenced`
-dict | c | WebSocket message contents
+string | t | Message type, which in this case will be `Sequenced`
+dict | c | Message contents
 bytes32_s | c.nonce | The same `nonce` that was passed in the initial request, which can be used to correlate your initial requests with receipts
 bytes32_s | c.requestHash | Hash of the request
 int | c.requestIndex | A ticket number which guarantees fair sequencing. All tickets are processed and handled by the exchange in order of this `requestIndex`.
@@ -595,6 +332,266 @@ type | field | description
 ------ | ---- | -----------
 string | msg | Error message
 
+# REST API (Auditor)
+
+The local Auditor running exposes a simple REST API for your consumption. The currently
+available endpoints are described below, but you are of course more than welcome to add your own or modify
+the Auditor implementation to expose a REST interface that best suits your needs.
+
+REST endpoint URL (if running using Docker): http://ddx-auditor:8766
+REST endpoint URL (if running using source): http://localhost:8766
+
+## Trader
+
+### Request
+
+> Sample Trader REST query
+```json
+GET /trader/topic={topic}
+
+e.g. topic = STATE/TRADER/
+e.g. topic = STATE/TRADER/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/
+```
+
+You may obtain the `Trader` leaf details for any trader address with the following query parameter definition:
+
+type | field | description
+------ | ---- | -------
+string | topic | Must be of the format `STATE/TRADER/[<trader_address>/]`. `trader_address` should be an `address_pre_s` type.
+
+### Response
+
+> Sample trader REST response
+```json
+{
+	"t": "Success",
+	"c": [{
+		"t": "STATE/TRADER/0x00a8dda8d7f5310e4a9e24f8eba77e091ac264f872/",
+		"c": {
+			"freeDDXBalance": "2557.077625570776255707",
+			"frozenDDXBalance": "0",
+			"referralAddress": "0x0000000000000000000000000000000000000000"
+		}
+	}, {
+		"t": "STATE/TRADER/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/",
+		"c": {
+			"freeDDXBalance": "1917.808219178082191778",
+			"frozenDDXBalance": "0",
+			"referralAddress": "0x0000000000000000000000000000000000000000"
+		}
+	}]
+}
+```
+
+A sample response back is shown on the right, with fields defined as follows:
+
+type | field | description
+------ | ---- | -------
+string | t | Whether HTTP request was successful or not
+list | c | HTTP response result returning a list of `Trader` leaves
+dict | c[n] | An individual `Trader` leaf, containing the identifying key information and its contents
+string | c[n].t | `Trader` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/TRADER/<trader_address>/`. `trader_address` should be an `address_pre_s` type.
+dict | c[n].c | `Trader` leaf contents
+decimal_s | c[n].c.freeDDXBalance | Trader's free DDX collateral (available for use on the exchange)
+decimal_s | c[n].c.frozenDDXBalance | Trader's frozen DDX collateral (available for withdrawal)
+address_s | c[n].c.referralAddress | The Ethereum address of the trader who referred this one
+
+
+## Strategy
+
+### Request
+
+> Sample Strategy REST query
+```json
+GET /strategy/topic={topic}
+
+e.g. topic = STATE/STRATEGY/
+e.g. topic = STATE/STRATEGY/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/
+e.g. topic = STATE/STRATEGY/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/
+```
+
+You may obtain the `Strategy` leaf details for any trader and strategy id with the following query parameter definition:
+
+type | field | description
+------ | ---- | -------
+string | topic | Must be of the format `STATE/STRATEGY/[<trader_address>/][[abbrev_strategy_id_hash]]`. `trader_address` should be an `address_pre_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+
+### Response
+
+> Sample strategy REST response
+```json
+{
+	"t": "Success",
+	"c": [{
+		"t": "STATE/STRATEGY/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
+		"c": {
+			"strategyId": "main",
+			"freeCollateral": {
+				"0xb69e673309512a9d726f87304c6984054f87a93b": "1008.334242735906152015"
+			},
+			"frozenCollateral": {},
+			"maxLeverage": 20,
+			"frozen": false
+		}
+	}]
+}
+```
+
+A sample response back is shown on the right, with fields defined as follows:
+
+type | field | description
+------ | ---- | -------
+string | t | Whether HTTP request was successful or not
+list | c | HTTP response result returning a list of `Strategy` leaves
+dict | c[n] | An individual `Strategy` leaf, containing the identifying key information and its contents
+string | c[n].t | `Strategy` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/STRATEGY/<trader_address>/<abbrev_strategy_id_hash>/`. `trader_address` should be an `address_pre_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4 bytes of the hash of the strategy id (e.g. `main`).
+dict | c[n].c | `Strategy` leaf contents
+string | c[n].c.strategyId | Cross-margined strategy identifier. Currently only `main` is supported.
+dict<address_s, decimal_s> | c[n].c.freeCollateral | Strategy's free collateral (available for trading) mapping from ERC-20 collateral token address to amount
+dict<address_s, decimal_s> | c[n].c.frozenCollateral | Strategy's frozen collateral (available for withdrawal) mapping from ERC-20 collateral token address to amount
+int | c[n].c.maxLeverage | Strategy's maximum leverage setting
+bool | c[n].c.frozen | Flag indicating whether strategy is tokenized (`true`) or not (`false`). Currently only `false` is supported
+
+
+## Position
+
+### Request
+
+> Sample Position REST query
+```json
+GET /position/topic={topic}
+
+e.g. topic = STATE/POSITION/
+e.g. topic = STATE/POSITION/ETHPERP/
+e.g. topic = STATE/POSITION/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/
+e.g. topic = STATE/POSITION/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/
+```
+
+You may obtain the `Position` leaf details for any symbol, chain discriminant, trader, and strategy id with the following query parameter definition:
+
+type | field | description
+------ | ---- | -------
+string | topic | Must be of the format `STATE/POSITION/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is a `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_pre_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4 bytes of the hash of the strategy id (e.g. `main`).
+
+### Response
+
+> Sample Position REST response
+```json
+{
+	"t": "Success",
+	"c": [{
+		"t": "STATE/POSITION/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
+		"c": {
+			"side": "Long",
+			"balance": "0.1",
+			"avgEntryPrice": "2300"
+		}
+	}]
+}
+```
+
+A sample response back is shown on the right, with fields defined as follows:
+
+type | field | description
+------ | ---- | -------
+string | t | Whether HTTP request was successful or not
+list | c | HTTP response result returning a list of `Position` leaves
+dict | c[n] | An individual `Position` leaf, containing the identifying key information and its contents
+string | c[n].t | `Position` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/POSITION/<symbol>/<trader_address>/<abbrev_strategy_id_hash>`. `symbol` is a `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_pre_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+dict | c[n].c | `Position` leaf contents
+int | c[n].c.side | Position side (`Long`, `Short`)
+decimal_s | c[n].c.balance | Size of position
+decimal_s | c[n].c.avgEntryPrice | Average entry price of position
+
+
+## Book order
+
+### Request
+
+> Sample BookOrder REST query
+```json
+GET /book_order/topic={topic}
+
+e.g. topic = STATE/BOOK_ORDER/
+e.g. topic = STATE/BOOK_ORDER/ETHPERP/
+e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/
+e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/
+```
+
+You may obtain book order information (`BookOrder` leaves) for any symbol, trader, and strategy id with the following query parameter definition:
+
+type | field | description
+------ | ---- | -------
+string | topic | Must be of the format `STATE/BOOK_ORDER/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is a `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_pre_s` type, `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+
+This endpoint can be used for a variety of use-cases:
+- L3 order book: An L3 order book is a granular, order-by-order view of the entire market for any given symbol (i.e. no
+aggregation). You are welcome to consume this data and aggregate as you see fit. You can obtain this order book view using
+a topic such as `STATE/BOOK_ORDER/ETHPERP/`, where `ETHPERP` is an example market you may be requesting.
+- Open orders: You can obtain your open orders for a given trader and strategy via this REST endpoint at any given time using a topic
+such as `STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/`, where `0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84` is
+an example Ethereum address prefixed with the chain discriminant you are trading with and `0x2576ebd1` is the first 4 bytes of the hash of the strategy
+you are trading from (e.g. `main`)
+
+### Response
+
+> Sample BookOrder REST response
+```json
+{
+	"t": "Success",
+	"c": [{
+		"t": "STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/0x56de91db6731ea375171888896c87234f6b2a49513e7890d48/",
+		"c": {
+			"side": "Bid",
+			"amount": "5.42",
+			"price": "2381.92",
+			"traderAddress": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84",
+			"strategyIdHash": "0x2576ebd1",
+            "bookOrdinal": 3
+		}
+	}, {
+		"t": "STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/0x67069f8829cbdfa2a0c2b215e80c05482699ac1d1dfb6f4c20/",
+		"c": {
+			"side": "Ask",
+			"amount": "2",
+			"price": "2390",
+			"traderAddress": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84",
+			"strategyIdHash": "0x2576ebd1",
+            "bookOrdinal": 4
+		}
+	}]
+}
+```
+
+A sample response back is shown on the right, with fields defined as follows:
+
+type | field | description
+------ | ---- | -------
+string | t | Whether HTTP request was successful or not
+list | c | HTTP response result returning a list of open `BookOrder` leaves
+dict | c[n] | An individual `BookOrder` leaf, containing the identifying key information and its contents
+string | c[n].t | Book order topic (corresponding to its key), containing identifying information. This key is of the format `STATE/BOOK_ORDER/<symbol>/<trader_address>/<abbrev_strategy_id_hash>/<order_hash>/`. `symbol` is a `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_pre_s` type, `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`), and 'order_hash' is a `bytes_s` type representing the first 25-bytes of the order's unique hash.
+dict | c[n].c | `BookOrder` leaf contents
+int | c[n].c.side | Order side (`Bid`, `Ask`)
+decimal_s | c[n].c.amount | Size of order
+decimal_s | c[n].c.price | Price order is currently resting at
+address_s | c[n].c.traderAddress | Trader's Ethereum address (prefixed with the chain discriminant) responsible for this maker order
+bytes_s | c[n].c.strategyIdHash | Trader's abbreviated strategy id hash (first 4 bytes of the hash of the strategy id) responsible for this maker order
+int | c[n].c.bookOrdinal | Numeric sequencing identifier for order, can be used to arrange multiple orders at the same price level in a locally-maintained order book
+
+
+# WebSocket API (Auditor)
+
+The local Auditor running exposes a simple WebSocket API for your consumption. The currently available endpoints are described below, but you are of course more than welcome to add your own or modify the Auditor implementation to expose a WebSocket interface that best suits your needs.
+
+You can use the WebSocket API to receive data per `subscriptions`. We broadly group them into two categories:
+
+1) State events: for when a state/leaf item changes
+2) Transaction log events: for when a state-changing transaction has been emitted. These events are what triggers state to change.
+
+WS endpoint URL (if running using Docker): ws://localhost:8765
+WS endpoint URL (if running using source): ws://ddx-auditor:8765
+
 
 ## State events
 
@@ -614,22 +611,16 @@ You may subscribe to updates for any trader's `Trader` data.
 	"c": "STATE/TRADER/"
 }
 
-// All traders for a chain discriminant
+// Trader for a trader address
 {
 	"t": "Subscribe",
-	"c": "STATE/TRADER/0/"
-}
-
-// Trader for a chain discriminant and trader address
-{
-	"t": "Subscribe",
-	"c": "STATE/TRADER/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/"
+	"c": "STATE/TRADER/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/"
 }
 ```
 type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type - must be `Subscribe`
-string | c | Subscription topic of the format `STATE/TRADER/[<chain_discriminant>/][[<trader_address>/]]`. `trader_address` should be an `address_s` type.
+string | c | Subscription topic of the format `STATE/TRADER/[<trader_address>/]`. `trader_address` should be an `address_pre_s` type.
 
 #### Response
 
@@ -641,14 +632,14 @@ string | c | Subscription topic of the format `STATE/TRADER/[<chain_discriminant
 	"e": "Partial",
 	"c": {
 		"itemData": [{
-			"t": "STATE/TRADER/0/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/",
+			"t": "STATE/TRADER/0x006ecbe1db9ef729cbe972c83fb886247691fb6beb/",
 			"c": {
 				"freeDDXBalance": "2557.077625570776255707",
 				"frozenDDXBalance": "0",
 				"referralAddress": "0x0000000000000000000000000000000000000000"
 			}
 		}, {
-			"t": "STATE/TRADER/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/",
+			"t": "STATE/TRADER/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/",
 			"c": {
 				"freeDDXBalance": "639.269406392694063926",
 				"frozenDDXBalance": "0",
@@ -670,7 +661,7 @@ string | e | Websocket message event, which in the case of a snapshot, will be `
 dict | c | Websocket message content, containing a snapshot of `Trader` leaf data based on the topic subscribed to
 list | c.itemData | Contains a list of the snapshotted `Trader` leaf data
 dict | c.itemData[n] | An individual `Trader` leaf as part of the snapshot
-string | c.itemData[n].t | `Trader` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/TRADER/<chain_discriminant>/<trader_address>/`. `trader_address` should be an `address_s` type.
+string | c.itemData[n].t | `Trader` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/TRADER/<trader_address>/`. `trader_address` should be an `address_pre_s` type.
 dict | c.itemData[n].c | `Trader` leaf contents
 decimal_s | c.itemData[n].c.freeDDXBalance | Trader's free DDX collateral (available for use on the exchange)
 decimal_s | c.itemData[n].c.frozenDDXBalance | Trader's frozen DDX collateral (available for withdrawal)
@@ -685,7 +676,7 @@ address_s | c.itemData[n].c.referralAddress | The Ethereum address of the trader
 	"e": "Update",
 	"c": {
 		"itemData": {
-			"t": "STATE/TRADER/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/",
+			"t": "STATE/TRADER/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/",
 			"c": {
 				"freeDDXBalance": "1278.538812785388127852",
 				"frozenDDXBalance": "0",
@@ -716,7 +707,7 @@ string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which in the case of an update, will be `Update`
 dict | c | Websocket message content, containing the `Trader` leaf update event data
 dict | c.itemData | Contains the new `Trader` leaf data
-string | c.itemData.t | `Trader` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/TRADER/<chain_discriminant>/<trader_address>/`. `trader_address` should be a `address_s` type.
+string | c.itemData.t | `Trader` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/TRADER/<trader_address>/`. `trader_address` should be a `address_pre_s` type.
 string | c.itemData.c | `Trader` leaf contents
 decimal_s | c.itemData.c.freeDDXBalance | Trader's free DDX collateral (available for use on the exchange)
 decimal_s | c.itemData.c.frozenDDXBalance | Trader's frozen DDX collateral (available for withdrawal)
@@ -738,28 +729,22 @@ You may subscribe to updates for any trader's `Strategy` data.
 	"c": "STATE/STRATEGY/"
 }
 
-// All strategies for a chain discriminant
+// All strategies for a trader address
 {
 	"t": "Subscribe",
-	"c": "STATE/STRATEGY/0/"
+	"c": "STATE/STRATEGY/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/"
 }
 
-// All strategies for a chain discriminant and trader address
+// Strategy for a trader address and strategy id
 {
 	"t": "Subscribe",
-	"c": "STATE/STRATEGY/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/"
-}
-
-// Strategy for a chain discriminant, trader address, and strategy id
-{
-	"t": "Subscribe",
-	"c": "STATE/STRATEGY/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/"
+	"c": "STATE/STRATEGY/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/"
 }
 ```
 type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type - must be `Subscribe`
-string | c | Subscription topic of the format `STATE/STRATEGY/[<chain_discriminant>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+string | c | Subscription topic of the format `STATE/STRATEGY/[<trader_address>/][[<abbrev_strategy_id_hash>/]]`. `trader_address` should be an `address_pre_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 
 #### Response
 
@@ -767,11 +752,11 @@ string | c | Subscription topic of the format `STATE/STRATEGY/[<chain_discrimina
 > Sample Strategy leaf event partial response (JSON)
 ```json
 {
-	"t": "STATE/STRATEGY/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
+	"t": "STATE/STRATEGY/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
 	"e": "Partial",
 	"c": {
 		"itemData": [{
-			"t": "STATE/STRATEGY/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
+			"t": "STATE/STRATEGY/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
 			"c": {
 				"strategyId": "main",
 				"freeCollateral": {
@@ -797,7 +782,7 @@ string | e | Websocket message event, which in the case of a snapshot, will be `
 dict | c | Websocket message content, containing a snapshot of `Strategy` leaf data based on the topic subscribed to
 list | c.itemData | Contains a list of the snapshotted `Strategy` leaf data
 dict | c.itemData[n] | An individual `Strategy` leaf as part of the snapshot
-string | c.itemData[n].t | `Strategy` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/STRATEGY/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>`. `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+string | c.itemData[n].t | `Strategy` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/STRATEGY/<trader_address>/<abbrev_strategy_id_hash>`. `trader_address` should be an `address_pre_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 dict | c.itemData[n].c | `Strategy` leaf contents
 string | c.itemData[n].c.strategyId | Cross-margined strategy identifier. Currently only `main` is supported.
 dict<address_s, decimal_s> | c.itemData[n].c.freeCollateral | Strategy's free collateral (available for trading) mapping from ERC-20 collateral token address to amount
@@ -811,11 +796,11 @@ dict | c.eventTrigger | The transaction log event that triggered an update. Sinc
 > Sample Strategy leaf event update response (JSON)
 ```json
 {
-	"t": "STATE/STRATEGY/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
+	"t": "STATE/STRATEGY/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
 	"e": "Update",
 	"c": {
 		"itemData": {
-			"t": "STATE/STRATEGY/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
+			"t": "STATE/STRATEGY/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
 			"c": {
 				"strategyId": "main",
 				"freeCollateral": {
@@ -829,7 +814,7 @@ dict | c.eventTrigger | The transaction log event that triggered an update. Sinc
 		"eventTrigger": {
 			"eventType": 5,
 			"requestIndex": 10119,
-			"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
+			"traderAddress": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84",
 			"collateralAddress": "0xb69e673309512a9d726f87304c6984054f87a93b",
 			"strategyId": "main",
 			"amount": "5000",
@@ -849,7 +834,7 @@ string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which in the case of an update, will be `Update`
 dict | c | Websocket message content, containing the `Strategy` leaf update event data
 dict | c.itemData | Contains the new `Strategy` leaf data
-string | c.itemData.t | `Strategy` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/STRATEGY/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>`. `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+string | c.itemData.t | `Strategy` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/STRATEGY/<trader_address>/<abbrev_strategy_id_hash>`. `trader_address` should be an `address_pre_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 string | c.itemData.c | `Strategy` leaf contents
 string | c.itemData.c.strategyId | Cross-margined strategy identifier. Currently only `main` is supported.
 dict<address_s, decimal_s> | c.itemData.c.freeCollateral | Strategy's free collateral (available for trading) mapping from ERC-20 collateral token address to amount
@@ -879,28 +864,22 @@ You may subscribe to updates for any trader's `Position` data.
 	"c": "STATE/POSITION/ETHPERP/"
 }
 
-// All positions for a symbol and chain discriminant
+// All positions for a symbol and trader address
 {
 	"t": "Subscribe",
-	"c": "STATE/POSITION/ETHPERP/0/"
+	"c": "STATE/POSITION/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/"
 }
 
-// All positions for a symbol, chain discriminant, and trader address
+// All positions for a symbol, trader address, and strategy id
 {
 	"t": "Subscribe",
-	"c": "STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/"
-}
-
-// All positions for a symbol, chain discriminant, trader address, and strategy id
-{
-	"t": "Subscribe",
-	"c": "STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/"
+	"c": "STATE/POSITION/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/"
 }
 ```
 type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type - must be `Subscribe`
-string | c | Subscription topic of the format `STATE/POSITION/[<symbol>/][[<chain_discriminant>/]][[[<trader_address>/]]][[[[<abbrev_strategy_id_hash>/]]]]`. `symbol` is of `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+string | c | Subscription topic of the format `STATE/POSITION/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is of `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_pre_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 
 #### Response
 
@@ -908,11 +887,11 @@ string | c | Subscription topic of the format `STATE/POSITION/[<symbol>/][[<chai
 > Sample Position leaf event partial response (JSON)
 ```json
 {
-	"t": "STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
+	"t": "STATE/POSITION/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
 	"e": "Partial",
 	"c": {
 		"itemData": [{
-			"t": "STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
+			"t": "STATE/POSITION/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
 			"c": {
 				"side": "Short",
 				"balance": "10.13",
@@ -934,7 +913,7 @@ string | e | Websocket message event, which in the case of a snapshot, will be `
 dict | c | Websocket message content, containing a snapshot of `Position` leaf data based on the topic subscribed to
 list | c.itemData | Contains a list of the snapshotted `Position` leaf data
 dict | c.itemData[n] | An individual `Position` leaf as part of the snapshot
-string | c.itemData[n].t | `Position` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/POSITION/<symbol>/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>`. `symbol` is of `string` type, `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+string | c.itemData[n].t | `Position` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/POSITION/<symbol>/<trader_address>/<abbrev_strategy_id_hash>`. `symbol` is of `string` type, `trader_address` should be an `address_pre_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 dict | c.itemData[n].c | `Position` leaf contents
 string | c.itemData[n].c.side | Position side (`Long`, `Short`)
 decimal_s | c.itemData[n].c.balance | Position size
@@ -946,11 +925,11 @@ dict | c.eventTrigger | The transaction log event that triggered an update. Sinc
 > Sample Position leaf event update response (JSON)
 ```json
 {
-	"t": "STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
+	"t": "STATE/POSITION/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
 	"e": "Update",
 	"c": {
 		"itemData": {
-			"t": "STATE/POSITION/ETHPERP/0/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
+			"t": "STATE/POSITION/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
 			"c": {
 				"side": "Short",
 				"balance": "11.87",
@@ -968,7 +947,7 @@ dict | c.eventTrigger | The transaction log event that triggered an update. Sinc
 			"price": "1946.8",
 			"takerSide": "Bid",
 			"makerOutcome": {
-				"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
+				"traderAddress": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84",
 				"strategyId": "main",
 				"fee": "0",
 				"ddxFeeElection": false,
@@ -979,7 +958,7 @@ dict | c.eventTrigger | The transaction log event that triggered an update. Sinc
 				"positionSide": "Short"
 			},
 			"takerOutcome": {
-				"traderAddress": "0x6ecbe1db9ef729cbe972c83fb886247691fb6beb",
+				"traderAddress": "0x006ecbe1db9ef729cbe972c83fb886247691fb6beb",
 				"strategyId": "main",
 				"fee": "6.774864",
 				"ddxFeeElection": false,
@@ -1003,7 +982,7 @@ string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which in the case of an update, will be `Update`
 dict | c | Websocket message content containing the updated `Position` leaf data
 list | c.itemData | Contains a an entry for the `Position` leaf data
-string | c.itemData.t | `Position` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/POSITION/<symbol>/<chain_discriminant>/<trader_address>/<abbrev_strategy_id_hash>`. `symbol` is of `string` type, `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+string | c.itemData.t | `Position` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/POSITION/<symbol>/<trader_address>/<abbrev_strategy_id_hash>`. `symbol` is of `string` type, `trader_address` should be an `address_pre_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 dict | c.itemData.c | `Position` leaf contents
 string | c.itemData.c.side | Position side (`Long`, `Short`)
 decimal_s | c.itemData.c.balance | Position size
@@ -1034,23 +1013,23 @@ You may subscribe to updates to orders in the order book.
 // All book orders for a given symbol and trader
 {
 	"t": "Subscribe",
-	"c": "STATE/BOOK_ORDER/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/"
+	"c": "STATE/BOOK_ORDER/ETHPERP/0x006ecbe1db9ef729cbe972c83fb886247691fb6beb/"
 }
 
 // All book orders for a given symbol, trader, and strategy
 {
 	"t": "Subscribe",
-	"c": "STATE/BOOK_ORDER/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/"
+	"c": "STATE/BOOK_ORDER/ETHPERP/0x006ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/"
 }
 ```
 type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type - must be `Subscribe`
-string | c | Subscription topic of the format `STATE/BOOK_ORDER/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is of `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
+string | c | Subscription topic of the format `STATE/BOOK_ORDER/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is of `string` type (e.g. `ETHPERP`), `trader_address` should be an `address_pre_s` type and `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`).
 
 Like its REST counterpart, this is endpoint can be used for a variety of purposes. You can subscribe to `BookOrder` state updates to track:
 - L3 order book: An L3 order book is a granular, order-by-order view of the entire market for any given symbol (i.e. no aggregation). You can subscribe to a market's order book using a topic such as `STATE/BOOK_ORDER/ETHPERP`, where `ETHPERP` is an example market you may be requesting. This will send an initial `Partial` response with all of the `BookOrder` leaf entries making up the order book, and subsequently, `Update` messages with any new, canceled, or updated orders in the book. You are welcome to process this data in any local order book data structure you see fit.
-- Open orders: You can obtain your open orders in a given strategy using a topic such as `STATE/BOOK_ORDER/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/`, where `ETHPERP` is an example market, `0x6ecbe1db9ef729cbe972c83fb886247691fb6beb` is an example of your Ethereum address, and `0x2576ebd1` is an example of the first 4 bytes of the hash of your strategy's name (in this case, `main`). This will send an initial `Partial` response with all of the `BookOrder` leaf entries corresponding to the open orders in your strategy, and subsequently, `Update` messages with any new, canceled, or updated orders of yours. You are welcome to process this data however you see fit.
+- Open orders: You can obtain your open orders in a given strategy using a topic such as `STATE/BOOK_ORDER/ETHPERP/0x006ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/`, where `ETHPERP` is an example market, `0x006ecbe1db9ef729cbe972c83fb886247691fb6beb` is an example of your Ethereum address prefixed with the chain discriminant, and `0x2576ebd1` is an example of the first 4 bytes of the hash of your strategy's name (in this case, `main`). This will send an initial `Partial` response with all of the `BookOrder` leaf entries corresponding to the open orders in your strategy, and subsequently, `Update` messages with any new, canceled, or updated orders of yours. You are welcome to process this data however you see fit.
 
 
 #### Response
@@ -1064,22 +1043,22 @@ Like its REST counterpart, this is endpoint can be used for a variety of purpose
 	"e": "Partial",
 	"c": {
 		"itemData": [{
-			"t": "STATE/BOOK_ORDER/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/0x8f9f1044d35dfef941e6af68cbaa183f0794d4dc4317206326/",
+			"t": "STATE/BOOK_ORDER/ETHPERP/0x006ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/0x8f9f1044d35dfef941e6af68cbaa183f0794d4dc4317206326/",
 			"c": {
 				"side": "Short",
 				"amount": "1",
 				"price": "2057.9926",
-				"traderAddress": "0x6ecbe1db9ef729cbe972c83fb886247691fb6beb",
+				"traderAddress": "0x006ecbe1db9ef729cbe972c83fb886247691fb6beb",
 				"strategyIdHash": "0x2576ebd1",
 				"bookOrdinal": 4
 			}
 		}, {
-			"t": "STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/0xfe3094706dde23aeccba4639715d801c53b58807575efcf285/",
+			"t": "STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/0xfe3094706dde23aeccba4639715d801c53b58807575efcf285/",
 			"c": {
 				"side": "Bid",
 				"amount": "3.68",
 				"price": "2050.92",
-				"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
+				"traderAddress": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84",
 				"strategyIdHash": "0x2576ebd1",
 				"bookOrdinal": 3
 			}
@@ -1099,7 +1078,7 @@ string | e | Websocket message event, which in the case of a snapshot, will be `
 dict | c | Websocket message content, containing a snapshot of `BookOrder` leaf data based on the topic subscribed to
 list | c.itemData | Contains a list of the snapshotted `BookOrder` leaf data
 dict | c.itemData[n] | An individual `BookOrder` leaf as part of the snapshot
-string | c.itemData[n].t | `BookOrder` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/BOOK_ORDER/<symbol>/<trader_address>/<abbrev_strategy_id_hash>/<order_hash>/`. `symbol` is of `string` type, `trader_address` should be an `address_s` type, `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`), and `order_hash` is of `bytes_s` type representing the first 25 bytes of the order's unique hash.
+string | c.itemData[n].t | `BookOrder` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/BOOK_ORDER/<symbol>/<trader_address>/<abbrev_strategy_id_hash>/<order_hash>/`. `symbol` is of `string` type, `trader_address` should be an `address_pre_s` type, `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`), and `order_hash` is of `bytes_s` type representing the first 25 bytes of the order's unique hash.
 dict | c.itemData[n].c | `BookOrder` leaf contents
 string | c.itemData[n].c.side | Order side (`Bid`, `Ask`)
 decimal_s | c.itemData[n].c.amount | Order size
@@ -1118,12 +1097,12 @@ dict | c.eventTrigger | The transaction log event that triggered an update. Sinc
 	"e": "Update",
 	"c": {
 		"itemData": {
-			"t": "STATE/BOOK_ORDER/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/0x85f483c62fc5a2172db06a3dd322cd89a464bd31ad2408f6d6/",
+			"t": "STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/0x85f483c62fc5a2172db06a3dd322cd89a464bd31ad2408f6d6/",
 			"c": {
 				"side": "Bid",
 				"amount": "14.37",
 				"price": "1948.25",
-				"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
+				"traderAddress": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84",
 				"strategyIdHash": "0x2576ebd1",
 				"bookOrdinal": 6
 			}
@@ -1136,7 +1115,7 @@ dict | c.eventTrigger | The transaction log event that triggered an update. Sinc
 			"side": "Bid",
 			"amount": "14.37",
 			"price": "1948.25",
-			"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
+			"traderAddress": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84",
 			"strategyId": "main",
 			"bookOrdinal": 6
 		}
@@ -1154,7 +1133,7 @@ string | t | WebSocket message type, pertaining to the topic subscribed to
 string | e | Websocket message event, which in the case of a snapshot, will be `Partial`
 dict | c | Websocket message content, containing a snapshot of `BookOrder` leaf data based on the topic subscribed to
 dict | c.itemData | Contains the updated `BookOrder` leaf data
-string | c.itemData.t | `BookOrder` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/BOOK_ORDER/<symbol>/<trader_address>/<abbrev_strategy_id_hash>/<order_hash>/`. `symbol` is of `string` type, `trader_address` should be an `address_s` type, `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`), and `order_hash` is of `bytes_s` type representing the first 25 bytes of the order's unique hash.
+string | c.itemData.t | `BookOrder` topic (corresponding to its key), containing identifying information. This key is of the format `STATE/BOOK_ORDER/<symbol>/<trader_address>/<abbrev_strategy_id_hash>/<order_hash>/`. `symbol` is of `string` type, `trader_address` should be an `address_pre_s` type, `abbrev_strategy_id_hash` is a `bytes_s` type representing the first 4-bytes of the hash of the strategy id (e.g. `main`), and `order_hash` is of `bytes_s` type representing the first 25 bytes of the order's unique hash.
 dict | c.itemData.c | `BookOrder` leaf contents
 string | c.itemData.c.side | Order side (`Bid`, `Ask`)
 decimal_s | c.itemData.c.amount | Order size
@@ -1192,19 +1171,19 @@ You may subscribe to new posted orders on DerivaDEX. A post transaction occurs w
 // All posts for a symbol and trader address
 {
 	"t": "Subscribe",
-	"c": "TX_LOG/POST/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/"
+	"c": "TX_LOG/POST/ETHPERP/0x006ecbe1db9ef729cbe972c83fb886247691fb6beb/"
 }
 
 // All posts for a symbol, trader address, and strategy id
 {
 	"t": "Subscribe",
-	"c": "TX_LOG/POST/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/"
+	"c": "TX_LOG/POST/ETHPERP/0x006ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/"
 }
 ```
 type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type - must be `Subscribe`
-string | c | Subscription topic of the format `TX_LOG/POST/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is of `string` type (e.g. `ETHPERP`), `trader_address` is of `address_s` type corresponding to the trader's Ethereum address and `abbrev_strategy_id_hash` is of `bytes_s` type corresponding to the first 4 bytes of the hash of the strategy to which this fill belongs (e.g. `main`).
+string | c | Subscription topic of the format `TX_LOG/POST/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is of `string` type (e.g. `ETHPERP`), `trader_address` is of `address_pre_s` type corresponding to the trader's Ethereum address and `abbrev_strategy_id_hash` is of `bytes_s` type corresponding to the first 4 bytes of the hash of the strategy to which this fill belongs (e.g. `main`).
 
 #### Response
 
@@ -1212,10 +1191,10 @@ string | c | Subscription topic of the format `TX_LOG/POST/[<symbol>/][[<trader_
 > Sample post transaction event update response (JSON)
 ```json
 {
-	"t": "TX_LOG/POST/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/",
+	"t": "TX_LOG/POST/ETHPERP/0x006ecbe1db9ef729cbe972c83fb886247691fb6beb/",
 	"e": "Update",
 	"c": {
-		"t": "TX_LOG/POST/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/",
+		"t": "TX_LOG/POST/ETHPERP/0x006ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/",
 		"c": {
 			"eventType": 2,
 			"requestIndex": 52623,
@@ -1224,7 +1203,7 @@ string | c | Subscription topic of the format `TX_LOG/POST/[<symbol>/][[<trader_
 			"side": "Bid",
 			"amount": "1.39",
 			"price": "2030.25",
-			"traderAddress": "0x6ecbe1db9ef729cbe972c83fb886247691fb6beb",
+			"traderAddress": "0x006ecbe1db9ef729cbe972c83fb886247691fb6beb",
 			"strategyId": "main",
 			"bookOrdinal": 5920
 		}
@@ -1248,7 +1227,7 @@ bytes_s | c.c.orderHash | First 25 bytes of the order intent's unique EIP-712 ha
 int | c.c.side | Side of order (`0=bid`, `1=ask`)
 decimal_s | c.c.amount | Size of order
 decimal_s | c.c.price | Price the order has been placed at
-address_s | c.c.traderAddress | Trader's Ethereum address responsible for order placement
+address_s | c.c.traderAddress | Trader's Ethereum address (prefixed with the chain discriminant) responsible for order placement
 string | c.c.strategyId | Cross-margined strategy identifier this order belongs to
 int | c.c.bookOrdinal | Numerical identifier with sequencing implications. You can use this to arrange multiple orders at a given level in a local order book for prioritization.
 
@@ -1270,19 +1249,19 @@ You may subscribe to new strategy updates on DerivaDEX. A strategy update can ta
 // All strategy updates for a trader
 {
 	"t": "Subscribe",
-	"c": "TX_LOG/STRATEGY_UPDATE/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/"
+	"c": "TX_LOG/STRATEGY_UPDATE/0x006ecbe1db9ef729cbe972c83fb886247691fb6beb/"
 }
 
 // All strategy updates for a trader and strategy id
 {
 	"t": "Subscribe",
-	"c": "TX_LOG/STRATEGY_UPDATE/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/"
+	"c": "TX_LOG/STRATEGY_UPDATE/0x006ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/"
 }
 ```
 type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type - must be `Subscribe`
-string | c | Subscription topic of the format `TX_LOG/STRATEGY_UPDATE/[<trader_address>/][[<abbrev_strategy_id_hash>/]]`. `trader_address` is of `address_s` type corresponding to the trader's Ethereum address and `abbrev_strategy_id_hash` is of `bytes_s` type corresponding to the first 4 bytes of the hash of the strategy to which this fill belongs (e.g. `main`).
+string | c | Subscription topic of the format `TX_LOG/STRATEGY_UPDATE/[<trader_address>/][[<abbrev_strategy_id_hash>/]]`. `trader_address` is of `address_pre_s` type corresponding to the trader's Ethereum address and `abbrev_strategy_id_hash` is of `bytes_s` type corresponding to the first 4 bytes of the hash of the strategy to which this fill belongs (e.g. `main`).
 
 #### Response
 
@@ -1293,11 +1272,11 @@ string | c | Subscription topic of the format `TX_LOG/STRATEGY_UPDATE/[<trader_a
 	"t": "TX_LOG/STRATEGY_UPDATE/",
 	"e": "Update",
 	"c": {
-		"t": "TX_LOG/STRATEGY_UPDATE/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/",
+		"t": "TX_LOG/STRATEGY_UPDATE/0x006ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/",
 		"c": {
 			"eventType": 5,
 			"requestIndex": 36006,
-			"traderAddress": "0x6ecbe1db9ef729cbe972c83fb886247691fb6beb",
+			"traderAddress": "0x006ecbe1db9ef729cbe972c83fb886247691fb6beb",
 			"collateralAddress": "0xb69e673309512a9d726f87304c6984054f87a93b",
 			"strategyId": "main",
 			"amount": "1000",
@@ -1319,7 +1298,7 @@ dict | c.t | `StrategyUpdate` event topic
 dict | c.c | `StrategyUpdate` event contents
 int | c.c.eventType | Enum value corresponding to this transaction log event type (`5=StrategyUpdate`)
 int | c.c.requestIndex | Numerical sequencing identifier pertaining to this transaction. All transactions are processed in order of their `requestIndex`.
-address_s | c.c.traderAddress | Trader's Ethereum address to which this event belongs to
+address_s | c.c.traderAddress | Trader's Ethereum address (prefixed with the chain discriminant) to which this event belongs to
 address_s | c.c.collateralAddress | Ethereum address of the token being deposited/withdrawn
 string | c.c.strategyId | Cross-margined strategy identifier to which this event belongs
 decimal_s | c.c.amount | Number of tokens being deposited/withdrawn
@@ -1414,19 +1393,19 @@ You may subscribe to new fill on DerivaDEX. A fill can take place as part of a `
 // All fills for a market and trader address
 {
 	"t": "Subscribe",
-	"c": "TX_LOG/FILL/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/"
+	"c": "TX_LOG/FILL/ETHPERP/0x006ecbe1db9ef729cbe972c83fb886247691fb6beb/"
 }
 
 // All fills for a market, trader address, and strategy id
 {
 	"t": "Subscribe",
-	"c": "TX_LOG/FILL/ETHPERP/0x6ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/"
+	"c": "TX_LOG/FILL/ETHPERP/0x006ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/"
 }
 ```
 type | field | description
 ------ | ---- | -------
 string | t | WebSocket message type - must be `Subscribe`
-string | c | Subscription topic of the format `TX_LOG/FILL/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is of `string` type and corresponds to a given market (e.g. `ETHPERP`), `trader_address` is of `address_s` type corresponding to the trader's Ethereum address, and `abbrev_strategy_id_hash` is of `bytes_s` type corresponding to the first 4 bytes of the hash of the strategy to which this fill belongs (e.g. `main`).
+string | c | Subscription topic of the format `TX_LOG/FILL/[<symbol>/][[<trader_address>/]][[[<abbrev_strategy_id_hash>/]]]`. `symbol` is of `string` type and corresponds to a given market (e.g. `ETHPERP`), `trader_address` is of `address_pre_s` type corresponding to the trader's Ethereum address, and `abbrev_strategy_id_hash` is of `bytes_s` type corresponding to the first 4 bytes of the hash of the strategy to which this fill belongs (e.g. `main`).
 
 #### Response
 
@@ -1434,10 +1413,10 @@ string | c | Subscription topic of the format `TX_LOG/FILL/[<symbol>/][[<trader_
 > Sample price checkpoint transaction event update response (JSON)
 ```json
 {
-	"t": "TX_LOG/FILL/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
+	"t": "TX_LOG/FILL/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
 	"e": "Update",
 	"c": {
-		"t": "TX_LOG/FILL/ETHPERP/0xe36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
+		"t": "TX_LOG/FILL/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576ebd1/",
 		"c": {
 			"eventType": 14,
 			"requestIndex": 16298,
@@ -1449,7 +1428,7 @@ string | c | Subscription topic of the format `TX_LOG/FILL/[<symbol>/][[<trader_
 			"price": "1951.6",
 			"takerSide": "Ask",
 			"makerOutcome": {
-				"traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
+				"traderAddress": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84",
 				"strategyId": "main",
 				"fee": "0",
 				"ddxFeeElection": false,
@@ -1460,7 +1439,7 @@ string | c | Subscription topic of the format `TX_LOG/FILL/[<symbol>/][[<trader_
 				"positionSide": "Long"
 			},
 			"takerOutcome": {
-				"traderAddress": "0x6ecbe1db9ef729cbe972c83fb886247691fb6beb",
+				"traderAddress": "0x006ecbe1db9ef729cbe972c83fb886247691fb6beb",
 				"strategyId": "main",
 				"fee": "4.800936",
 				"ddxFeeElection": false,
@@ -1494,7 +1473,7 @@ decimal_s | c.c.amount | Size / number of contracts of the fill
 decimal_s | c.c.price | Price the fill took place
 string | c.c.takerSide | Enum representing the side of the taker order (`Bid`, `Ask`)
 dict | c.c.makerOutcome | Data containing the some relevant information pertaining to the maker in the trade
-address_s | c.c.makerOutcome.traderAddress | Maker trader's Ethereum address
+address_s | c.c.makerOutcome.traderAddress | Maker trader's Ethereum address (prefixed with the chain discriminant)
 string | c.c.makerOutcome.strategyId | Cross-margined strategy identifier for the maker trader
 decimal_s | c.c.makerOutcome.fee | Fees paid by the maker as a result of the trade
 bool | c.c.makerOutcome.ddxFeeElection | Whether maker fees are being paid in DDX (`true`) or USDC (`false`)
@@ -1504,7 +1483,7 @@ decimal_s | c.c.makerOutcome.newPositionAvgEntryPrice | New average entry price 
 decimal_s | c.c.makerOutcome.newPositionBalance | New size for maker's position as a result of the trade
 string | c.c.makerOutcome.positionSide | New side for maker's position (`Long`, `Short`) as a result of the trade
 dict | c.c.takerOutcome | Data containing the some relevant information pertaining to the taker in the trade
-address_s | c.c.takerOutcome.traderAddress | Taker trader's Ethereum address
+address_s | c.c.takerOutcome.traderAddress | Taker trader's Ethereum address (prefixed with the chain discriminant)
 string | c.c.takerOutcome.strategyId | Cross-margined strategy identifier for the taker trader
 decimal_s | c.c.takerOutcome.fee | Fees paid by the taker as a result of the trade
 bool | c.c.takerOutcome.ddxFeeElection | Whether taker fees are being paid in DDX (`true`) or USDC (`false`)
@@ -1535,6 +1514,7 @@ type | description | example
 -----| --------------------- | -----------
 string | Literal of a sequence of characters surrounded by quotes | "ETHPERP"
 address_s  | 20-byte "0x"-prefixed hexadecimal string literal (i.e. 40 digits long) corresponding to an `address` ETH type | "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+address_pre_s  | 21-byte "0x"-prefixed hexadecimal string literal (i.e. 42 digits long) corresponding to an `address` ETH type prefixed with a single byte for the chain discriminant | "0x00A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
 decimal | Numerical value with up to, but no more than 18 decimals of precision | 10.031500000000000000
 decimal_s  | String representation of `decimal` | "10.031500000000000000"
 bool  | Boolean value, either `true` or `false` | True
@@ -1949,29 +1929,23 @@ nonce |  "0x3136323735363833383437323639313330303000000000000000000000000000"
 ```json
 // Sample unencrypted order placement request
 {
-	"t": "Request",
-	"c": {
-		"t": "Order",
-		"c": {
-			"traderAddress": "0xc10f3E99a255CC053b8E9A62c9C416485fdCd20b",
-			"symbol": "ETHPERP",
-			"strategy": "main",
-			"side": "Ask",
-			"orderType": "Limit",
-			"nonce": "0x3136323737363235343138383430383030303000000000000000000000000000",
-			"amount": 10.6,
-			"price": 2472.1,
-			"stopPrice": 0,
-			"signature": "0x1b1f419961c742861a41396f14892ea4a665b7b89086637d37d53ec20364a7ef3aaf1e1472867f5a18fa3f27a2748ed16c603eccd13472cfd61d43df1c3ed22a1b"
-		}
-	}
+	"t": "Order",
+    "c": {
+        "traderAddress": "0xc10f3E99a255CC053b8E9A62c9C416485fdCd20b",
+        "symbol": "ETHPERP",
+        "strategy": "main",
+        "side": "Ask",
+        "orderType": "Limit",
+        "nonce": "0x3136323737363235343138383430383030303000000000000000000000000000",
+        "amount": 10.6,
+        "price": 2472.1,
+        "stopPrice": 0,
+        "signature": "0x1b1f419961c742861a41396f14892ea4a665b7b89086637d37d53ec20364a7ef3aaf1e1472867f5a18fa3f27a2748ed16c603eccd13472cfd61d43df1c3ed22a1b"
+    }
 }
 
 // Sample encrypted order placement request
-{
-	"t": "Request",
-	"c": "0x3bb4fec9257fb81c846c075fb3944151838c32ce41dadb585049fa7788ae591bb970ea295993d42b238e95595fde09d80d675aa960112533cf61ed4b91b9d77dd3f97d6ecf1cf809800854a11b43d27c5da51d69f550463bddeb471be94fb6a17de3e54cf99665be081ec7f8c24b7eebaef691baa27de167e448ed3a0facf6af0c4fec0e856f56515590c40479cf95f6e25918a42a60b4c15b4362614f91bfbd67eba6a6aad6de9edd45ba5fa7fc33e4473fb9e94a14f492c65bfecc08ff97d7c3126d6ce697aa955234e98ebb027fb042500122c299826267deb278b44a7dfc7f06fad6174f448f4fb41ce13e1003c2013b6de2e9a0bf3d9871658c84644fc41d7e5482bd4efad8370172e64b7220d2a2e596c9a5b3ce38997bae79200b3b62839e47bc6aa876128cb6d4430e18b1f51588d7741161e1a9734d0e203d725c9f4d7dae174a0e75fcdb3882c23590437fbc3330046b150bc90818e7b1c3a42571b62363343f2e46bc7cf6fcd0dfd2550ec83d453641d7a236a3a6677e806125b0c50246d5f26c2db3f61ebc78b955d5095d8b0cd7f4929f5bc2adf53c455b2170f546a09d2e11b463db6cc582a771c6aaad96c3c56123d5010643e584849e6f7cf998495e28b018b4c00bcb64a3aa2b7b7e0cb3faea33c7034887c86a15d5c0a01db2c8bc27a4b6ec2acc2e06ccabde4a64962ab3aec63f36"
-}
+"0x3bb4fec9257fb81c846c075fb3944151838c32ce41dadb585049fa7788ae591bb970ea295993d42b238e95595fde09d80d675aa960112533cf61ed4b91b9d77dd3f97d6ecf1cf809800854a11b43d27c5da51d69f550463bddeb471be94fb6a17de3e54cf99665be081ec7f8c24b7eebaef691baa27de167e448ed3a0facf6af0c4fec0e856f56515590c40479cf95f6e25918a42a60b4c15b4362614f91bfbd67eba6a6aad6de9edd45ba5fa7fc33e4473fb9e94a14f492c65bfecc08ff97d7c3126d6ce697aa955234e98ebb027fb042500122c299826267deb278b44a7dfc7f06fad6174f448f4fb41ce13e1003c2013b6de2e9a0bf3d9871658c84644fc41d7e5482bd4efad8370172e64b7220d2a2e596c9a5b3ce38997bae79200b3b62839e47bc6aa876128cb6d4430e18b1f51588d7741161e1a9734d0e203d725c9f4d7dae174a0e75fcdb3882c23590437fbc3330046b150bc90818e7b1c3a42571b62363343f2e46bc7cf6fcd0dfd2550ec83d453641d7a236a3a6677e806125b0c50246d5f26c2db3f61ebc78b955d5095d8b0cd7f4929f5bc2adf53c455b2170f546a09d2e11b463db6cc582a771c6aaad96c3c56123d5010643e584849e6f7cf998495e28b018b4c00bcb64a3aa2b7b7e0cb3faea33c7034887c86a15d5c0a01db2c8bc27a4b6ec2acc2e06ccabde4a64962ab3aec63f36"
 ```
 
 > Sample encryption implementation (Python)
@@ -2013,7 +1987,7 @@ DerivaDEX is a front-running resistant decentralized exchange, achieved with sen
 decrypted from inside the Operator's trusted hardware. All `commands` must be encrypted using an AES-GCM128 scheme. The
 encryption steps are as follows:
 
-1. Generate an 16-byte (128-bit) ECDH shared key using the operator's public key (`0x0215cad31f884747d1c870458fea0c8e580044577be35276cbfbf6c212c813e722`) and a 32-byte private key of your choosing (you can randomly generate this each time you are sending a `command`). Make sure you are using a `keccak256` ECDH key generation scheme, but since you need a 16-byte shared key, make sure you take only the first 16 bytes of the 32-byte key generated.
+1. Generate n 16-byte (128-bit) ECDH shared key using the operator's public key (`0x0215cad31f884747d1c870458fea0c8e580044577be35276cbfbf6c212c813e722`) and a 32-byte private key of your choosing (you can randomly generate this each time you are sending a `command`). Make sure you are using a `keccak256` ECDH key generation scheme, but since you need a 16-byte shared key, make sure you take only the first 16 bytes of the 32-byte key generated.
 
 2. Generate a 12-byte random nonce
 
@@ -2033,15 +2007,15 @@ To validate your encryption implementation for correctness (assuming you are not
 - Step 5: After deriving the public key from the secret key from Step 1 (`0x034887c86a15d5c0a01db2c8bc27a4b6ec2acc2e06ccabde4a64962ab3aec63f36`), you will arrive at the final encrypted message of: `0x3bb4fec9257fb81c846c075fb3944151838c32ce41dadb585049fa7788ae591bb970ea295993d42b238e95595fde09d80d675aa960112533cf61ed4b91b9d77dd3f97d6ecf1cf809800854a11b43d27c5da51d69f550463bddeb471be94fb6a17de3e54cf99665be081ec7f8c24b7eebaef691baa27de167e448ed3a0facf6af0c4fec0e856f56515590c40479cf95f6e25918a42a60b4c15b4362614f91bfbd67eba6a6aad6de9edd45ba5fa7fc33e4473fb9e94a14f492c65bfecc08ff97d7c3126d6ce697aa955234e98ebb027fb042500122c299826267deb278b44a7dfc7f06fad6174f448f4fb41ce13e1003c2013b6de2e9a0bf3d9871658c84644fc41d7e5482bd4efad8370172e64b7220d2a2e596c9a5b3ce38997bae79200b3b62839e47bc6aa876128cb6d4430e18b1f51588d7741161e1a9734d0e203d725c9f4d7dae174a0e75fcdb3882c23590437fbc3330046b150bc90818e7b1c3a42571b62363343f2e46bc7cf6fcd0dfd2550ec83d453641d7a236a3a6677e806125b0c50246d5f26c2db3f61ebc78b955d5095d8b0cd7f4929f5bc2adf53c455b2170f546a09d2e11b463db6cc582a771c6aaad96c3c56123d5010643e584849e6f7cf998495e28b018b4c00bcb64a3aa2b7b7e0cb3faea33c7034887c86a15d5c0a01db2c8bc27a4b6ec2acc2e06ccabde4a64962ab3aec63f36`
 
 
-## Trader API <> Auditor
+## Operator API <> Auditor
 
 As mentioned in the [Auditor API](#auditor-api) section above, the Auditor is an abstraction that exposes a more convenient and familiar API for programmatic traders.
-It's connects more directly to the DerivaDEX Trader API's transaction log WebSocket endpoint. This endpoint
+It's connects more directly to the DerivaDEX Operator API's transaction log WebSocket endpoint. This endpoint
 provides a snapshot of the Sparse Merkle Tree and streaming transaction's that transition
 the state of this data store. Technically, to trade on DerivaDEX you won't need to understand all
 of these details as this has been abstracted away using the setup presented above. However, if you are
 interested in 1) learning more about how the system works, 2) considering rewriting the Auditor, or
-3) exploring connecting to the Trader API directly, you should read on to best understand
+3) exploring connecting to the Operator API directly, you should read on to best understand
 the data you will be working with.
 
 
@@ -2076,6 +2050,9 @@ BookOrder | 3
 Price | 4
 InsuranceFund | 5
 Stats | 6
+Member | 7
+MarketSpecs | 8
+PriceSource | 9
 Empty | 7
 
 Each item type is described in detail below.
@@ -2091,17 +2068,16 @@ and referral address.
 ```python
 from eth_abi.utils.padding import zpad32_right
 
-def encode_key(trader_address: str, chain_discriminant: int):
+def encode_key(trader_address: str):
     # ItemType.TRADER == 0
     return zpad32_right(
         ItemType.TRADER.to_bytes(1, byteorder="little")
-        + chain_discriminant.to_bytes(1, byteorder="little")
         + bytes.fromhex(trader_address[2:])
     )
 
 def decode_key(trader_key: bytes):
-    # chain_discriminant, trader_address
-    return int.from_bytes(trader_key[1:2], "little"), f"0x{trader_key[2:22].hex()}"
+    # trader_address
+    return f"0x{trader_key[1:22].hex()}"
 ```
 
 The location of a `Trader` leaf is determined by its key, which is encoded as
@@ -2110,16 +2086,14 @@ follows:
 Bytes | Value
 -----| ------------
 0 | Trader discriminant
-1 | Blockchain discriminant
-[2, 21] | Trader's Ethereum address
+[1, 21] | Trader's Ethereum address prefixed with the chain discriminant
 [22, 31] | Zero-padding
 
 The following sample `Trader` materials generates the following encoded key: `0x0000603699848c84529987e14ba32c8a66def67e9ece00000000000000000000`.
 
 field | value
 -----|------
-trader_address  |  "0x603699848c84529987E14Ba32C8a66DEF67E9eCE"
-chain_discriminant  |  0
+trader_address  |  "0x00603699848c84529987E14Ba32C8a66DEF67E9eCE"
 
 ##### Value definition
 
@@ -2216,16 +2190,14 @@ def encode_key(trader_address: str, strategy_id: str, chain_discriminant: int):
     # ItemType.STRATEGY == 1
     return zpad32_right(
             ItemType.STRATEGY.to_bytes(1, byteorder="little")
-            + chain_discriminant.to_bytes(1, byteorder="little")
             + bytes.fromhex(trader_address[2:])
             + generate_strategy_id_hash(strategy_id)
         )
 
 def decode_key(strategy_key: bytes):
-    # chain_discriminant, trader_address, strategy_id_hash
+    # trader_address, strategy_id_hash
     return (
-            int.from_bytes(strategy_key[1:2], "little"),
-            f"0x{strategy_key[2:22].hex()}",
+            f"0x{strategy_key[1:22].hex()}",
             f"0x{strategy_key[22:26].hex()}",
         )
 ```
@@ -2236,8 +2208,7 @@ follows:
 Bytes | Value
 -----| ------------
 0 | Strategy discriminant
-1 | Blockchain discriminant
-[2, 21] | Trader's Ethereum address
+[1, 21] | Trader's Ethereum address prefixed with the chain discriminant
 [22, 25] | Abbreviated hash of strategy ID
 [26, 25] | Zero-padding
 
@@ -2245,9 +2216,8 @@ The following sample `Strategy` materials generates the following encoded key: `
 
 field | value
 -----|------
-trader_address  |  "0x603699848c84529987E14Ba32C8a66DEF67E9eCE"
+trader_address  |  "0x00603699848c84529987E14Ba32C8a66DEF67E9eCE"
 strategy_id  |  "main"
-chain_discriminant  |  0
 
 ##### Value definition
 
@@ -2421,17 +2391,15 @@ def encode_key(trader_address: str, strategy_id: str, symbol: str, chain_discrim
     return (
             ItemType.POSITION.to_bytes(1, byteorder="little")
             + pack_bytes(symbol)
-            + chain_discriminant.to_bytes(1, byteorder="little")
             + bytes.fromhex(trader_address[2:])
             + generate_strategy_id_hash(strategy_id)
         )
 
 def decode_key(position_key: bytes):
-    # symbol, chain_discriminant, trader_address, strategy_id_hash
+    # symbol, trader_address, strategy_id_hash
     return (
             unpack_bytes(position_key[1:7]),
-            int.from_bytes(position_key[7:8], "little"),
-            f"0x{position_key[8:28].hex()}",
+            f"0x{position_key[7:28].hex()}",
             f"0x{position_key[28:].hex()}",
         )
 ```
@@ -2443,8 +2411,7 @@ Bytes | Value
 -----| ------------
 0 | Position discriminant
 [1, 6] | Symbol (5-bit encoded/packed)
-7 | Blockchain discriminant
-[8, 27] | Trader's Ethereum address
+[7, 27] | Trader's Ethereum address prefixed with the chain discriminant
 [28, 31] | Abbreviated hash of strategy ID
 
 The following sample `Position` materials generates the following encoded key: `0x0285225824040000603699848c84529987e14ba32c8a66def67e9ece2576ebd1`.
@@ -2454,7 +2421,6 @@ field | value
 trader_address  |  "0x603699848c84529987E14Ba32C8a66DEF67E9eCE"
 strategy_id  |  "main"
 symbol  |  "ETHPERP"
-chain_discriminant  |  0
 
 ##### Value definition
 
@@ -2626,14 +2592,14 @@ def abi_encoded_value(self, side: int, amount: Decimal, price: Decimal, trader_a
 
     # Scale amount and price to DDX grains
     return encode_single(
-        "(uint8,(uint8,uint128,uint128,address,bytes32,uint64))",
+        "(uint8,(uint8,uint128,uint128,bytes21,bytes32,uint64))",
         [
             self.item_type,
             [
                 side,
                 to_base_unit_amount(amount, 18),
                 to_base_unit_amount(price, 18),
-                trader_address,
+                bytes.fromhex(trader_address[2:]),
                 bytes.fromhex(strategy_id_hash[2:]),
                 book_ordinal,
             ],
@@ -2645,7 +2611,7 @@ def abi_decoded_value(abi_encoded_value: str):
         item_type,
         (side, amount, price, trader_address, strategy_id_hash, book_ordinal),
     ) = decode_single(
-        "(uint8,(uint8,uint128,uint128,address,bytes32,uint64))",
+        "(uint8,(uint8,uint128,uint128,bytes21,bytes32,uint64))",
         w3.toBytes(hexstr=abi_encoded_value),
     )
 
@@ -2654,7 +2620,7 @@ def abi_decoded_value(abi_encoded_value: str):
         side,
         to_unit_amount(amount, 18),
         to_unit_amount(price, 18),
-        trader_address,
+        f"0x{trader_address.hex()}",
         f"0x{strategy_id_hash[:4].hex()}",
         book_ordinal,
     )
@@ -2664,11 +2630,11 @@ A `BookOrder` leaf holds the following data:
 
 type | field | description
 ----- | ------------ | ---------
-int | side | Side of order (`Bid=0`, `Ask=1`)
+str | side | Side of order (`Bid`, `Ask`)
 decimal | amount | Amount/size of order
 decimal | price | Price the order has been placed at
-address_s | trader_address | The order creator's Ethereum address
-string | strategy_id_hash | First 4 bytes of strategy ID hash this order belongs to
+str | trader_address | The order creator's Ethereum address prefixed with the chain discriminant
+str | strategy_id_hash | First 4 bytes of strategy ID hash this order belongs to
 int | book_ordinal | Numerical sequencing identifier for a BookOrder, which can be used to sort orders at any given price level
 
 These contents are always stored in the tree in ABI-encoded form: `(uint8,(uint8,uint128,uint128,address,bytes32,uint64))`. Meaning,
@@ -2677,17 +2643,16 @@ data from a snapshot of the state), and will need to encode it back again if you
 A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain
 variables, is shown on the right.
 
-The following sample `BookOrder` materials generates the following ABI-encoded value: `0x00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001158e460913d0000000000000000000000000000000000000000000000000000d8d726b7177a80000000000000000000000000000603699848c84529987e14ba32c8a66def67e9ece2576ebd1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003`.
+The following sample `BookOrder` materials generates the following ABI-encoded value: `0x000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007068fb1598aa000000000000000000000000000000000000000000000000010191888088a17a000000e36ea790bc9d7ab70c55260c66d52b1eca985f8400000000000000000000002576ebd10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000149ae`
 
 field | value
 -----|------
-side  |  0
-amount  |  20
-price  |  250
-trader_address  |  "0x603699848c84529987E14Ba32C8a66DEF67E9eCE"
+side  |  "Bid"
+amount  |  8.1
+price  |  4751.3
+trader_address  |  "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84"
 strategy_id_hash  |  "0x2576ebd1"
-book_ordinal  |
-
+book_ordinal  |  84398
 
 
 #### Price
@@ -2836,13 +2801,13 @@ the `ema` component, which can be a negative value, is ABI-encoded to a 32-byte 
 `0x00000000000000000000000000000000` (positive) or `0x00000000000000000000000000000001` (negative), and the next 16 bytes
 is the absolute value of the `ema`.
 
-The following sample `Price` materials generates the following ABI-encoded value: `0x000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000d8d726b7177a8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000`.
+The following sample `Price` materials generates the following ABI-encoded value: `0x00000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000ff439f867f838f4000000000000000000000000000000000000000000000000004d94aaad5556854d300000000000000000000000000000000000000000000000000000000000020e2`.
 
 field | value
 -----|------
-index_price  |  250
-ema  |  0
-ordinal  |  0
+index_price  |  4708.7925
+ema  |  89.444491182582813907
+ordinal  |  8418
 
 
 #### Insurance fund
@@ -2942,11 +2907,11 @@ data from a snapshot of the state), and will need to encode it back again if you
 A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain
 variables, is shown on the right.
 
-The following sample `InsuranceFund` materials generates the following ABI-encoded value: `0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000500000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000`.
+The following sample `InsuranceFund` materials generates the following ABI-encoded value: `0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000001000000000000000000000000cfc18cec799fbd1793b5c43e773c98d4d61cc2db000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000532d4737cf8c716f0000`.
 
 field | value
 -----|------
-capitalization  |  {}
+capitalization  |  {'0xcfc18cec799fbd1793b5c43e773c98d4d61cc2db': 392791.65336}
 
 #### Stats
 
@@ -2962,16 +2927,12 @@ def encode_key(trader_address: str):
     # ItemType.STATS == 6
     return zpad32_right(
             ItemType.STATS.to_bytes(1, byteorder="little")
-            + chain_discriminant.to_bytes(1, byteorder="little")
             + bytes.fromhex(trader_address[2:])
         )
 
 def decode_key(stats_key: bytes):
     # chain_discriminant, trader_address
-    return (
-        int.from_bytes(stats_key[1:2], "little"),
-        f"0x{stats_key[2:22].hex()}",
-    )
+    return f"0x{stats_key[1:22].hex()}"
 ```
 
 The location of a `Stats` leaf is determined by its key, which is encoded as
@@ -2980,16 +2941,14 @@ follows:
 Bytes | Value
 -----| ------------
 0 | Stats discriminant
-1 | Blockchain discriminant
-[2, 21] | Trader's Ethereum address
+[1, 21] | Trader's Ethereum address prefixed with the chain discriminant
 [22, 31] | Zero-padding
 
 The following sample `Stats` materials generates the following encoded key: `0x0600603699848c84529987e14ba32c8a66def67e9ece00000000000000000000`.
 
 field | value
 -----|------
-chain_discriminant  |  0
-trader_address  |  "0x0x603699848c84529987E14Ba32C8a66DEF67E9eCE"
+trader_address  |  "0x00603699848c84529987E14Ba32C8a66DEF67E9eCE"
 
 ##### Value definition
 
@@ -3077,10 +3036,11 @@ PriceCheckpoint | 9
 PnlSettlement | 10
 Funding | 11
 TradeMining | 12
+MembershipChange | 60
 EpochMarker | 100
 NoTransition | 13
 
-Each of these transaction types as received from the Trader API are described at length below.
+Each of these transaction types as received from the Operator WebSocket API are described at length below.
 
 #### Partial fill
 
@@ -3096,7 +3056,7 @@ Each of these transaction types as received from the Trader API are described at
             "takerSide": "Ask",
             "makerOutcome": {
                 "fee": "0",
-                "trader": "0x6ecbe1db9ef729cbe972c83fb886247691fb6beb",
+                "trader": "0x006ecbe1db9ef729cbe972c83fb886247691fb6beb",
                 "strategy": "main",
                 "realizedPnl": "0",
                 "positionSide": "Long",
@@ -3107,7 +3067,7 @@ Each of these transaction types as received from the Trader API are described at
             },
             "takerOutcome": {
                 "fee": "9.4488",
-                "trader": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
+                "trader": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84",
                 "strategy": "main",
                 "realizedPnl": "0",
                 "positionSide": "Short",
@@ -3127,7 +3087,7 @@ Each of these transaction types as received from the Trader API are described at
             "orderHash": "0x7854e5da6e9fb7a4e9fca62dc26a5d574afb07950a6ed110ed",
             "strategyId": "main",
             "bookOrdinal": 2,
-            "traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84"
+            "traderAddress": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84"
         }
     ]
 }
@@ -3150,7 +3110,7 @@ first item is a list of `TradeFill` events and the second item is the remaining 
         "takerSide": "Ask",
         "makerOutcome": {
             "fee": "0",
-            "trader": "0x6ecbe1db9ef729cbe972c83fb886247691fb6beb",
+            "trader": "0x006ecbe1db9ef729cbe972c83fb886247691fb6beb",
             "strategy": "main",
             "realizedPnl": "0",
             "positionSide": "Long",
@@ -3161,7 +3121,7 @@ first item is a list of `TradeFill` events and the second item is the remaining 
         },
         "takerOutcome": {
             "fee": "4.5756",
-            "trader": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
+            "trader": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84",
             "strategy": "main",
             "realizedPnl": "0",
             "positionSide": "Short",
@@ -3194,7 +3154,7 @@ The event portion of the transaction response consists of a list of `TradeFill` 
         "orderHash": "0x860b1065b629df495de7a0d97432a48b098cadcbb37a1fdbd9",
         "strategyId": "main",
         "bookOrdinal": 0,
-        "traderAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84"
+        "traderAddress": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84"
     }
 }
 ```
@@ -3211,7 +3171,7 @@ string | event.side | Side of order (`Bid` or `Ask`)
 string | event.strategyId | Strategy ID this order belongs to (e.g. "main")
 string | event.symbol | Symbol for the market this order has been placed (e.g. `ETHPERP`)
 int | event.bookOrdinal | Numerical value signifying sequence of order placement, which can be used to arrange multiple orders at the same price level to achieve FIFO priority in a local order book
-address_s | event.traderAddress | Trader's Ethereum address
+address_pre_s | event.traderAddress | Trader's Ethereum address prefixed with the chain discriminant
 
 
 #### Cancel
@@ -3248,7 +3208,7 @@ TBD
 {
     "event": {
         "amount": "1000000",
-        "trader": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
+        "trader": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84",
         "txHash": "0x239a452c6abc453e153c8c53e4bdb995c558619b3aa1980c8977cbc4c283618f",
         "strategyId": "main",
         "updateType": "Deposit",
@@ -3263,7 +3223,7 @@ type | field | description
 -----|----- | ---------------------
 dict | event | The contents of the transaction event
 decimal_s | event.amount | Amount deposited or withdrawn
-address_s | event.trader | Trader's Ethereum address
+address_pre_s | event.trader | Trader's Ethereum address prefixed with the chain discriminant
 bytes32_s | event.txHash | Ethereum transaction hash for the on-chain deposit / withdrawal
 string | event.strategyId | Strategy ID deposited to or withdrawn from (e.g. "main")
 string | event.updateType | Action corresponding to either "Deposit" or "Withdraw"
@@ -3277,7 +3237,7 @@ address_s | event.collateralAddress | Deposited / withdrawn collateral token's E
 {
     "event": {
         "amount": "1000000",
-        "trader": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
+        "trader": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84",
         "txHash": "0x239a452c6abc453e153c8c53e4bdb995c558619b3aa1980c8977cbc4c283618f",
         "updateType": "Deposit"
     }
@@ -3290,7 +3250,7 @@ type | field | description
 -----|----- | ---------------------
 dict | event | The contents of the transaction event
 decimal_s | event.amount | Amount of DDX deposited or withdrawn
-address_s | event.trader | Trader's Ethereum address
+address_pre_s | event.trader | Trader's Ethereum address prefixed with the chain discriminant
 bytes32_s | event.txHash | Ethereum transaction hash for the on-chain deposit / withdrawal
 string | event.updateType | Action corresponding to either "Deposit" or "Withdraw"
 
@@ -3305,7 +3265,7 @@ string | event.updateType | Action corresponding to either "Deposit" or "Withdra
         "currency": "0xb69e673309512a9d726f87304c6984054f87a93b",
         "strategy": "main",
         "signerAddress": "0x6ecbe1db9ef729cbe972c83fb886247691fb6beb",
-        "traderAddress": "0x6ecbe1db9ef729cbe972c83fb886247691fb6beb"
+        "traderAddress": "0x006ecbe1db9ef729cbe972c83fb886247691fb6beb"
     }
  }
 ```
@@ -3319,7 +3279,7 @@ decimal_s | event.amount | Amount of collateral token withdrawal has been signal
 address_s | event.currency | Collateral ERC-20 token address
 string | event.strategy | Strategy ID the withdrawal applies to
 address_s | event.signerAddress | Signer's Ethereum address withdrawal is taking place from
-address_s | event.traderAddress | Trader Ethereum address collateral is being withdrawn to
+address_pre_s | event.traderAddress | Trader's Ethereum address prefixed with the chain discriminant collateral is being withdrawn to
 
 #### Withdraw DDX
 
@@ -3329,7 +3289,7 @@ address_s | event.traderAddress | Trader Ethereum address collateral is being wi
     "event": {
         "amount": "100",
         "signerAddress": "0xa8dda8d7f5310e4a9e24f8eba77e091ac264f872",
-        "traderAddress": "0x603699848c84529987e14ba32c8a66def67e9ece"
+        "traderAddress": "0x00603699848c84529987e14ba32c8a66def67e9ece"
     }
 }
 ```
@@ -3341,7 +3301,7 @@ type | field | description
 dict | event | The contents of the transaction event
 decimal_s | event.amount | Amount of DDX withdrawal has been signaled for
 address_s | event.signerAddress | Signer's Ethereum address withdrawal is taking place from
-address_s | event.traderAddress | Trader Ethereum address DDX is being withdrawn to
+address_pre_s | event.traderAddress | Trader's Ethereum address prefixed with the chain discriminant DDX is being withdrawn to
 
 #### Price checkpoint
 
@@ -3388,7 +3348,7 @@ type | field | description
 -----|----- | ---------------------
 dict | event | The contents of the transaction event
 int | event.settlementEpochId | The epoch id for the PNL settlement event
-int | event.timeValue | Time value (??)
+int | event.timeValue | Time value
 
 
 #### Funding
@@ -3399,10 +3359,7 @@ int | event.timeValue | Time value (??)
     "event": {
         "timeValue": 1766,
         "fundingRates": {
-            "ETHPERP": {
-                "abs": "0.0024",
-                "negativeSign": false
-            }
+            "ETHPERP": "0.0024"
         },
         "settlementEpochId": 15
     }
@@ -3414,7 +3371,7 @@ A `Funding` is when a there is a funding rate distribution. At this time, all st
 type | field | description
 -----|----- | ---------------------
 dict | event | The contents of the transaction event
-int | event.timeValue | Time value (??)
+int | event.timeValue | Time value
 int | event.settlementEpochId | The epoch id for the funding event
 dict<string, decimal_s> | event.fundingRates | Mapping of market symbol to funding rate
 
@@ -3462,7 +3419,7 @@ int | event.tradeMiningEpochId | Interval counter for when trade mining occurred
         "takerSide": "Ask",
         "makerOutcome": {
             "fee": "0",
-            "trader": "0x6ecbe1db9ef729cbe972c83fb886247691fb6beb",
+            "trader": "0x006ecbe1db9ef729cbe972c83fb886247691fb6beb",
             "strategy": "main",
             "realizedPnl": "0",
             "positionSide": "Long",
@@ -3473,7 +3430,7 @@ int | event.tradeMiningEpochId | Interval counter for when trade mining occurred
         },
         "takerOutcome": {
             "fee": "4.5756",
-            "trader": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
+            "trader": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84",
             "strategy": "main",
             "realizedPnl": "0",
             "positionSide": "Short",
@@ -3500,7 +3457,7 @@ string | event.reason | Reason for fill (`Trade`, `Liquidation`)
 string | event.symbol | Market symbol for which this fill took place
 string | event.takerSide | Taker / aggressor side (`Bid`, `Ask`)
 dict | event.makerOutcome | Data containing the some relevant information pertaining to the maker in the trade
-address_s | event.makerOutcome.traderAddress | Maker trader's Ethereum address
+address_pre_s | event.makerOutcome.traderAddress | Maker trader's Ethereum address prefixed with the chain discrimimant
 string | event.makerOutcome.strategyId | Cross-margined strategy identifier for the maker trader
 decimal_s | event.makerOutcome.fee | Fees paid by the maker as a result of the trade
 bool | event.makerOutcome.ddxFeeElection | Whether maker fees are being paid in DDX (`true`) or USDC (`false`)
@@ -3510,7 +3467,7 @@ decimal_s | event.makerOutcome.newPositionAvgEntryPrice | New average entry pric
 decimal_s | event.makerOutcome.newPositionBalance | New size for maker's position as a result of the trade
 int | event..makerOutcome.positionSide | New side for maker's position (`long=1`, `short=2`) as a result of the trade
 dict | event.takerOutcome | Data containing the some relevant information pertaining to the taker in the trade
-address_s | event.takerOutcome.traderAddress | Taker trader's Ethereum address
+address_pre_s | event.takerOutcome.traderAddress | Taker trader's Ethereum address prefixed with the chain discrimimant
 string | event.takerOutcome.strategyId | Cross-margined strategy identifier for the taker trader
 decimal_s | event..takerOutcome.fee | Fees paid by the taker as a result of the trade
 bool | event.takerOutcome.ddxFeeElection | Whether taker fees are being paid in DDX (`true`) or USDC (`false`)
@@ -3521,226 +3478,131 @@ decimal_s | event.takerOutcome.newPositionBalance | New size for taker's positio
 int | event.takerOutcome.positionSide | New side for taker's position (`long=1`, `short=2`) as a result of the trade
 
 
-### Connecting to the Trader API
-
-> Sample API URL connection generation (Python)
-```python
-from web3.auto import w3
-from eth_account.messages import encode_defunct
-from eth_abi import encode_single
-import time
-
-def get_url(self) -> str:
-    # Initialize a Web3 account from a private key
-    web3_account = w3.eth.account.from_key("<private_key>")
-
-    # Retrieve current UNIX time in nanoseconds to derive a unique, monotonically-increasing nonce
-    nonce = str(time.time_ns())
-
-    # abi.encode(['bytes32'], [nonce])
-    encoded_nonce = encode_single("bytes32", nonce.encode("utf8")).hex()
-
-    # Prefix the encoded nonce with ETH prefix to prepare for signing
-    prefixed_message = encode_defunct(hexstr=encoded_nonce)
-
-    # Hash prefixed message and sign the result
-    signed_message = web3_account.sign_message(prefixed_message)
-
-    # Construct WS connection url with format
-    # f"wss://beta.derivadex.io/trader/v1?token=<encoded_nonce><signature>"
-    # encoded_nonce = 32-byte hexstr without 0x prefix (i.e. 64 chars)
-    # signature = 65-byte hexstr without 0x prefix (i.e. 130 chars)
-    return f"wss://beta.derivadex.io/trader/v1?token={encoded_nonce}{signed_message.signature.hex()[2:]}"
-```
-
-The steps to connect to the DerivaDEX API (in other words, how the Auditor is connecting to the Trader API on your behalf) are:
-
-1. Generate a string (`nonce`) that is greater than the last value used for this address. Requests with a nonce less than or equal to the previous value will be rejected. For this reason, we **STRONGLY** recommend using [Unix time](https://en.wikipedia.org/wiki/Unix_time) in nanoseconds, but users may opt to maintain their own sequence counter if they really know what they are doing and are comfortable with the risk.
-2. ABI encode the `nonce` to a 32-byte value ('bytes32').
-3. `keccak256` hash the encoded nonce without the ETH prefix.
-4. Prefix the hash from above with the ETH prefix.
-5. Generate a `signature` of the hash of the prefixed message from above using eth_sign or equivalent signer.
-6. Connect to the websocket with the url: `wss://beta.derivadex.io/trader/v1?token=[encoded_nonce][signature]`
-
-An example Python implementation is displayed on the right, but feel free to utilize whichever language, tooling, and abstractions you see fit.
-
-
-
 ### Subscription
 
 You may subscribe to the SMT state leaves and transaction log in raw fashion (much like how the Auditor does behind the scenes prior to exposing a clean API for your consumption).
 
-#### Subscription request
-> Request format (JSON)
+Operator transaction log WS endpoint URL: wss://api.derivadex.io/node0/v2/txlog
+
+
+#### Response
+> Snapshot response (JSON)
 ```json
 {
-	"t": "SubscribeMarket",
+	"t": "Snapshot",
 	"c": {
-		"events": ["TxLogUpdate"]
+		"epochId": 169,
+		"leaves": {
+			"0x04820e582404007b98abbb2526d07a2cdc0d67f35907d62f0e21bbbe45e9961a": "0x0000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000e576eaa6c85d2cd80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000147a",
+			"0x03852258240400788b9b1a5b0add97f65952f7cbe9a86b2a8e5f6bfeb5bbf534": "0x000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000004563918244f400000000000000000000000000000000000000000000000001064092f6c4533a000000e36ea790bc9d7ab70c55260c66d52b1eca985f8400000000000000000000002576ebd10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000149ab",
+			"0x04820e582404001de62df182b9019c994b3d82deb541ddca7c086a8ff691902d": "0x0000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000e1b23e43485b035c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001281",
+			"0x04820e58240400f1771fba7a7e4a9365b0e06d5ac603bd60f7f871edbcf1e0ab": "0x0000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000e54354372e48b48400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000144"
+		},
+		"offset": 0
 	}
 }
 ```
 
-type | field | description
------|----- | ---------------------
-string[] | events | Events being subscribed to. There is only one event that can be subscribed to, the `TxLogUpdate` event.
-
-#### Subscription response
-> Receipt (success) format (JSON)
-```json
-{
-    "t": "Subscribed",
-    "c": {
-        "message": "Subscribed to [TxLogUpdate] for 0x603699848c84529987E14Ba32C8a66DEF67E9eCE"
-    }
-}
-```
-
-Each `subscription` returns a receipt, which confirms that an Operator has received the `subscription` request. The receipt `type` will be either `Subscribed` or `Error`.
-
-A successful `subscription` returns a `Subscribed` receipt from the Operator.
-
-type | field | description
------- | ---- | -----------
-string | message | Success message
-
-> Receipt (error) format (JSON)
-```json
-{
-    "t": "Error",
-    "c": {
-        "message": "Invalid subscription"
-    }
-}
-```
-
-An erroneous `subscription` returns an `Error` receipt from the Operator.
-
-type | field | description
------- | ---- | -----------
-string | message | Error message
-
-
-#### Event response
-> Partial response (JSON)
-```json
-{
-	"t": "TxLogUpdate",
-	"e": "Partial",
-	"c": [
-		[{
-			"lowEpochId": "3285",
-			"highEpochId": "3285",
-			"smtKey": "0x03852258240400c873ea38e15d879465347afac4cdfb3a6e0317e6d89e29ffa9",
-			"smtHash": "0x1efadbf30bbd972a82e7e6eb69d02426905ecaed708c906a579e37fe85309ade",
-			"smtValue": "0x0000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000098eee79d10ce0000000000000000000000000000000000000000000000000079bffc1fc3ca0d0000000000000000000000000000e36ea790bc9d7ab70c55260c66d52b1eca985f842576ebd100000000000000000000000000000000000000000000000000000000"
-		}, {
-			"lowEpochId": "3285",
-			"highEpochId": "3285",
-			"smtKey": "0x038522582404009fdc11a1a8b36a931888d77829719c950ee22fa5dbb61a9010",
-			"smtHash": "0xa1efd81e2e9e48bb4a87c3e12956e73e533dbced114930f6f9c8fad9c9703891",
-			"smtValue": "0x00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ca5690c079320000000000000000000000000000000000000000000000000079fefd71b5fa530000000000000000000000000000e36ea790bc9d7ab70c55260c66d52b1eca985f842576ebd100000000000000000000000000000000000000000000000000000000"
-		}, {
-			"lowEpochId": "3285",
-			"highEpochId": "3285",
-			"smtKey": "0x03852258240400d29e5da477e70f8ae124adf64e3aacad16e047afbb72133e02",
-			"smtHash": "0x03860f96f101ea693aed84948af1624a5fd75c33492aa3165feff26ad62f7655",
-			"smtValue": "0x00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000693191d6e576000000000000000000000000000000000000000000000000007a5d5be5aed2fb0000000000000000000000000000e36ea790bc9d7ab70c55260c66d52b1eca985f842576ebd100000000000000000000000000000000000000000000000000000000"
-		}],
-		[{
-			"epochId": "3286",
-			"txOrdinal": "0",
-			"requestIndex": "180842",
-			"stateRootHash": "0xc480af2c9623e3571de640112a4b94a29406199359508a6ff1c0c4a8b07af7d1",
-			"eventKind": 9,
-			"createdAt": "2021-06-30T20:32:38.018Z",
-			"signature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-			"event": {
-				"ETHPERP": {
-					"ema": "0.325889706776203498",
-					"indexPrice": "2263.343",
-					"indexPriceHash": "0x5f994903e82e60704f1d9fbb04315ad248fc7bb4bf739d32c4d53157beb079e0"
-				}
-			}
-		}]
-	]
-}
-```
-
-Upon subscription, you will first receive a `Partial` back, containing a snapshot of the DerivaDEX state as of the latest checkpoint and all of the transactions from the latest checkpoint up until now.
-DerivaDEX has on-chain checkpoints roughly every 10 minutes. Say you were to connect to the API and subscribe to this endpoint 7 minutes after Checkpoint 100 had completed. You would first receive
-the entire state as of Checkpoint 100, and then all of the state-transitioning transactions that have elapsed in the last 7 minutes. Thus, you will be up-to-date without having to stream through all of
-the transactions from the beginning of time (Checkpoint 0). This endpoint allows you to construct the **entire** state
-of the DerivaDEX exchange.
-
-The response is a 2-item array, with the first item referencing the state snapshot and the second referencing the transactions, as shown in the sample on the right. The types and fields that
-make up this response are described in the table below:
+Upon subscription, you will first receive a set of `Snapshot` entries back, containing a snapshot of the DerivaDEX state as of the latest checkpoint.
+DerivaDEX has on-chain checkpoints roughly every 10 minutes. Say you were to connect to the API and subscribe to this endpoint 7 minutes after Checkpoint 168 had completed (i.e., Checkpoint 169 had begun).
+You would first receive the entire state as of Checkpoint 169.
 
 type | field | description
 ------ | ---- | -------
-string | t | WebSocket message type, pertaining to the topic subscribed to, which in this case will be `TxLogUpdate`
-string | e | WebSocket message event, which in this case will be `Partial`
-list | c | `TxLogUpdate` WebSocket message contents
-list | c[0] | List of SMT leaf entries as of the latest checkpoint
-dict | c[0][n] | SMT leaf entry
-int_s | c[0][n].lowEpochId | Epoch ID of state entry
-int_s | c[0][n].highEpochId | Epoch ID of state entry
-bytes32_s | c[0][n].smtHash | Hash of the SMT's key and ABI-encoded value
-bytes32_s | c[0][n].smtKey | Unique location of leaf in the SMT. The first byte of this key is the leaf item discriminant, and will inform you how to decode the remainder of the key and the `smtValue`.
-bytes_s | c[0][n].smtValue | ABI-encoding of SMT leaf's value. You can appropriately decode this value using the first byte of the `smtKey`.
-list | c[1] | Transaction log snapshot from most recent checkpoint up until this moment in time
-dict | c[1][n] | Transaction log entry
-int_s | c[1][n].epochId | Epoch ID of transaction
-int_s | c[1][n].txOrdinal | Monotonically increasing numerical value representing when a transaction took place in a given epoch. This will necessarily increase by 1 in order of being processed, and will only be reset to 0 when a new epoch has begun.
-int_s | c[1][n].requestIndex | Sequenced identifier for the request initially made. This will be the same as the `requestIndex` you receive in a successful `command`.
-bytes32_s | c[1][n].stateRootHash | SMT's state root hash prior to the transaction being applied
-int | c[1][n].eventKind | Enum representation for event type (`0=PartialFill`, `1=CompleteFill`, `2=Post`, `3=Cancel`, `4=Liquidation`, `5=StrategyUpdate`, `6=TraderUpdate`, `7=Withdraw`, `8=WithdrawDDX`, `9=PriceCheckpoint`, `10=PnlSettlement`, `11=Funding`, `12=TradeMining`, `100=AdvanceEpoch`)
-timestamp_s | c[1][n].createdAt | Timestamp transaction log entry was created
-bytes_s | c[1][n].signature | Enclave's signature of transaction data
-dict | c[1][n].event | Event data (structure and contents are different depending on the `eventKind`). Examples for each transaction type are shown above in the [Transactions](#transactions) section.
+string | t | WebSocket message type, pertaining to the topic subscribed to, which in this case will be `Snapshot`
+list | c | `Snapshot` WebSocket message contents
+int | epochId | Current epoch ID
+dict | leaves | Snapshot leaf data
+dict<bytes32_s, bytes_s> | leaves | Snapshot leaf data mapping leaf key to leaf value (ABI-encoding of SMT leaf's value)
 
-> Update response (JSON)
+
+> Head response (JSON)
 ```json
 {
-	"t": "TxLogUpdate",
-	"e": "Update",
-	"c": [{
-		"epochId": "3286",
-		"txOrdinal": "1",
-		"requestIndex": "180849",
-		"stateRootHash": "0xc211ee51304784f6d5cf6841768570199dc6cd75025b383a615b67ae1d5fb234",
-		"eventKind": 9,
-		"createdAt": "2021-06-30T20:33:00.478Z",
-		"signature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+	"t": "Head",
+	"c": {
+		"epochId": 169,
+		"ordinal": 14,
+		"stateRootHash": "0xe0870028a6d8f2dd98961a15b27279d5a1e7deedea3b55e8342e06ce81ea5d9c",
+		"requestIndex": 282626,
+		"batchId": 282626,
 		"event": {
-			"ETHPERP": {
-				"ema": "0.513297744127047512",
-				"indexPrice": "2263.064285714285714285",
-				"indexPriceHash": "0x695c3030efe5609cee9cf66c7df0e451a80c388c3725abc6f5888d542bc3d480"
+			"t": "Post",
+			"c": {
+				"orderHash": "0x773ac90b2eefd0b7e772b6f59c41d2ae8b2f7ad17985d94fd3",
+				"traderAddress": "0x00e834ec434daba538cd1b9fe1582052b880bd7e63",
+				"strategyId": "main",
+				"symbol": "ETHPERP",
+				"side": "Bid",
+				"price": "4831.9",
+				"amount": "5.4",
+				"bookOrdinal": 95749
 			}
-		}
-	}]
+		},
+		"signature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+	}
 }
 ```
 
-From this point onwards, you will receive `Update` messages, with individual transactions that you can apply to your local state you have constructed using the `Partial` to always stay up-to-date.
-You may notice that the transaction log entries streamed in these update messages are identical to the individual
-transaction entries shown in the second part of the `Partial` response above.
+After the snapshot messages, you will next receive a set of `Head` entries back, containing all of the transactions that have already
+occurred from the beginning of this epoch to now. Say you were to connect to the API and subscribe to this endpoint 7 minutes after Checkpoint 168 had completed (i.e., Checkpoint 169 had begun).
+You would receive all the transactions that have occurred during these 7 minutes.
 
 type | field | description
 ------ | ---- | -------
-string | t | WebSocket message type, pertaining to the topic subscribed to, which in this case will be `TxLogUpdate`
-string | e | WebSocket message event, which in this case will be `Update`
-list | c | `TxLogUpdate` WebSocket message contents
-list | c[0] | Transaction log entry
-int_s | c[0].epochId | Epoch ID of transaction
-int_s | c[0].txOrdinal | Monotonically increasing numerical value representing when a transaction took place in a given epoch. This will necessarily increase by 1 in order of being processed, and will only be reset to 0 when a new epoch has begun.
-int_s | c[0].requestIndex | Sequenced identifier for the request initially made. This will be the same as the `requestIndex` you receive in a successful `command`.
-bytes32_s | c[0].stateRootHash | SMT's state root hash prior to the transaction being applied
-int | c[0].eventKind | Enum representation for event type (`0=PartialFill`, `1=CompleteFill`, `2=Post`, `3=Cancel`, `4=Liquidation`, `5=StrategyUpdate`, `6=TraderUpdate`, `7=Withdraw`, `8=WithdrawDDX`, `9=PriceCheckpoint`, `10=PnlSettlement`, `11=Funding`, `12=TradeMining`, `100=AdvanceEpoch`)
-timestamp_s | c[0].createdAt | Timestamp transaction log entry was created
-bytes_s | c[0].signature | Enclave's signature of transaction data
-dict | c[0].event | Event data (structure and contents are different depending on the `eventKind`). Examples for each transaction type are shown above in the [Transactions](#transactions) section.
+string | t | WebSocket message type, pertaining to the topic subscribed to, which in this case will be `Head`
+list | c | `Head` WebSocket message contents
+int | c.epochId | Current epoch ID
+int_s | c.ordinal | Monotonically increasing numerical value representing when a transaction took place in a given epoch. This will necessarily increase by 1 in order of being processed, and will only be reset to 0 when a new epoch has begun.
+int_s | c.requestIndex | Sequenced identifier for the request initially made. This will be the same as the `requestIndex` you receive in a successful `command`.
+bytes32_s | c.stateRootHash | SMT's state root hash prior to the transaction being applied
+bytes32_s | c.batchId | Monotonically increasing numerical value representing when a batch of transactions took place in a given epoch. This is different from the transaction's ordinal value, which may actually be the same across transactions that are batched (e.g., multiple deposits in the same Ethereum block, or settlement transactions bunched together).
+bytes_s | c.signature | Enclave's signature of transaction data
+dict | c.event | Event data (structure and contents are different depending on the kind of event). Examples for each transaction type are shown above in the [Transactions](#transactions) section.
+
+
+> Tail response (JSON)
+```json
+{
+	"t": "Tail",
+	"c": {
+		"epochId": 169,
+		"ordinal": 691,
+		"stateRootHash": "0xb359790e85a5f4d9b0a9b5317ec0f28a1c28fab368d155eeedd29fb96c2999f2",
+		"requestIndex": 283687,
+		"batchId": 283687,
+		"event": {
+			"t": "Post",
+			"c": {
+				"orderHash": "0x97824f71decfaba632ea794fa648f772e64d0bc90ddd397995",
+				"traderAddress": "0x00e834ec434daba538cd1b9fe1582052b880bd7e63",
+				"strategyId": "main",
+				"symbol": "ETHPERP",
+				"side": "Ask",
+				"price": "4803.9",
+				"amount": "6.2",
+				"bookOrdinal": 95936
+			}
+		},
+		"signature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+	}
+}
+```
+
+After the head messages, you will next receive `Tail` entries one by one streaming through with every new transaction
+processed.
+
+type | field | description
+------ | ---- | -------
+string | t | WebSocket message type, pertaining to the topic subscribed to, which in this case will be `Tail`
+list | c | `Tail` WebSocket message contents
+int | c.epochId | Current epoch ID
+int_s | c.ordinal | Monotonically increasing numerical value representing when a transaction took place in a given epoch. This will necessarily increase by 1 in order of being processed, and will only be reset to 0 when a new epoch has begun.
+int_s | c.requestIndex | Sequenced identifier for the request initially made. This will be the same as the `requestIndex` you receive in a successful `command`.
+bytes32_s | c.stateRootHash | SMT's state root hash prior to the transaction being applied
+bytes32_s | c.batchId | Monotonically increasing numerical value representing when a batch of transactions took place in a given epoch. This is different from the transaction's ordinal value, which may actually be the same across transactions that are batched (e.g., multiple deposits in the same Ethereum block, or settlement transactions bunched together).
+bytes_s | c.signature | Enclave's signature of transaction data
+dict | c.event | Event data (structure and contents are different depending on the kind of event). Examples for each transaction type are shown above in the [Transactions](#transactions) section.
 
 
 # Validation
