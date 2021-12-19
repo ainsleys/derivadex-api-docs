@@ -3145,7 +3145,7 @@ maker orders that may have been canceled.
 ```
 
 A `CompleteFill` is a scenario where the taker order has been completely filled across 1 or more maker orders.
-The event portion of the transaction response consists of a consists of a 3-item array. The first item is
+The event portion of the transaction response consists of a consists of a 2-item array. The first item is
 list of `TradeFill` events and the second item is any `Cancel` events pertaining to maker orders that may
 have been canceled.
 
