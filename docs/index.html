@@ -4893,7 +4893,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             <p>A <code>CompleteFill</code> is a scenario where the taker order has been completely filled across 1 or more maker orders. The event portion of the transaction response consists of a consists of a 2-item array. The first item is list of <code>TradeFill</code> events and the second item is any <code>Cancel</code> events pertaining to maker orders that may have been canceled.</p>
             <h4 id="postorder">PostOrder</h4>
             <blockquote>
-               <p>Sample Post (JSON)</p>
+               <p>Sample PostOrder (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
     <span class="hljs-attr">&quot;event&quot;</span>: [{
@@ -5364,7 +5364,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-attr">&quot;timeValue&quot;</span>: <span class="hljs-number">1024</span>
     }
 }</code></pre>
-            <p>A <code>PostOrder</code> is a 2-item array where the first item is a <code>Post</code> order that enters the order book and the second item is a list of <code>Cancel</code> events pertaining to maker orders that may have been canceled. The <code>Post</code> portion of the transaction has attributes defined as follows:</p>
+            <p>A <code>Post</code> is an order that enters the order book. The transaction has attributes defined as follows:</p>
             <table>
                <thead>
                   <tr>

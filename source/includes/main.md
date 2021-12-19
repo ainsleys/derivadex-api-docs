@@ -3152,7 +3152,7 @@ have been canceled.
 
 #### PostOrder
 
-> Sample Post (JSON)
+> Sample PostOrder (JSON)
 ```json
 {
 	"event": [{
@@ -3422,8 +3422,7 @@ int | event.tradeMiningEpochId | Interval counter for when trade mining occurred
 }
 ```
 
-A `PostOrder` is a 2-item array where the first item is a `Post` order that enters the order book and the second item
-is a list of `Cancel` events pertaining to maker orders that may have been canceled. The `Post` portion of the transaction has attributes defined as follows:
+A `Post` is an order that enters the order book. The transaction has attributes defined as follows:
 
 type | field | description
 -----|----- | ---------------------
