@@ -2586,13 +2586,13 @@ def to_base_unit_amount(val, decimals):
 def to_unit_amount(val, decimals):
     return Decimal(str(val)) / 10 ** decimals
 
-def abi_encoded_value(self, side: int, amount: Decimal, price: Decimal, trader_address: str, strategy_id_hash: str, book_ordinal: int):
+def abi_encoded_value(self, side: int, amount: Decimal, price: Decimal, trader_address: str, strategy_id_hash: str, book_ordinal: int, time_value: int):
     # BookOrder item discriminant
     item_type = 3
 
     # Scale amount and price to DDX grains
     return encode_single(
-        "(uint8,(uint8,uint128,uint128,bytes21,bytes32,uint64))",
+        "(uint8,(uint8,uint128,uint128,bytes21,bytes32,uint64,uint64))",
         [
             self.item_type,
             [
@@ -2602,6 +2602,7 @@ def abi_encoded_value(self, side: int, amount: Decimal, price: Decimal, trader_a
                 bytes.fromhex(trader_address[2:]),
                 bytes.fromhex(strategy_id_hash[2:]),
                 book_ordinal,
+                time_value,
             ],
         ],
     )
@@ -2611,7 +2612,7 @@ def abi_decoded_value(abi_encoded_value: str):
         item_type,
         (side, amount, price, trader_address, strategy_id_hash, book_ordinal),
     ) = decode_single(
-        "(uint8,(uint8,uint128,uint128,bytes21,bytes32,uint64))",
+        "(uint8,(uint8,uint128,uint128,bytes21,bytes32,uint64,uint64))",
         w3.toBytes(hexstr=abi_encoded_value),
     )
 
@@ -2623,6 +2624,7 @@ def abi_decoded_value(abi_encoded_value: str):
         f"0x{trader_address.hex()}",
         f"0x{strategy_id_hash[:4].hex()}",
         book_ordinal,
+        uint64,
     )
 ```
 
@@ -3025,7 +3027,7 @@ Event | Discriminant
 -----| ------------
 PartialFill | 0
 CompleteFill | 1
-Post | 2
+PostOrder | 2
 Cancel | 3
 Liquidation | 4
 StrategyUpdate | 5
@@ -3047,131 +3049,130 @@ Each of these transaction types as received from the Operator WebSocket API are 
 > Sample PartialFill (JSON)
 ```json
 {
-    "event": [
-        [{
-            "price": "1860",
-            "amount": "2.54",
-            "reason": "Trade",
-            "symbol": "ETHPERP",
-            "takerSide": "Ask",
-            "makerOutcome": {
-                "fee": "0",
-                "trader": "0x006ecbe1db9ef729cbe972c83fb886247691fb6beb",
-                "strategy": "main",
-                "realizedPnl": "0",
-                "positionSide": "Long",
-                "newCollateral": "1000000",
-                "ddxFeeElection": false,
-                "newPositionBalance": "5",
-                "newPositionAvgEntryPrice": "1860"
-            },
-            "takerOutcome": {
-                "fee": "9.4488",
-                "trader": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84",
-                "strategy": "main",
-                "realizedPnl": "0",
-                "positionSide": "Short",
-                "newCollateral": "999981.4",
-                "ddxFeeElection": false,
-                "newPositionBalance": "5",
-                "newPositionAvgEntryPrice": "1860"
-            },
-            "makerOrderHash": "0x542ad7f2640447d3e93723253099fd45ae721925e0df64702e",
-            "takerOrderHash": "0x7854e5da6e9fb7a4e9fca62dc26a5d574afb07950a6ed110ed",
-            "makerOrderRemainingAmount": "0"
-        }], {
-            "side": "Ask",
-            "price": "1859",
-            "amount": "2.46",
-            "symbol": "ETHPERP",
-            "orderHash": "0x7854e5da6e9fb7a4e9fca62dc26a5d574afb07950a6ed110ed",
-            "strategyId": "main",
-            "bookOrdinal": 2,
-            "traderAddress": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84"
-        }
-    ]
+	"event": [{
+			"side": "Ask",
+			"price": "1859",
+			"amount": "2.46",
+			"symbol": "ETHPERP",
+			"orderHash": "0x7854e5da6e9fb7a4e9fca62dc26a5d574afb07950a6ed110ed",
+			"strategyId": "main",
+			"bookOrdinal": 2,
+			"traderAddress": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84"
+		},
+		[{
+			"price": "1860",
+			"amount": "2.54",
+			"reason": "Trade",
+			"symbol": "ETHPERP",
+			"takerSide": "Ask",
+			"makerOutcome": {
+				"fee": "0",
+				"trader": "0x006ecbe1db9ef729cbe972c83fb886247691fb6beb",
+				"strategy": "main",
+				"realizedPnl": "0",
+				"positionSide": "Long",
+				"newCollateral": "1000000",
+				"ddxFeeElection": false,
+				"newPositionBalance": "5",
+				"newPositionAvgEntryPrice": "1860"
+			},
+			"takerOutcome": {
+				"fee": "9.4488",
+				"trader": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84",
+				"strategy": "main",
+				"realizedPnl": "0",
+				"positionSide": "Short",
+				"newCollateral": "999981.4",
+				"ddxFeeElection": false,
+				"newPositionBalance": "5",
+				"newPositionAvgEntryPrice": "1860"
+			},
+			"makerOrderHash": "0x542ad7f2640447d3e93723253099fd45ae721925e0df64702e",
+			"takerOrderHash": "0x7854e5da6e9fb7a4e9fca62dc26a5d574afb07950a6ed110ed",
+			"makerOrderRemainingAmount": "0"
+		}],
+		[]
+	]
 }
 ```
 
 A `PartialFill` transaction is a scenario where the taker order has been partially filled across 1 or more
-maker orders and thus has a remaining order that enters the order book. The event portion of the transaction response consists of a 2-item array. The
-first item is a list of `TradeFill` events and the second item is the remaining `Post` event.
+maker orders and thus has a remaining order that enters the order book. The event portion of the transaction response consists of a 3-item array. The
+first item is the remaining `Post` event, the second item is a list of `TradeFill` events, and the third item is any `Cancel` events pertaining to
+maker orders that may have been canceled.
 
 #### Complete fill
 
 > Sample CompleteFill (JSON)
 ```json
 {
-    "event": [{
-        "price": "1860",
-        "amount": "1.23",
-        "reason": "Trade",
-        "symbol": "ETHPERP",
-        "takerSide": "Ask",
-        "makerOutcome": {
-            "fee": "0",
-            "trader": "0x006ecbe1db9ef729cbe972c83fb886247691fb6beb",
-            "strategy": "main",
-            "realizedPnl": "0",
-            "positionSide": "Long",
-            "newCollateral": "1000000",
-            "ddxFeeElection": false,
-            "newPositionBalance": "2.46",
-            "newPositionAvgEntryPrice": "1860"
-        },
-        "takerOutcome": {
-            "fee": "4.5756",
-            "trader": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84",
-            "strategy": "main",
-            "realizedPnl": "0",
-            "positionSide": "Short",
-            "newCollateral": "999990.8488",
-            "ddxFeeElection": false,
-            "newPositionBalance": "2.46",
-            "newPositionAvgEntryPrice": "1860"
-        },
-        "makerOrderHash": "0x542ad7f2640447d3e93723253099fd45ae721925e0df64702e",
-        "takerOrderHash": "0x100d1edd45edede9eedc0e3aac28e7df17168fbef9b459ffc8",
-        "makerOrderRemainingAmount": "2.54"
-    }]
+	"event": [
+		[{
+			"price": "1860",
+			"amount": "1.23",
+			"reason": "Trade",
+			"symbol": "ETHPERP",
+			"takerSide": "Ask",
+			"makerOutcome": {
+				"fee": "0",
+				"trader": "0x006ecbe1db9ef729cbe972c83fb886247691fb6beb",
+				"strategy": "main",
+				"realizedPnl": "0",
+				"positionSide": "Long",
+				"newCollateral": "1000000",
+				"ddxFeeElection": false,
+				"newPositionBalance": "2.46",
+				"newPositionAvgEntryPrice": "1860"
+			},
+			"takerOutcome": {
+				"fee": "4.5756",
+				"trader": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84",
+				"strategy": "main",
+				"realizedPnl": "0",
+				"positionSide": "Short",
+				"newCollateral": "999990.8488",
+				"ddxFeeElection": false,
+				"newPositionBalance": "2.46",
+				"newPositionAvgEntryPrice": "1860"
+			},
+			"makerOrderHash": "0x542ad7f2640447d3e93723253099fd45ae721925e0df64702e",
+			"takerOrderHash": "0x100d1edd45edede9eedc0e3aac28e7df17168fbef9b459ffc8",
+			"makerOrderRemainingAmount": "2.54"
+		}],
+		[]
+	]
 }
 ```
 
 A `CompleteFill` is a scenario where the taker order has been completely filled across 1 or more maker orders.
-The event portion of the transaction response consists of a list of `TradeFill` events.
+The event portion of the transaction response consists of a consists of a 3-item array. The first item is
+list of `TradeFill` events and the second item is any `Cancel` events pertaining to maker orders that may
+have been canceled.
 
 
-#### Post
+#### PostOrder
 
 > Sample Post (JSON)
 ```json
 {
-    "event": {
-        "side": "Bid",
-        "price": "1870.25",
-        "amount": "1.39",
-        "symbol": "ETHPERP",
-        "orderHash": "0x860b1065b629df495de7a0d97432a48b098cadcbb37a1fdbd9",
-        "strategyId": "main",
-        "bookOrdinal": 0,
-        "traderAddress": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84"
-    }
+	"event": [{
+			"side": "Bid",
+			"price": "1870.25",
+			"amount": "1.39",
+			"symbol": "ETHPERP",
+			"orderHash": "0x860b1065b629df495de7a0d97432a48b098cadcbb37a1fdbd9",
+			"strategyId": "main",
+			"bookOrdinal": 0,
+			"traderAddress": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84",
+			"timeValue": 1024
+		},
+		[]
+	]
 }
 ```
 
-A `Post` is an order that enters the order book. The event portion of the transaction has attributes defined as follows:
-
-type | field | description
------|----- | ---------------------
-dict | event | The contents of the transaction event
-decimal_s | event.amount | Size of order posted to the order book
-bytes32_s | event.orderHash | Hexstr representation of the first 25 bytes of the unique EIP-712 hash of the order being placed
-decimal_s | event.price | Price the order has been placed at
-string | event.side | Side of order (`Bid` or `Ask`)
-string | event.strategyId | Strategy ID this order belongs to (e.g. "main")
-string | event.symbol | Symbol for the market this order has been placed (e.g. `ETHPERP`)
-int | event.bookOrdinal | Numerical value signifying sequence of order placement, which can be used to arrange multiple orders at the same price level to achieve FIFO priority in a local order book
-address_pre_s | event.traderAddress | Trader's Ethereum address prefixed with the chain discriminant
+A `PostOrder` is a 2-item array where the first item is a `Post` order that enters the order book and the second item
+is a list of `Cancel` events pertaining to maker orders that may have been canceled. The `Post` portion of the transaction has attributes defined as follows:
 
 
 #### Cancel
@@ -3336,7 +3337,6 @@ bytes32_s | event.symbol.indexPriceHash | Index price hash
 ```json
 {
     "event": {
-        "timeValue": 2166,
         "settlementEpochId": 19
     }
 }
@@ -3348,7 +3348,6 @@ type | field | description
 -----|----- | ---------------------
 dict | event | The contents of the transaction event
 int | event.settlementEpochId | The epoch id for the PNL settlement event
-int | event.timeValue | Time value
 
 
 #### Funding
@@ -3382,7 +3381,6 @@ dict<string, decimal_s> | event.fundingRates | Mapping of market symbol to fundi
 ```json
 {
     "event": {
-        "timeValue": 1766,
         "totalVolume": {
             "makerVolume": "41249.393239489105059823",
             "takerVolume": "40101.194995030184814398"
@@ -3398,12 +3396,47 @@ A `TradeMining` is when there is a trade mining distribution. Traders will recei
 type | field | description
 -----|----- | ---------------------
 dict | event | The contents of the transaction event
-int | event.timeValue | Time value
 dict | event.totalVolume | Holds the total volume information for this trade mining interval
 decimal_s | event.totalVolume.makerVolume | Maker volume total for this trade mining interval
 decimal_s | event.totalVolume.takerVolume | Taker volume total for this trade mining interval. Note that this number may be <= the `makerTotalVolume`, and any discrepancy is due to liquidations only counting towards maker allocation (i.e. the liquidation engine does not receive any DDX per trade mining)
 decimal_s | event.ddxDistributed | Total DDX distributed for trade mining for this interval
 int | event.tradeMiningEpochId | Interval counter for when trade mining occurred
+
+
+#### Post
+
+> Sample Post (JSON)
+```json
+{
+	"event": {
+        "side": "Bid",
+        "price": "1870.25",
+        "amount": "1.39",
+        "symbol": "ETHPERP",
+        "orderHash": "0x860b1065b629df495de7a0d97432a48b098cadcbb37a1fdbd9",
+        "strategyId": "main",
+        "bookOrdinal": 0,
+        "traderAddress": "0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84",
+        "timeValue": 1024
+    }
+}
+```
+
+A `PostOrder` is a 2-item array where the first item is a `Post` order that enters the order book and the second item
+is a list of `Cancel` events pertaining to maker orders that may have been canceled. The `Post` portion of the transaction has attributes defined as follows:
+
+type | field | description
+-----|----- | ---------------------
+dict | event | The contents of the transaction event
+decimal_s | event.amount | Size of order posted to the order book
+bytes32_s | event.orderHash | Hexstr representation of the first 25 bytes of the unique EIP-712 hash of the order being placed
+decimal_s | event.price | Price the order has been placed at
+string | event.side | Side of order (`Bid` or `Ask`)
+string | event.strategyId | Strategy ID this order belongs to (e.g. "main")
+string | event.symbol | Symbol for the market this order has been placed (e.g. `ETHPERP`)
+int | event.bookOrdinal | Numerical value signifying sequence of order placement, which can be used to arrange multiple orders at the same price level to achieve FIFO priority in a local order book
+address_pre_s | event.traderAddress | Trader's Ethereum address prefixed with the chain discriminant
+timeValue | event.timeValue | Time value
 
 
 #### TradeFill

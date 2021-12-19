@@ -4138,13 +4138,13 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
     <span class="hljs-keyword">return</span> Decimal(<span class="hljs-built_in">str</span>(val)) / <span class="hljs-number">10</span> ** decimals
 
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_encoded_value</span>(<span class="hljs-params">self, side: <span class="hljs-built_in">int</span>, amount: Decimal, price: Decimal, trader_address: <span class="hljs-built_in">str</span>, strategy_id_hash: <span class="hljs-built_in">str</span>, book_ordinal: <span class="hljs-built_in">int</span></span>):</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_encoded_value</span>(<span class="hljs-params">self, side: <span class="hljs-built_in">int</span>, amount: Decimal, price: Decimal, trader_address: <span class="hljs-built_in">str</span>, strategy_id_hash: <span class="hljs-built_in">str</span>, book_ordinal: <span class="hljs-built_in">int</span>, time_value: <span class="hljs-built_in">int</span></span>):</span>
     <span class="hljs-comment"># BookOrder item discriminant</span>
     item_type = <span class="hljs-number">3</span>
 
     <span class="hljs-comment"># Scale amount and price to DDX grains</span>
     <span class="hljs-keyword">return</span> encode_single(
-        <span class="hljs-string">&quot;(uint8,(uint8,uint128,uint128,bytes21,bytes32,uint64))&quot;</span>,
+        <span class="hljs-string">&quot;(uint8,(uint8,uint128,uint128,bytes21,bytes32,uint64,uint64))&quot;</span>,
         [
             self.item_type,
             [
@@ -4154,6 +4154,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                 <span class="hljs-built_in">bytes</span>.fromhex(trader_address[<span class="hljs-number">2</span>:]),
                 <span class="hljs-built_in">bytes</span>.fromhex(strategy_id_hash[<span class="hljs-number">2</span>:]),
                 book_ordinal,
+                time_value,
             ],
         ],
     )
@@ -4163,7 +4164,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         item_type,
         (side, amount, price, trader_address, strategy_id_hash, book_ordinal),
     ) = decode_single(
-        <span class="hljs-string">&quot;(uint8,(uint8,uint128,uint128,bytes21,bytes32,uint64))&quot;</span>,
+        <span class="hljs-string">&quot;(uint8,(uint8,uint128,uint128,bytes21,bytes32,uint64,uint64))&quot;</span>,
         w3.toBytes(hexstr=abi_encoded_value),
     )
 
@@ -4175,6 +4176,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-string">f&quot;0x<span class="hljs-subst">{trader_address.<span class="hljs-built_in">hex</span>()}</span>&quot;</span>,
         <span class="hljs-string">f&quot;0x<span class="hljs-subst">{strategy_id_hash[:<span class="hljs-number">4</span>].<span class="hljs-built_in">hex</span>()}</span>&quot;</span>,
         book_ordinal,
+        uint64,
     )</code></pre>
             <p>A <code>BookOrder</code> leaf holds the following data:</p>
             <table>
@@ -4738,7 +4740,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                      <td>1</td>
                   </tr>
                   <tr>
-                     <td>Post</td>
+                     <td>PostOrder</td>
                      <td>2</td>
                   </tr>
                   <tr>
@@ -4801,7 +4803,16 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                <p>Sample PartialFill (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;event&quot;</span>: [
+    <span class="hljs-attr">&quot;event&quot;</span>: [{
+            <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Ask&quot;</span>,
+            <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;1859&quot;</span>,
+            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;2.46&quot;</span>,
+            <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
+            <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x7854e5da6e9fb7a4e9fca62dc26a5d574afb07950a6ed110ed&quot;</span>,
+            <span class="hljs-attr">&quot;strategyId&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
+            <span class="hljs-attr">&quot;bookOrdinal&quot;</span>: <span class="hljs-number">2</span>,
+            <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>
+        },
         [{
             <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;1860&quot;</span>,
             <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;2.54&quot;</span>,
@@ -4833,131 +4844,73 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             <span class="hljs-attr">&quot;makerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x542ad7f2640447d3e93723253099fd45ae721925e0df64702e&quot;</span>,
             <span class="hljs-attr">&quot;takerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x7854e5da6e9fb7a4e9fca62dc26a5d574afb07950a6ed110ed&quot;</span>,
             <span class="hljs-attr">&quot;makerOrderRemainingAmount&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>
-        }], {
-            <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Ask&quot;</span>,
-            <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;1859&quot;</span>,
-            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;2.46&quot;</span>,
-            <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
-            <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x7854e5da6e9fb7a4e9fca62dc26a5d574afb07950a6ed110ed&quot;</span>,
-            <span class="hljs-attr">&quot;strategyId&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
-            <span class="hljs-attr">&quot;bookOrdinal&quot;</span>: <span class="hljs-number">2</span>,
-            <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>
-        }
+        }],
+        []
     ]
 }</code></pre>
-            <p>A <code>PartialFill</code> transaction is a scenario where the taker order has been partially filled across 1 or more maker orders and thus has a remaining order that enters the order book. The event portion of the transaction response consists of a 2-item array. The first item is a list of <code>TradeFill</code> events and the second item is the remaining <code>Post</code> event.</p>
+            <p>A <code>PartialFill</code> transaction is a scenario where the taker order has been partially filled across 1 or more maker orders and thus has a remaining order that enters the order book. The event portion of the transaction response consists of a 3-item array. The first item is the remaining <code>Post</code> event, the second item is a list of <code>TradeFill</code> events, and the third item is any <code>Cancel</code> events pertaining to maker orders that may have been canceled.</p>
             <h4 id="complete-fill">Complete fill</h4>
             <blockquote>
                <p>Sample CompleteFill (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;event&quot;</span>: [{
-        <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;1860&quot;</span>,
-        <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;1.23&quot;</span>,
-        <span class="hljs-attr">&quot;reason&quot;</span>: <span class="hljs-string">&quot;Trade&quot;</span>,
-        <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
-        <span class="hljs-attr">&quot;takerSide&quot;</span>: <span class="hljs-string">&quot;Ask&quot;</span>,
-        <span class="hljs-attr">&quot;makerOutcome&quot;</span>: {
-            <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
-            <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x006ecbe1db9ef729cbe972c83fb886247691fb6beb&quot;</span>,
-            <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
-            <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
-            <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-string">&quot;Long&quot;</span>,
-            <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-string">&quot;1000000&quot;</span>,
-            <span class="hljs-attr">&quot;ddxFeeElection&quot;</span>: <span class="hljs-literal">false</span>,
-            <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;2.46&quot;</span>,
-            <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;1860&quot;</span>
-        },
-        <span class="hljs-attr">&quot;takerOutcome&quot;</span>: {
-            <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;4.5756&quot;</span>,
-            <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
-            <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
-            <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
-            <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-string">&quot;Short&quot;</span>,
-            <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-string">&quot;999990.8488&quot;</span>,
-            <span class="hljs-attr">&quot;ddxFeeElection&quot;</span>: <span class="hljs-literal">false</span>,
-            <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;2.46&quot;</span>,
-            <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;1860&quot;</span>
-        },
-        <span class="hljs-attr">&quot;makerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x542ad7f2640447d3e93723253099fd45ae721925e0df64702e&quot;</span>,
-        <span class="hljs-attr">&quot;takerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x100d1edd45edede9eedc0e3aac28e7df17168fbef9b459ffc8&quot;</span>,
-        <span class="hljs-attr">&quot;makerOrderRemainingAmount&quot;</span>: <span class="hljs-string">&quot;2.54&quot;</span>
-    }]
+    <span class="hljs-attr">&quot;event&quot;</span>: [
+        [{
+            <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;1860&quot;</span>,
+            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;1.23&quot;</span>,
+            <span class="hljs-attr">&quot;reason&quot;</span>: <span class="hljs-string">&quot;Trade&quot;</span>,
+            <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
+            <span class="hljs-attr">&quot;takerSide&quot;</span>: <span class="hljs-string">&quot;Ask&quot;</span>,
+            <span class="hljs-attr">&quot;makerOutcome&quot;</span>: {
+                <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+                <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x006ecbe1db9ef729cbe972c83fb886247691fb6beb&quot;</span>,
+                <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
+                <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+                <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-string">&quot;Long&quot;</span>,
+                <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-string">&quot;1000000&quot;</span>,
+                <span class="hljs-attr">&quot;ddxFeeElection&quot;</span>: <span class="hljs-literal">false</span>,
+                <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;2.46&quot;</span>,
+                <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;1860&quot;</span>
+            },
+            <span class="hljs-attr">&quot;takerOutcome&quot;</span>: {
+                <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;4.5756&quot;</span>,
+                <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
+                <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
+                <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+                <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-string">&quot;Short&quot;</span>,
+                <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-string">&quot;999990.8488&quot;</span>,
+                <span class="hljs-attr">&quot;ddxFeeElection&quot;</span>: <span class="hljs-literal">false</span>,
+                <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;2.46&quot;</span>,
+                <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;1860&quot;</span>
+            },
+            <span class="hljs-attr">&quot;makerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x542ad7f2640447d3e93723253099fd45ae721925e0df64702e&quot;</span>,
+            <span class="hljs-attr">&quot;takerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x100d1edd45edede9eedc0e3aac28e7df17168fbef9b459ffc8&quot;</span>,
+            <span class="hljs-attr">&quot;makerOrderRemainingAmount&quot;</span>: <span class="hljs-string">&quot;2.54&quot;</span>
+        }],
+        []
+    ]
 }</code></pre>
-            <p>A <code>CompleteFill</code> is a scenario where the taker order has been completely filled across 1 or more maker orders. The event portion of the transaction response consists of a list of <code>TradeFill</code> events.</p>
-            <h4 id="post-1">Post</h4>
+            <p>A <code>CompleteFill</code> is a scenario where the taker order has been completely filled across 1 or more maker orders. The event portion of the transaction response consists of a consists of a 3-item array. The first item is list of <code>TradeFill</code> events and the second item is any <code>Cancel</code> events pertaining to maker orders that may have been canceled.</p>
+            <h4 id="postorder">PostOrder</h4>
             <blockquote>
                <p>Sample Post (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;event&quot;</span>: {
-        <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Bid&quot;</span>,
-        <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;1870.25&quot;</span>,
-        <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;1.39&quot;</span>,
-        <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
-        <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x860b1065b629df495de7a0d97432a48b098cadcbb37a1fdbd9&quot;</span>,
-        <span class="hljs-attr">&quot;strategyId&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
-        <span class="hljs-attr">&quot;bookOrdinal&quot;</span>: <span class="hljs-number">0</span>,
-        <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>
-    }
+    <span class="hljs-attr">&quot;event&quot;</span>: [{
+            <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Bid&quot;</span>,
+            <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;1870.25&quot;</span>,
+            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;1.39&quot;</span>,
+            <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
+            <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x860b1065b629df495de7a0d97432a48b098cadcbb37a1fdbd9&quot;</span>,
+            <span class="hljs-attr">&quot;strategyId&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
+            <span class="hljs-attr">&quot;bookOrdinal&quot;</span>: <span class="hljs-number">0</span>,
+            <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
+            <span class="hljs-attr">&quot;timeValue&quot;</span>: <span class="hljs-number">1024</span>
+        },
+        []
+    ]
 }</code></pre>
-            <p>A <code>Post</code> is an order that enters the order book. The event portion of the transaction has attributes defined as follows:</p>
-            <table>
-               <thead>
-                  <tr>
-                     <th>type</th>
-                     <th>field</th>
-                     <th>description</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td>dict</td>
-                     <td>event</td>
-                     <td>The contents of the transaction event</td>
-                  </tr>
-                  <tr>
-                     <td>decimal_s</td>
-                     <td>event.amount</td>
-                     <td>Size of order posted to the order book</td>
-                  </tr>
-                  <tr>
-                     <td>bytes32_s</td>
-                     <td>event.orderHash</td>
-                     <td>Hexstr representation of the first 25 bytes of the unique EIP-712 hash of the order being placed</td>
-                  </tr>
-                  <tr>
-                     <td>decimal_s</td>
-                     <td>event.price</td>
-                     <td>Price the order has been placed at</td>
-                  </tr>
-                  <tr>
-                     <td>string</td>
-                     <td>event.side</td>
-                     <td>Side of order (<code>Bid</code> or <code>Ask</code>)</td>
-                  </tr>
-                  <tr>
-                     <td>string</td>
-                     <td>event.strategyId</td>
-                     <td>Strategy ID this order belongs to (e.g. &quot;main&quot;)</td>
-                  </tr>
-                  <tr>
-                     <td>string</td>
-                     <td>event.symbol</td>
-                     <td>Symbol for the market this order has been placed (e.g. <code>ETHPERP</code>)</td>
-                  </tr>
-                  <tr>
-                     <td>int</td>
-                     <td>event.bookOrdinal</td>
-                     <td>Numerical value signifying sequence of order placement, which can be used to arrange multiple orders at the same price level to achieve FIFO priority in a local order book</td>
-                  </tr>
-                  <tr>
-                     <td>address_pre_s</td>
-                     <td>event.traderAddress</td>
-                     <td>Trader&#39;s Ethereum address prefixed with the chain discriminant</td>
-                  </tr>
-               </tbody>
-            </table>
+            <p>A <code>PostOrder</code> is a 2-item array where the first item is a <code>Post</code> order that enters the order book and the second item is a list of <code>Cancel</code> events pertaining to maker orders that may have been canceled. The <code>Post</code> portion of the transaction has attributes defined as follows:</p>
             <h4 id="cancel">Cancel</h4>
             <blockquote>
                <p>Sample Cancel (JSON)</p>
@@ -5268,7 +5221,6 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             </blockquote>
             <pre class="highlight json"><code>{
     <span class="hljs-attr">&quot;event&quot;</span>: {
-        <span class="hljs-attr">&quot;timeValue&quot;</span>: <span class="hljs-number">2166</span>,
         <span class="hljs-attr">&quot;settlementEpochId&quot;</span>: <span class="hljs-number">19</span>
     }
 }</code></pre>
@@ -5291,11 +5243,6 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                      <td>int</td>
                      <td>event.settlementEpochId</td>
                      <td>The epoch id for the PNL settlement event</td>
-                  </tr>
-                  <tr>
-                     <td>int</td>
-                     <td>event.timeValue</td>
-                     <td>Time value</td>
                   </tr>
                </tbody>
             </table>
@@ -5350,7 +5297,6 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             </blockquote>
             <pre class="highlight json"><code>{
     <span class="hljs-attr">&quot;event&quot;</span>: {
-        <span class="hljs-attr">&quot;timeValue&quot;</span>: <span class="hljs-number">1766</span>,
         <span class="hljs-attr">&quot;totalVolume&quot;</span>: {
             <span class="hljs-attr">&quot;makerVolume&quot;</span>: <span class="hljs-string">&quot;41249.393239489105059823&quot;</span>,
             <span class="hljs-attr">&quot;takerVolume&quot;</span>: <span class="hljs-string">&quot;40101.194995030184814398&quot;</span>
@@ -5373,11 +5319,6 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                      <td>dict</td>
                      <td>event</td>
                      <td>The contents of the transaction event</td>
-                  </tr>
-                  <tr>
-                     <td>int</td>
-                     <td>event.timeValue</td>
-                     <td>Time value</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -5403,6 +5344,85 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                      <td>int</td>
                      <td>event.tradeMiningEpochId</td>
                      <td>Interval counter for when trade mining occurred</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h4 id="post-1">Post</h4>
+            <blockquote>
+               <p>Sample Post (JSON)</p>
+            </blockquote>
+            <pre class="highlight json"><code>{
+    <span class="hljs-attr">&quot;event&quot;</span>: {
+        <span class="hljs-attr">&quot;side&quot;</span>: <span class="hljs-string">&quot;Bid&quot;</span>,
+        <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;1870.25&quot;</span>,
+        <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;1.39&quot;</span>,
+        <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
+        <span class="hljs-attr">&quot;orderHash&quot;</span>: <span class="hljs-string">&quot;0x860b1065b629df495de7a0d97432a48b098cadcbb37a1fdbd9&quot;</span>,
+        <span class="hljs-attr">&quot;strategyId&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
+        <span class="hljs-attr">&quot;bookOrdinal&quot;</span>: <span class="hljs-number">0</span>,
+        <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
+        <span class="hljs-attr">&quot;timeValue&quot;</span>: <span class="hljs-number">1024</span>
+    }
+}</code></pre>
+            <p>A <code>PostOrder</code> is a 2-item array where the first item is a <code>Post</code> order that enters the order book and the second item is a list of <code>Cancel</code> events pertaining to maker orders that may have been canceled. The <code>Post</code> portion of the transaction has attributes defined as follows:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>dict</td>
+                     <td>event</td>
+                     <td>The contents of the transaction event</td>
+                  </tr>
+                  <tr>
+                     <td>decimal_s</td>
+                     <td>event.amount</td>
+                     <td>Size of order posted to the order book</td>
+                  </tr>
+                  <tr>
+                     <td>bytes32_s</td>
+                     <td>event.orderHash</td>
+                     <td>Hexstr representation of the first 25 bytes of the unique EIP-712 hash of the order being placed</td>
+                  </tr>
+                  <tr>
+                     <td>decimal_s</td>
+                     <td>event.price</td>
+                     <td>Price the order has been placed at</td>
+                  </tr>
+                  <tr>
+                     <td>string</td>
+                     <td>event.side</td>
+                     <td>Side of order (<code>Bid</code> or <code>Ask</code>)</td>
+                  </tr>
+                  <tr>
+                     <td>string</td>
+                     <td>event.strategyId</td>
+                     <td>Strategy ID this order belongs to (e.g. &quot;main&quot;)</td>
+                  </tr>
+                  <tr>
+                     <td>string</td>
+                     <td>event.symbol</td>
+                     <td>Symbol for the market this order has been placed (e.g. <code>ETHPERP</code>)</td>
+                  </tr>
+                  <tr>
+                     <td>int</td>
+                     <td>event.bookOrdinal</td>
+                     <td>Numerical value signifying sequence of order placement, which can be used to arrange multiple orders at the same price level to achieve FIFO priority in a local order book</td>
+                  </tr>
+                  <tr>
+                     <td>address_pre_s</td>
+                     <td>event.traderAddress</td>
+                     <td>Trader&#39;s Ethereum address prefixed with the chain discriminant</td>
+                  </tr>
+                  <tr>
+                     <td>timeValue</td>
+                     <td>event.timeValue</td>
+                     <td>Time value</td>
                   </tr>
                </tbody>
             </table>
