@@ -44,23 +44,24 @@
                <li>Run the Auditor client locally (validates the system and serves a local REST and WebSocket API)</li>
                <li>Connect to the local Auditor WebSocket API (subscribe to state and transaction updates propagated in real time from the exchange) &amp; REST API (retrieve state entries)</li>
                <li>Connect to the Operator REST API (submit and cancel orders via <code>commands</code>)</li>
+               <li>Connect to the Collections REST API (receive historical fills)</li>
             </ol>
             <p>This set up provides you with the security, integrity, and trust model of a robust decentralized system, with the performance and API experience of a centralized exchange.</p>
-            <p>Additionally, it&#39;s a good idea to familiarize yourself with the <a href="#Types">DerivaDEX types terminology</a> and <a href="#signatures--hashing">hashing &amp; signing schemes</a>, although the examples and sample client libraries abstract much of this complexity away.</p>
+            <p>Additionally, it&quot;s a good idea to familiarize yourself with the <a href="#Types">DerivaDEX types terminology</a> and <a href="#signatures--hashing">hashing &amp; signing schemes</a>, although the examples and sample client libraries abstract much of this complexity away.</p>
             <h2 id="auditor-api">Auditor API</h2>
             <p>The pre-packaged Pythonic Auditor connects to the DerivaDEX Operators WebSocket API upon initialization and underpins an extremely powerful, efficient, and easy-to-use setup for programmatic traders by allowing you to:</p>
             <ol>
-               <li>validate the honesty and integrity of the exchange&#39;s operations</li>
+               <li>validate the honesty and integrity of the exchange&quot;s operations</li>
                <li>use the Auditor as a backend datastore and API to ensure you are verifiably up-to-date with the latest exchange data</li>
             </ol>
             <p><strong>Please be extra careful to always do your own testing and validation of any of this tooling.</strong></p>
-            <p>DerivaDEX&#39;s data model is powered by a Sparse Merkle Tree data store and a transaction log of state-modifying transitions. While these are emitted in raw formats by the DerivaDEX Operators API, they are not the most easily-consumable. Thus, the Auditor provides a worthwhile abstraction that efficiently allows you to locally maintain your own data validation while exposing an API for your easy consumption. If you would like to dive deeper into how the Auditor processes the state and raw transactions on DerivaDEX or would like to write your own Auditor tooling (in a different language perhaps, or to expose an interface more to your liking), please check out the <a href="#trader-api--auditor">Operator API &lt;&gt; Auditor</a> section. Otherwise, you are more than welcome to just check out the Setup section to get the Python tooling running and serving your trading needs.</p>
+            <p>DerivaDEX&quot;s data model is powered by a Sparse Merkle Tree data store and a transaction log of state-modifying transitions. While these are emitted in raw formats by the DerivaDEX Operators API, they are not the most easily-consumable. Thus, the Auditor provides a worthwhile abstraction that efficiently allows you to locally maintain your own data validation while exposing an API for your easy consumption. If you would like to dive deeper into how the Auditor processes the state and raw transactions on DerivaDEX or would like to write your own Auditor tooling (in a different language perhaps, or to expose an interface more to your liking), please check out the <a href="#trader-api--auditor">Operator API &lt;&gt; Auditor</a> section. Otherwise, you are more than welcome to just check out the Setup section to get the Python tooling running and serving your trading needs.</p>
             <h2 id="setup">Setup</h2>
             <h3 id="using-docker">Using Docker</h3>
             <p>The preferred method of running the Auditor is to utilize the published Docker images at the <a href="https://hub.docker.com/repository/docker/derivadex/ddx-auditor">DerivaDEX docker registry</a>. For those who prefer to run the Auditor from source, refer to the <a href="#from-source">From source</a> section. To run the Auditor with docker, follow these steps from the DerivaDEX <code>trading_clients</code> repository (&lt; 5 minutes):</p>
             <ol>
                <li>Clone the DerivaDEX <code>trading_clients</code> repo: <code>git clone git@gitlab.com:derivadex/trading_clients.git</code></li>
-               <li>Copy the <code>.config.template.json</code> file into a location of your choosing (we&#39;ll refer to this file path as <code>$CONFIG</code>). Since we&#39;re only discussing the auditor, we will only consider the <code>auditorDeployments</code> section, and you may set <code>mmDeployments</code> and <code>mtDeployments</code> to an empty array (i.e., <code>[]</code>).<ul>
+               <li>Copy the <code>.config.template.json</code> file into a location of your choosing (we&quot;ll refer to this file path as <code>$CONFIG</code>). Since we&quot;re only discussing the auditor, we will only consider the <code>auditorDeployments</code> section, and you may set <code>mmDeployments</code> and <code>mtDeployments</code> to an empty array (i.e., <code>[]</code>).<ul>
                      <li>A common pattern traders have requested is to host the auditor by itself in a Kubernetes cluster, so there is a special boolean flag here if this is an approach you would like to take as well. This generates slightly different files to accommodate Kubernetes deployments. This is discussed in the <a href="#kubernetes-deployment">section</a> below.</li>
                   </ul>
                </li>
@@ -73,7 +74,7 @@
             <p>To run the Auditor from source, follow these steps from the DerivaDEX <code>trading_clients</code> repository (&lt; 5 minutes):</p>
             <ol>
                <li>
-                  <p>If you don&#39;t already have it, we recommend setting up <a href="https://docs.anaconda.com/anaconda/install/index.html">Anaconda/Python(&gt;3)</a> on your machine</p>
+                  <p>If you don&quot;t already have it, we recommend setting up <a href="https://docs.anaconda.com/anaconda/install/index.html">Anaconda/Python(&gt;3)</a> on your machine</p>
                </li>
                <li>
                   <p>Initialize and activate a Conda environment (located at the root level of the repo) from which you will run the Auditor: <code>conda env create -f environment.yml &amp;&amp; conda activate derivadex</code></p>
@@ -114,7 +115,7 @@
         <span class="hljs-attr">&quot;signature&quot;</span>: <span class="hljs-string">&quot;0xd5a1ca6d40a030368710ab86d391e5d16164ea16d2c809894eefddd1658bb08c6898177aa492d4d45272ee41cb40f252327a23e8d1fc2af6904e8860d3f72b3b1b&quot;</span>
     }
 }</code></pre>
-            <p>You can place new orders by specifying specific attributes in the <code>Order</code> command&#39;s request payload. These requests are subject to a set of validations.</p>
+            <p>You can place new orders by specifying specific attributes in the <code>Order</code> command&quot;s request payload. These requests are subject to a set of validations.</p>
             <table>
                <thead>
                   <tr>
@@ -137,7 +138,7 @@
                   <tr>
                      <td>address_s</td>
                      <td>c.traderAddress</td>
-                     <td>Trader&#39;s Ethereum address (same as the one that facilitated the deposit)</td>
+                     <td>Trader&quot;s Ethereum address (same as the one that facilitated the deposit)</td>
                   </tr>
                   <tr>
                      <td>string</td>
@@ -161,7 +162,7 @@
                   </tr>
                   <tr>
                      <td>bytes32_s</td>
-                     <td>cc.nonce</td>
+                     <td>c.nonce</td>
                      <td>An incrementing numeric identifier for this request that is unique per user for all time</td>
                   </tr>
                   <tr>
@@ -186,7 +187,7 @@
                   </tr>
                </tbody>
             </table>
-            <p>To be more explicit, all of these fields must be passed in, even if not all of the fields apply due to certain functionalities not currently implemented (i.e. stops) or the fact that prices aren&#39;t applicable in the case of market orders. Please follow the guidelines specified in the table above around these conditions.</p>
+            <p>To be more explicit, all of these fields must be passed in, even if not all of the fields apply due to certain functionalities not currently implemented (i.e. stops) or the fact that prices aren&quot;t applicable in the case of market orders. Please follow the guidelines specified in the table above around these conditions.</p>
             <h3 id="response">Response</h3>
             <blockquote>
                <p>Receipt (success) format (JSON)</p>
@@ -240,12 +241,12 @@
                   <tr>
                      <td>address_s</td>
                      <td>c.sender</td>
-                     <td>The request sender&#39;s Ethereum address</td>
+                     <td>The request sender&quot;s Ethereum address</td>
                   </tr>
                   <tr>
                      <td>bytes_s</td>
                      <td>c.enclaveSignature</td>
-                     <td>An Operator&#39;s signature which proves secure handling of the request</td>
+                     <td>An Operator&quot;s signature which proves secure handling of the request</td>
                   </tr>
                </tbody>
             </table>
@@ -289,7 +290,7 @@
         <span class="hljs-attr">&quot;signature&quot;</span>: <span class="hljs-string">&quot;0xee6c271fc010e25fb28556b39f8999d832485b03335c9c4a5ceca84455ce6bb205483995f5240e62adeb50bda12ed8db67a990c0930e5512709b3bcff4a98ca01b&quot;</span>
     }
 }</code></pre>
-            <p>You can cancel existing orders by specifying specific attributes in the <code>CancelOrder</code> command&#39;s request payload.</p>
+            <p>You can cancel existing orders by specifying specific attributes in the <code>CancelOrder</code> command&quot;s request payload.</p>
             <table>
                <thead>
                   <tr>
@@ -317,7 +318,7 @@
                   <tr>
                      <td>bytes32_s</td>
                      <td>c.orderHash</td>
-                     <td>The first 25 bytes of the order&#39;s unique hash that is being canceled.</td>
+                     <td>The first 25 bytes of the order&quot;s unique hash that is being canceled.</td>
                   </tr>
                   <tr>
                      <td>bytes32_s</td>
@@ -385,12 +386,12 @@
                   <tr>
                      <td>address_s</td>
                      <td>c.sender</td>
-                     <td>The request sender&#39;s Ethereum address</td>
+                     <td>The request sender&quot;s Ethereum address</td>
                   </tr>
                   <tr>
                      <td>bytes_s</td>
                      <td>c.enclaveSignature</td>
-                     <td>An Operator&#39;s signature which proves secure handling of the request</td>
+                     <td>An Operator&quot;s signature which proves secure handling of the request</td>
                   </tr>
                </tbody>
             </table>
@@ -436,7 +437,7 @@
         <span class="hljs-attr">&quot;signature&quot;</span>: <span class="hljs-string">&quot;0xd5a1ca6d40a030368710ab86d391e5d16164ea16d2c809894eefddd1658bb08c6898177aa492d4d45272ee41cb40f252327a23e8d1fc2af6904e8860d3f72b3b1b&quot;</span>
     }
 }</code></pre>
-            <p>You can signal withdrawal intents to the Operators by specifying specific attributes in the <code>Withdraw</code> command&#39;s request payload. Withdrawal is a 2-step process: submitting a withdrawal intent, and performing a smart contract withdrawal. Once a withdrawal intent is initiated, you won&#39;t be able to trade with the collateral you are attempting to withdraw. You will only be able to formally initiate a smart contract withdrawal/token transfer once the epoch in which you signal your withdrawal desire has concluded.</p>
+            <p>You can signal withdrawal intents to the Operators by specifying specific attributes in the <code>Withdraw</code> command&quot;s request payload. Withdrawal is a 2-step process: submitting a withdrawal intent, and performing a smart contract withdrawal. Once a withdrawal intent is initiated, you won&quot;t be able to trade with the collateral you are attempting to withdraw. You will only be able to formally initiate a smart contract withdrawal/token transfer once the epoch in which you signal your withdrawal desire has concluded.</p>
             <table>
                <thead>
                   <tr>
@@ -459,7 +460,7 @@
                   <tr>
                      <td>address_s</td>
                      <td>c.traderAddress</td>
-                     <td>Trader&#39;s Ethereum address (same as the one that facilitated the deposit)</td>
+                     <td>Trader&quot;s Ethereum address (same as the one that facilitated the deposit)</td>
                   </tr>
                   <tr>
                      <td>string</td>
@@ -541,12 +542,12 @@
                   <tr>
                      <td>address_s</td>
                      <td>c.sender</td>
-                     <td>The request sender&#39;s Ethereum address</td>
+                     <td>The request sender&quot;s Ethereum address</td>
                   </tr>
                   <tr>
                      <td>bytes_s</td>
                      <td>c.enclaveSignature</td>
-                     <td>An Operator&#39;s signature which proves secure handling of the request</td>
+                     <td>An Operator&quot;s signature which proves secure handling of the request</td>
                   </tr>
                </tbody>
             </table>
@@ -665,12 +666,12 @@ e.g. topic = STATE/TRADER/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/</code></
                   <tr>
                      <td>decimal_s</td>
                      <td>c[n].c.freeDDXBalance</td>
-                     <td>Trader&#39;s free DDX collateral (available for use on the exchange)</td>
+                     <td>Trader&quot;s free DDX collateral (available for use on the exchange)</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
                      <td>c[n].c.frozenDDXBalance</td>
-                     <td>Trader&#39;s frozen DDX collateral (available for withdrawal)</td>
+                     <td>Trader&quot;s frozen DDX collateral (available for withdrawal)</td>
                   </tr>
                   <tr>
                      <td>address_s</td>
@@ -768,17 +769,17 @@ e.g. topic = STATE/STRATEGY/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84/0x2576e
                   <tr>
                      <td>dict&lt;address_s, decimal_s&gt;</td>
                      <td>c[n].c.freeCollateral</td>
-                     <td>Strategy&#39;s free collateral (available for trading) mapping from ERC-20 collateral token address to amount</td>
+                     <td>Strategy&quot;s free collateral (available for trading) mapping from ERC-20 collateral token address to amount</td>
                   </tr>
                   <tr>
                      <td>dict&lt;address_s, decimal_s&gt;</td>
                      <td>c[n].c.frozenCollateral</td>
-                     <td>Strategy&#39;s frozen collateral (available for withdrawal) mapping from ERC-20 collateral token address to amount</td>
+                     <td>Strategy&quot;s frozen collateral (available for withdrawal) mapping from ERC-20 collateral token address to amount</td>
                   </tr>
                   <tr>
                      <td>int</td>
                      <td>c[n].c.maxLeverage</td>
-                     <td>Strategy&#39;s maximum leverage setting</td>
+                     <td>Strategy&quot;s maximum leverage setting</td>
                   </tr>
                   <tr>
                      <td>bool</td>
@@ -971,7 +972,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>string</td>
                      <td>c[n].t</td>
-                     <td>Book order topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/BOOK_ORDER/&lt;symbol&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;/&lt;order_hash&gt;/</code>. <code>symbol</code> is a <code>string</code> type (e.g. <code>ETHPERP</code>), <code>trader_address</code> should be an <code>address_pre_s</code> type, <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>), and &#39;order_hash&#39; is a <code>bytes_s</code> type representing the first 25-bytes of the order&#39;s unique hash.</td>
+                     <td>Book order topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/BOOK_ORDER/&lt;symbol&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;/&lt;order_hash&gt;/</code>. <code>symbol</code> is a <code>string</code> type (e.g. <code>ETHPERP</code>), <code>trader_address</code> should be an <code>address_pre_s</code> type, <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>), and &quot;order_hash&quot; is a <code>bytes_s</code> type representing the first 25-bytes of the order&quot;s unique hash.</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -994,14 +995,14 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                      <td>Price order is currently resting at</td>
                   </tr>
                   <tr>
-                     <td>address_s</td>
+                     <td>address_s_pre</td>
                      <td>c[n].c.traderAddress</td>
-                     <td>Trader&#39;s Ethereum address (prefixed with the chain discriminant) responsible for this maker order</td>
+                     <td>Trader&quot;s Ethereum address (prefixed with the chain discriminant) responsible for this maker order</td>
                   </tr>
                   <tr>
                      <td>bytes_s</td>
                      <td>c[n].c.strategyIdHash</td>
-                     <td>Trader&#39;s abbreviated strategy id hash (first 4 bytes of the hash of the strategy id) responsible for this maker order</td>
+                     <td>Trader&quot;s abbreviated strategy id hash (first 4 bytes of the hash of the strategy id) responsible for this maker order</td>
                   </tr>
                   <tr>
                      <td>int</td>
@@ -1021,7 +1022,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
             <h2 id="state-events">State events</h2>
             <p>State events can be subscribed to track changes to specific state entries on DerivaDEX.</p>
             <h3 id="trader-1">Trader</h3>
-            <p>You may subscribe to updates for any trader&#39;s <code>Trader</code> data.</p>
+            <p>You may subscribe to updates for any trader&quot;s <code>Trader</code> data.</p>
             <h4 id="request-7">Request</h4>
             <blockquote>
                <p>Sample Trader state subscription (JSON)</p>
@@ -1133,12 +1134,12 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>decimal_s</td>
                      <td>c.itemData[n].c.freeDDXBalance</td>
-                     <td>Trader&#39;s free DDX collateral (available for use on the exchange)</td>
+                     <td>Trader&quot;s free DDX collateral (available for use on the exchange)</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
                      <td>c.itemData[n].c.frozenDDXBalance</td>
-                     <td>Trader&#39;s frozen DDX collateral (available for withdrawal)</td>
+                     <td>Trader&quot;s frozen DDX collateral (available for withdrawal)</td>
                   </tr>
                   <tr>
                      <td>address_s</td>
@@ -1219,12 +1220,12 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>decimal_s</td>
                      <td>c.itemData.c.freeDDXBalance</td>
-                     <td>Trader&#39;s free DDX collateral (available for use on the exchange)</td>
+                     <td>Trader&quot;s free DDX collateral (available for use on the exchange)</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
                      <td>c.itemData.c.frozenDDXBalance</td>
-                     <td>Trader&#39;s frozen DDX collateral (available for withdrawal)</td>
+                     <td>Trader&quot;s frozen DDX collateral (available for withdrawal)</td>
                   </tr>
                   <tr>
                      <td>address_s</td>
@@ -1239,7 +1240,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                </tbody>
             </table>
             <h3 id="strategy-1">Strategy</h3>
-            <p>You may subscribe to updates for any trader&#39;s <code>Strategy</code> data.</p>
+            <p>You may subscribe to updates for any trader&quot;s <code>Strategy</code> data.</p>
             <h4 id="request-8">Request</h4>
             <blockquote>
                <p>Sample Strategy state subscription (JSON)</p>
@@ -1359,17 +1360,17 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>dict&lt;address_s, decimal_s&gt;</td>
                      <td>c.itemData[n].c.freeCollateral</td>
-                     <td>Strategy&#39;s free collateral (available for trading) mapping from ERC-20 collateral token address to amount</td>
+                     <td>Strategy&quot;s free collateral (available for trading) mapping from ERC-20 collateral token address to amount</td>
                   </tr>
                   <tr>
                      <td>dict&lt;address_s, decimal_s&gt;</td>
                      <td>c.itemData[n].c.frozenCollateral</td>
-                     <td>Strategy&#39;s free collateral (available for withdrawal) mapping from ERC-20 collateral token address to amount</td>
+                     <td>Strategy&quot;s free collateral (available for withdrawal) mapping from ERC-20 collateral token address to amount</td>
                   </tr>
                   <tr>
                      <td>int</td>
                      <td>c.itemData[n].c.maxLeverage</td>
-                     <td>Strategy&#39;s maximum leverage setting</td>
+                     <td>Strategy&quot;s maximum leverage setting</td>
                   </tr>
                   <tr>
                      <td>bool</td>
@@ -1463,17 +1464,17 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>dict&lt;address_s, decimal_s&gt;</td>
                      <td>c.itemData.c.freeCollateral</td>
-                     <td>Strategy&#39;s free collateral (available for trading) mapping from ERC-20 collateral token address to amount</td>
+                     <td>Strategy&quot;s free collateral (available for trading) mapping from ERC-20 collateral token address to amount</td>
                   </tr>
                   <tr>
                      <td>dict&lt;address_s, decimal_s&gt;</td>
                      <td>c.itemData.c.frozenCollateral</td>
-                     <td>Strategy&#39;s free collateral (available for withdrawal) mapping from ERC-20 collateral token address to amount</td>
+                     <td>Strategy&quot;s free collateral (available for withdrawal) mapping from ERC-20 collateral token address to amount</td>
                   </tr>
                   <tr>
                      <td>int</td>
                      <td>c.itemData.c.maxLeverage</td>
-                     <td>Strategy&#39;s maximum leverage setting</td>
+                     <td>Strategy&quot;s maximum leverage setting</td>
                   </tr>
                   <tr>
                      <td>bool</td>
@@ -1488,7 +1489,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                </tbody>
             </table>
             <h3 id="position-1">Position</h3>
-            <p>You may subscribe to updates for any trader&#39;s <code>Position</code> data.</p>
+            <p>You may subscribe to updates for any trader&quot;s <code>Position</code> data.</p>
             <h4 id="request-9">Request</h4>
             <blockquote>
                <p>Sample Position state subscription (JSON)</p>
@@ -1789,8 +1790,8 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
             </table>
             <p>Like its REST counterpart, this is endpoint can be used for a variety of purposes. You can subscribe to <code>BookOrder</code> state updates to track:</p>
             <ul>
-               <li>L3 order book: An L3 order book is a granular, order-by-order view of the entire market for any given symbol (i.e. no aggregation). You can subscribe to a market&#39;s order book using a topic such as <code>STATE/BOOK_ORDER/ETHPERP</code>, where <code>ETHPERP</code> is an example market you may be requesting. This will send an initial <code>Partial</code> response with all of the <code>BookOrder</code> leaf entries making up the order book, and subsequently, <code>Update</code> messages with any new, canceled, or updated orders in the book. You are welcome to process this data in any local order book data structure you see fit.</li>
-               <li>Open orders: You can obtain your open orders in a given strategy using a topic such as <code>STATE/BOOK_ORDER/ETHPERP/0x006ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/</code>, where <code>ETHPERP</code> is an example market, <code>0x006ecbe1db9ef729cbe972c83fb886247691fb6beb</code> is an example of your Ethereum address prefixed with the chain discriminant, and <code>0x2576ebd1</code> is an example of the first 4 bytes of the hash of your strategy&#39;s name (in this case, <code>main</code>). This will send an initial <code>Partial</code> response with all of the <code>BookOrder</code> leaf entries corresponding to the open orders in your strategy, and subsequently, <code>Update</code> messages with any new, canceled, or updated orders of yours. You are welcome to process this data however you see fit.</li>
+               <li>L3 order book: An L3 order book is a granular, order-by-order view of the entire market for any given symbol (i.e. no aggregation). You can subscribe to a market&quot;s order book using a topic such as <code>STATE/BOOK_ORDER/ETHPERP</code>, where <code>ETHPERP</code> is an example market you may be requesting. This will send an initial <code>Partial</code> response with all of the <code>BookOrder</code> leaf entries making up the order book, and subsequently, <code>Update</code> messages with any new, canceled, or updated orders in the book. You are welcome to process this data in any local order book data structure you see fit.</li>
+               <li>Open orders: You can obtain your open orders in a given strategy using a topic such as <code>STATE/BOOK_ORDER/ETHPERP/0x006ecbe1db9ef729cbe972c83fb886247691fb6beb/0x2576ebd1/</code>, where <code>ETHPERP</code> is an example market, <code>0x006ecbe1db9ef729cbe972c83fb886247691fb6beb</code> is an example of your Ethereum address prefixed with the chain discriminant, and <code>0x2576ebd1</code> is an example of the first 4 bytes of the hash of your strategy&quot;s name (in this case, <code>main</code>). This will send an initial <code>Partial</code> response with all of the <code>BookOrder</code> leaf entries corresponding to the open orders in your strategy, and subsequently, <code>Update</code> messages with any new, canceled, or updated orders of yours. You are welcome to process this data however you see fit.</li>
             </ul>
             <h4 id="response-10">Response</h4>
             <h5 id="partial-3">Partial</h5>
@@ -1863,7 +1864,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>string</td>
                      <td>c.itemData[n].t</td>
-                     <td><code>BookOrder</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/BOOK_ORDER/&lt;symbol&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;/&lt;order_hash&gt;/</code>. <code>symbol</code> is of <code>string</code> type, <code>trader_address</code> should be an <code>address_pre_s</code> type, <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>), and <code>order_hash</code> is of <code>bytes_s</code> type representing the first 25 bytes of the order&#39;s unique hash.</td>
+                     <td><code>BookOrder</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/BOOK_ORDER/&lt;symbol&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;/&lt;order_hash&gt;/</code>. <code>symbol</code> is of <code>string</code> type, <code>trader_address</code> should be an <code>address_pre_s</code> type, <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>), and <code>order_hash</code> is of <code>bytes_s</code> type representing the first 25 bytes of the order&quot;s unique hash.</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -1888,17 +1889,17 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>address_s</td>
                      <td>c.itemData[n].c.traderAddress</td>
-                     <td>The trader&#39;s Ethereum address responsible for this order</td>
+                     <td>The trader&quot;s Ethereum address responsible for this order</td>
                   </tr>
                   <tr>
                      <td>bytes_s</td>
                      <td>c.itemData[n].c.strategyIdHash</td>
-                     <td>The trader&#39;s strategy identifier (first 4 bytes of the hash of the strategy, e.g. <code>main</code>) for which this order belongs</td>
+                     <td>The trader&quot;s strategy identifier (first 4 bytes of the hash of the strategy, e.g. <code>main</code>) for which this order belongs</td>
                   </tr>
                   <tr>
                      <td>int</td>
                      <td>c.itemData[n].c.bookOrdinal</td>
-                     <td>Numerical identifier signifying the order&#39;s sequencing in the book, can be useful to arrange orders that are at the same level in priority</td>
+                     <td>Numerical identifier signifying the order&quot;s sequencing in the book, can be useful to arrange orders that are at the same level in priority</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -1973,7 +1974,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>string</td>
                      <td>c.itemData.t</td>
-                     <td><code>BookOrder</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/BOOK_ORDER/&lt;symbol&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;/&lt;order_hash&gt;/</code>. <code>symbol</code> is of <code>string</code> type, <code>trader_address</code> should be an <code>address_pre_s</code> type, <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>), and <code>order_hash</code> is of <code>bytes_s</code> type representing the first 25 bytes of the order&#39;s unique hash.</td>
+                     <td><code>BookOrder</code> topic (corresponding to its key), containing identifying information. This key is of the format <code>STATE/BOOK_ORDER/&lt;symbol&gt;/&lt;trader_address&gt;/&lt;abbrev_strategy_id_hash&gt;/&lt;order_hash&gt;/</code>. <code>symbol</code> is of <code>string</code> type, <code>trader_address</code> should be an <code>address_pre_s</code> type, <code>abbrev_strategy_id_hash</code> is a <code>bytes_s</code> type representing the first 4-bytes of the hash of the strategy id (e.g. <code>main</code>), and <code>order_hash</code> is of <code>bytes_s</code> type representing the first 25 bytes of the order&quot;s unique hash.</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -1998,17 +1999,17 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>address_s</td>
                      <td>c.itemData.c.traderAddress</td>
-                     <td>The trader&#39;s Ethereum address responsible for this order</td>
+                     <td>The trader&quot;s Ethereum address responsible for this order</td>
                   </tr>
                   <tr>
                      <td>bytes_s</td>
                      <td>c.itemData.c.strategyIdHash</td>
-                     <td>The trader&#39;s strategy identifier (first 4 bytes of the hash of the strategy, e.g. <code>main</code>) for which this order belongs</td>
+                     <td>The trader&quot;s strategy identifier (first 4 bytes of the hash of the strategy, e.g. <code>main</code>) for which this order belongs</td>
                   </tr>
                   <tr>
                      <td>int</td>
                      <td>c.itemData.c.bookOrdinal</td>
-                     <td>Numerical identifier signifying the order&#39;s sequencing in the book, can be useful to arrange orders that are at the same level in priority</td>
+                     <td>Numerical identifier signifying the order&quot;s sequencing in the book, can be useful to arrange orders that are at the same level in priority</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -2020,7 +2021,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
             <h2 id="transaction-log-events">Transaction log events</h2>
             <p>Transaction (oft-abbreviated tx) log events can be subscribed to when seeking to follow all the state-transitioning events taking place on DerivaDEX.</p>
             <h3 id="post">Post</h3>
-            <p>You may subscribe to new posted orders on DerivaDEX. A post transaction occurs when an order successfully places an order on the exchange&#39;s order book (with some unmatched amount).</p>
+            <p>You may subscribe to new posted orders on DerivaDEX. A post transaction occurs when an order successfully places an order on the exchange&quot;s order book (with some unmatched amount).</p>
             <h4 id="request-11">Request</h4>
             <blockquote>
                <p>Sample post subscription (JSON)</p>
@@ -2065,7 +2066,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>string</td>
                      <td>c</td>
-                     <td>Subscription topic of the format <code>TX_LOG/POST/[&lt;symbol&gt;/][[&lt;trader_address&gt;/]][[[&lt;abbrev_strategy_id_hash&gt;/]]]</code>. <code>symbol</code> is of <code>string</code> type (e.g. <code>ETHPERP</code>), <code>trader_address</code> is of <code>address_pre_s</code> type corresponding to the trader&#39;s Ethereum address and <code>abbrev_strategy_id_hash</code> is of <code>bytes_s</code> type corresponding to the first 4 bytes of the hash of the strategy to which this fill belongs (e.g. <code>main</code>).</td>
+                     <td>Subscription topic of the format <code>TX_LOG/POST/[&lt;symbol&gt;/][[&lt;trader_address&gt;/]][[[&lt;abbrev_strategy_id_hash&gt;/]]]</code>. <code>symbol</code> is of <code>string</code> type (e.g. <code>ETHPERP</code>), <code>trader_address</code> is of <code>address_pre_s</code> type corresponding to the trader&quot;s Ethereum address and <code>abbrev_strategy_id_hash</code> is of <code>bytes_s</code> type corresponding to the first 4 bytes of the hash of the strategy to which this fill belongs (e.g. <code>main</code>).</td>
                   </tr>
                </tbody>
             </table>
@@ -2146,7 +2147,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>bytes_s</td>
                      <td>c.c.orderHash</td>
-                     <td>First 25 bytes of the order intent&#39;s unique EIP-712 hash</td>
+                     <td>First 25 bytes of the order intent&quot;s unique EIP-712 hash</td>
                   </tr>
                   <tr>
                      <td>int</td>
@@ -2166,7 +2167,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>address_s</td>
                      <td>c.c.traderAddress</td>
-                     <td>Trader&#39;s Ethereum address (prefixed with the chain discriminant) responsible for order placement</td>
+                     <td>Trader&quot;s Ethereum address (prefixed with the chain discriminant) responsible for order placement</td>
                   </tr>
                   <tr>
                      <td>string</td>
@@ -2220,7 +2221,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>string</td>
                      <td>c</td>
-                     <td>Subscription topic of the format <code>TX_LOG/STRATEGY_UPDATE/[&lt;trader_address&gt;/][[&lt;abbrev_strategy_id_hash&gt;/]]</code>. <code>trader_address</code> is of <code>address_pre_s</code> type corresponding to the trader&#39;s Ethereum address and <code>abbrev_strategy_id_hash</code> is of <code>bytes_s</code> type corresponding to the first 4 bytes of the hash of the strategy to which this fill belongs (e.g. <code>main</code>).</td>
+                     <td>Subscription topic of the format <code>TX_LOG/STRATEGY_UPDATE/[&lt;trader_address&gt;/][[&lt;abbrev_strategy_id_hash&gt;/]]</code>. <code>trader_address</code> is of <code>address_pre_s</code> type corresponding to the trader&quot;s Ethereum address and <code>abbrev_strategy_id_hash</code> is of <code>bytes_s</code> type corresponding to the first 4 bytes of the hash of the strategy to which this fill belongs (e.g. <code>main</code>).</td>
                   </tr>
                </tbody>
             </table>
@@ -2294,7 +2295,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>address_s</td>
                      <td>c.c.traderAddress</td>
-                     <td>Trader&#39;s Ethereum address (prefixed with the chain discriminant) to which this event belongs to</td>
+                     <td>Trader&quot;s Ethereum address (prefixed with the chain discriminant) to which this event belongs to</td>
                   </tr>
                   <tr>
                      <td>address_s</td>
@@ -2434,7 +2435,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>decimal_s</td>
                      <td>c.c.ema</td>
-                     <td>Exponential moving average reflecting the spread between DerivaDEX&#39;s order book and the underlying composite index price</td>
+                     <td>Exponential moving average reflecting the spread between DerivaDEX&quot;s order book and the underlying composite index price</td>
                   </tr>
                   <tr>
                      <td>bytes32_s</td>
@@ -2494,7 +2495,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>string</td>
                      <td>c</td>
-                     <td>Subscription topic of the format <code>TX_LOG/FILL/[&lt;symbol&gt;/][[&lt;trader_address&gt;/]][[[&lt;abbrev_strategy_id_hash&gt;/]]]</code>. <code>symbol</code> is of <code>string</code> type and corresponds to a given market (e.g. <code>ETHPERP</code>), <code>trader_address</code> is of <code>address_pre_s</code> type corresponding to the trader&#39;s Ethereum address, and <code>abbrev_strategy_id_hash</code> is of <code>bytes_s</code> type corresponding to the first 4 bytes of the hash of the strategy to which this fill belongs (e.g. <code>main</code>).</td>
+                     <td>Subscription topic of the format <code>TX_LOG/FILL/[&lt;symbol&gt;/][[&lt;trader_address&gt;/]][[[&lt;abbrev_strategy_id_hash&gt;/]]]</code>. <code>symbol</code> is of <code>string</code> type and corresponds to a given market (e.g. <code>ETHPERP</code>), <code>trader_address</code> is of <code>address_pre_s</code> type corresponding to the trader&quot;s Ethereum address, and <code>abbrev_strategy_id_hash</code> is of <code>bytes_s</code> type corresponding to the first 4 bytes of the hash of the strategy to which this fill belongs (e.g. <code>main</code>).</td>
                   </tr>
                </tbody>
             </table>
@@ -2596,12 +2597,12 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>bytes_s</td>
                      <td>c.c.takerOrderHash</td>
-                     <td>First 25 bytes of the hash of the taker&#39;s order intent</td>
+                     <td>First 25 bytes of the hash of the taker&quot;s order intent</td>
                   </tr>
                   <tr>
                      <td>bytes_s</td>
                      <td>c.c.makerOrderHash</td>
-                     <td>First 25 bytes of the hash of the maker&#39;s order intent</td>
+                     <td>First 25 bytes of the hash of the maker&quot;s order intent</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
@@ -2631,7 +2632,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>address_s</td>
                      <td>c.c.makerOutcome.traderAddress</td>
-                     <td>Maker trader&#39;s Ethereum address (prefixed with the chain discriminant)</td>
+                     <td>Maker trader&quot;s Ethereum address (prefixed with the chain discriminant)</td>
                   </tr>
                   <tr>
                      <td>string</td>
@@ -2656,22 +2657,22 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>decimal_s</td>
                      <td>c.c.makerOutcome.newCollateral</td>
-                     <td>New free collateral in maker trader&#39;s strategy as a result of the trade</td>
+                     <td>New free collateral in maker trader&quot;s strategy as a result of the trade</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
                      <td>c.c.makerOutcome.newPositionAvgEntryPrice</td>
-                     <td>New average entry price for maker&#39;s position as a result of the trade</td>
+                     <td>New average entry price for maker&quot;s position as a result of the trade</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
                      <td>c.c.makerOutcome.newPositionBalance</td>
-                     <td>New size for maker&#39;s position as a result of the trade</td>
+                     <td>New size for maker&quot;s position as a result of the trade</td>
                   </tr>
                   <tr>
                      <td>string</td>
                      <td>c.c.makerOutcome.positionSide</td>
-                     <td>New side for maker&#39;s position (<code>Long</code>, <code>Short</code>) as a result of the trade</td>
+                     <td>New side for maker&quot;s position (<code>Long</code>, <code>Short</code>) as a result of the trade</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -2681,7 +2682,7 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>address_s</td>
                      <td>c.c.takerOutcome.traderAddress</td>
-                     <td>Taker trader&#39;s Ethereum address (prefixed with the chain discriminant)</td>
+                     <td>Taker trader&quot;s Ethereum address (prefixed with the chain discriminant)</td>
                   </tr>
                   <tr>
                      <td>string</td>
@@ -2706,26 +2707,85 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
                   <tr>
                      <td>decimal_s</td>
                      <td>c.c.takerOutcome.newCollateral</td>
-                     <td>New free collateral in taker trader&#39;s strategy as a result of the trade</td>
+                     <td>New free collateral in taker trader&quot;s strategy as a result of the trade</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
                      <td>c.c.takerOutcome.newPositionAvgEntryPrice</td>
-                     <td>New average entry price for taker&#39;s position as a result of the trade</td>
+                     <td>New average entry price for taker&quot;s position as a result of the trade</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
                      <td>c.c.takerOutcome.newPositionBalance</td>
-                     <td>New size for taker&#39;s position as a result of the trade</td>
+                     <td>New size for taker&quot;s position as a result of the trade</td>
                   </tr>
                   <tr>
                      <td>int</td>
                      <td>c.c.takerOutcome.positionSide</td>
-                     <td>New side for taker&#39;s position (<code>Long</code>, <code>Short</code>) as a result of the trade</td>
+                     <td>New side for taker&quot;s position (<code>Long</code>, <code>Short</code>) as a result of the trade</td>
                   </tr>
                </tbody>
             </table>
-            <p>Please keep in mind that due to the subscription topic methodology, in the scenario where you don&#39;t specify a particular <code>trader_address</code> and <code>abbrev_strategy_id_hash</code> (e.g. a topic of the format <code>TX_LOG/FILL/ETHPERP/</code>), you will receive 2 <code>fill</code> event responses back on this WebSocket stream per <code>fill</code>, where the two response topics correspond to both the maker and taker&#39;s <code>trader_address</code> and <code>abbrev_strategy_id_hash</code>. You will be able to determine that these <code>fill</code> events are in fact the same by looking at the <code>requestIndex</code> and/or the equivalent pair of <code>makerOutcome</code> and <code>takerOutcome</code> in both events.</p>
+            <p>Please keep in mind that due to the subscription topic methodology, in the scenario where you don&quot;t specify a particular <code>trader_address</code> and <code>abbrev_strategy_id_hash</code> (e.g. a topic of the format <code>TX_LOG/FILL/ETHPERP/</code>), you will receive 2 <code>fill</code> event responses back on this WebSocket stream per <code>fill</code>, where the two response topics correspond to both the maker and taker&quot;s <code>trader_address</code> and <code>abbrev_strategy_id_hash</code>. You will be able to determine that these <code>fill</code> events are in fact the same by looking at the <code>requestIndex</code> and/or the equivalent pair of <code>makerOutcome</code> and <code>takerOutcome</code> in both events.</p>
+            <h1 id="collections-api">Collections API</h1>
+            <p>The Collections API offers traders stats and data via a REST interface. All of this data can in theory be reconstructed if you were to play the transaction log from genesis. However, for convenience, you can fetch this data in this manner. </p>
+            <h2 id="fills">Fills</h2>
+            <h3 id="request-15">Request</h3>
+            <blockquote>
+               <p>Sample fills REST query</p>
+            </blockquote>
+            <pre class="highlight json"><code>GET /stats/api/v1/account/{traderAddress}/fills?symbol={symbol}&amp;limit={limit}&amp;offset={offset}
+
+e.g. /stats/api/v1/account/0xE834EC434DABA538cd1b9Fe1582052B880BD7e63/fills?symbol=ETHPERP&amp;limit=500&amp;offset=0</code></pre>
+            <p>You may obtain the fills data for any trader address (NOT prefixed with the chain discriminant) with the following query parameter definition:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>string</td>
+                     <td>symbol</td>
+                     <td>Market symbol</td>
+                  </tr>
+                  <tr>
+                     <td>string</td>
+                     <td>limit</td>
+                     <td>Query limit</td>
+                  </tr>
+                  <tr>
+                     <td>string</td>
+                     <td>offset</td>
+                     <td>Query offset</td>
+                  </tr>
+               </tbody>
+            </table>
+            <h3 id="response-15">Response</h3>
+            <blockquote>
+               <p>Sample fills REST response</p>
+            </blockquote>
+            <pre class="highlight json"><code>[{
+    <span class="hljs-attr">&quot;fillId&quot;</span>: <span class="hljs-string">&quot;1&quot;</span>,
+    <span class="hljs-attr">&quot;epochId&quot;</span>: <span class="hljs-string">&quot;4&quot;</span>,
+    <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;0.600000000000000000&quot;</span>,
+    <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
+    <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;2507.500000000000000000&quot;</span>,
+    <span class="hljs-attr">&quot;makerOrderHash&quot;</span>: <span class="hljs-string">&quot;0xff98f83e5ecbbae74ff7b4510421b545a4d07e37783a034cc4&quot;</span>,
+    <span class="hljs-attr">&quot;makerFee&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+    <span class="hljs-attr">&quot;makerRealizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+    <span class="hljs-attr">&quot;takerOrderHash&quot;</span>: <span class="hljs-string">&quot;0xb3debba450d0f4699f17383e2d21921513e03bdd2c7caa6188&quot;</span>,
+    <span class="hljs-attr">&quot;takerFee&quot;</span>: <span class="hljs-string">&quot;3.009000000000000000&quot;</span>,
+    <span class="hljs-attr">&quot;takerRealizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+    <span class="hljs-attr">&quot;reason&quot;</span>: <span class="hljs-number">0</span>,
+    <span class="hljs-attr">&quot;liquidationId&quot;</span>: <span class="hljs-literal">null</span>,
+    <span class="hljs-attr">&quot;timeValue&quot;</span>: <span class="hljs-string">&quot;4359&quot;</span>,
+    <span class="hljs-attr">&quot;createdAt&quot;</span>: <span class="hljs-string">&quot;2022-02-25T21:14:07.858Z&quot;</span>,
+    <span class="hljs-attr">&quot;updatedAt&quot;</span>: <span class="hljs-string">&quot;2022-02-25T21:14:07.858Z&quot;</span>
+}]</code></pre>
             <h1 id="appendix">Appendix</h1>
             <p>The appendix covers some additional information for those of you wanting to dive a bit deeper into some of the above topics.</p>
             <h2 id="types">Types</h2>
@@ -2837,14 +2897,14 @@ e.g. topic = STATE/BOOK_ORDER/ETHPERP/0x00e36ea790bc9d7ab70c55260c66d52b1eca985f
 w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura.io/v3/&lt;your_api_key&gt;&quot;</span>))
 
 <span class="hljs-comment"># Open up the ABI shown above saved at a file location, in this case `trader_abi.json` is the filename</span>
-<span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">&#x27;trader_abi.json&#x27;</span>) <span class="hljs-keyword">as</span> f:
+<span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">&quot;trader_abi.json&quot;</span>) <span class="hljs-keyword">as</span> f:
     trader_abi = json.load(f)
 
     <span class="hljs-comment"># Create an trader_abi contract wrapper</span>
-    trader_contract = w3.eth.contract(address=Web3.toChecksumAddress(<span class="hljs-string">&#x27;0x80ead6c2d69acc72dad76fb3151820a9b5d6a9e9&#x27;</span>), abi=trader_abi)
+    trader_contract = w3.eth.contract(address=Web3.toChecksumAddress(<span class="hljs-string">&quot;0x80ead6c2d69acc72dad76fb3151820a9b5d6a9e9&quot;</span>), abi=trader_abi)
 
     <span class="hljs-comment"># Deposit 1000 USDC</span>
-    trader_contract.functions.deposit(<span class="hljs-string">&#x27;0xc4f290a59d66a2e06677ed27422a1106049d9e72&#x27;</span>, encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, <span class="hljs-string">&#x27;main&#x27;</span>.encode(<span class="hljs-string">&quot;utf8&quot;</span>)), <span class="hljs-number">1000000000</span>).transact()</code></pre>
+    trader_contract.functions.deposit(<span class="hljs-string">&quot;0xc4f290a59d66a2e06677ed27422a1106049d9e72&quot;</span>, encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, <span class="hljs-string">&quot;main&quot;</span>.encode(<span class="hljs-string">&quot;utf8&quot;</span>)), <span class="hljs-number">1000000000</span>).transact()</code></pre>
             <p>DerivaDEX is a decentralized exchange. As such, trading is non-custodial. Users are responsible for their own funds, which are deposited to the DerivaDEX smart contracts on Ethereum for trading.</p>
             <p>To deposit funds on DerivaDEX, first ensure that you have created an Ethereum account. The deposit interaction is between a user and the DerivaDEX smart contracts. To be more explicit, you will not be utilizing the API to facilitate a deposit. The DerivaDEX Solidity smart contracts adhere to the <a href="https://medium.com/derivadex/the-diamond-standard-a-new-paradigm-for-upgradeability-569121a08954">Diamond Standard</a>. The <code>deposit</code> smart contract function you will need to use is located in the <code>Trader</code> facet, at the address of the main <code>DerivaDEX</code> proxy contract (<code>0x80ead6c2d69acc72dad76fb3151820a9b5d6a9e9</code>).</p>
             <p>Note: Valid deposit collateral is curated by the smart contract and is managed by governance.</p>
@@ -2888,7 +2948,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;DerivaDEX&quot;</span>,
     <span class="hljs-attr">&quot;version&quot;</span>: <span class="hljs-string">&quot;1&quot;</span>,
     <span class="hljs-attr">&quot;chainId&quot;</span>:  <span class="hljs-number">42</span>,
-    <span class="hljs-attr">&quot;verifyingContract&quot;</span>: <span class="hljs-string">&quot;0x80ead6c2d69acc72dad76fb3151820a9b5d6a9e9&quot;</span>
+    <span class="hljs-attr">&quot;verifyingContract&quot;</span>: <span class="hljs-string">&quot;0x267c0fcb36fc8718bd3abf42054608868c794c81&quot;</span>
 }</code></pre>
             <blockquote>
                <p>Sample computation of domain struct hash</p>
@@ -2931,8 +2991,8 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         eip712_domain_separator_schema_hash
         + keccak(<span class="hljs-string">b&quot;DerivaDEX&quot;</span>)
         + keccak(<span class="hljs-string">b&quot;1&quot;</span>)
-        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, chain_id)
-        + encode_single(<span class="hljs-string">&#x27;address&#x27;</span>, verifying_contract)
+        + encode_single(<span class="hljs-string">&quot;uint256&quot;</span>, chain_id)
+        + encode_single(<span class="hljs-string">&quot;address&quot;</span>, verifying_contract)
     )</code></pre>
             <p>The <code>domain</code> is a mandatory field that allows for signature/hashing schemes on one dApp to be unique to itself from other dApps. All <code>commands</code> use the same <code>domain</code> specification. The parameters that comprise the domain are as follows:</p>
             <table>
@@ -2962,7 +3022,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>address</td>
                      <td>verifyingContract</td>
-                     <td>DerivaDEX smart contract&#39;s Ethereum address</td>
+                     <td>DerivaDEX smart contract&quot;s Ethereum address</td>
                   </tr>
                </tbody>
             </table>
@@ -3005,7 +3065,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     <span class="hljs-keyword">return</span> messageStructHash;
 }</code></pre><pre class="highlight python"><code><span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single
 <span class="hljs-keyword">from</span> eth_utils.crypto <span class="hljs-keyword">import</span> keccak
-<span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
+<span class="hljs-keyword">from</span> ddx_python.decimal <span class="hljs-keyword">import</span> Decimal
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">compute_eip712_message_struct_hash</span>(<span class="hljs-params">trader_address: <span class="hljs-built_in">str</span>, symbol: <span class="hljs-built_in">str</span>, strategy: <span class="hljs-built_in">str</span>, side: <span class="hljs-built_in">str</span>, order_type: <span class="hljs-built_in">str</span>, nonce: <span class="hljs-built_in">str</span>, amount: Decimal, price: Decimal, stop_price: Decimal</span>) -&gt; bytes:</span>
     <span class="hljs-comment"># keccak-256 hash of the encoded schema for the place order command</span>
@@ -3024,40 +3084,40 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     )
 
     <span class="hljs-comment"># Ensure decimal value has no more than 18 decimals of precision</span>
-    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">round_to_unit</span>(<span class="hljs-params">val</span>):</span>
-        <span class="hljs-keyword">return</span> val.quantize(Decimal(<span class="hljs-string">&quot;.000000000000000001&quot;</span>), rounding=ROUND_DOWN)
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">round_to_unit</span>(<span class="hljs-params">val: Decimal</span>) -&gt; Decimal:</span>
+        <span class="hljs-keyword">return</span> val.quantize(<span class="hljs-number">18</span>)
 
     <span class="hljs-comment"># Scale up to DDX grains format (i.e. multiply by 1e18)</span>
-    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount</span>(<span class="hljs-params">val: Decimal, decimals: <span class="hljs-built_in">int</span></span>) -&gt; int:</span>
         <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(round_to_unit(val) * <span class="hljs-number">10</span> ** decimals)
 
     <span class="hljs-comment"># Convert order side string to int representation</span>
     <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">order_side_to_int</span>(<span class="hljs-params">order_side: <span class="hljs-built_in">str</span></span>) -&gt; int:</span>
-        <span class="hljs-keyword">if</span> order_side == <span class="hljs-string">&#x27;Bid&#x27;</span>:
+        <span class="hljs-keyword">if</span> order_side == <span class="hljs-string">&quot;Bid&quot;</span>:
             <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>
         <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>
 
     <span class="hljs-comment"># Convert order type string to int representation</span>
     <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">order_type_to_int</span>(<span class="hljs-params">order_type: <span class="hljs-built_in">str</span></span>) -&gt; int:</span>
-        <span class="hljs-keyword">if</span> order_type == <span class="hljs-string">&#x27;Limit&#x27;</span>:
+        <span class="hljs-keyword">if</span> order_type == <span class="hljs-string">&quot;Limit&quot;</span>:
             <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>
-        <span class="hljs-keyword">elif</span> order_type == <span class="hljs-string">&#x27;Market&#x27;</span>:
+        <span class="hljs-keyword">elif</span> order_type == <span class="hljs-string">&quot;Market&quot;</span>:
             <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>
         <span class="hljs-keyword">return</span> <span class="hljs-number">2</span>
 
     <span class="hljs-keyword">return</span> keccak(
         eip712_schema_hash
-        + encode_single(<span class="hljs-string">&#x27;address&#x27;</span>, trader_address)
+        + encode_single(<span class="hljs-string">&quot;address&quot;</span>, trader_address)
         + <span class="hljs-built_in">len</span>(symbol).to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
         + encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, symbol.encode(<span class="hljs-string">&quot;utf8&quot;</span>))[:-<span class="hljs-number">1</span>]
         + <span class="hljs-built_in">len</span>(strategy).to_bytes(<span class="hljs-number">1</span>, byteorder=<span class="hljs-string">&quot;little&quot;</span>)
         + encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, strategy.encode(<span class="hljs-string">&quot;utf8&quot;</span>))[:-<span class="hljs-number">1</span>]
-        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, order_side_to_int(side))
-        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, order_type_to_int(order_type))
-        + encode_single(<span class="hljs-string">&#x27;bytes32&#x27;</span>, <span class="hljs-built_in">bytes</span>.fromhex(nonce[<span class="hljs-number">2</span>:]))
-        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, to_base_unit_amount(amount, <span class="hljs-number">18</span>))
-        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, to_base_unit_amount(price, <span class="hljs-number">18</span>))
-        + encode_single(<span class="hljs-string">&#x27;uint256&#x27;</span>, to_base_unit_amount(stop_price, <span class="hljs-number">18</span>))
+        + encode_single(<span class="hljs-string">&quot;uint256&quot;</span>, order_side_to_int(side))
+        + encode_single(<span class="hljs-string">&quot;uint256&quot;</span>, order_type_to_int(order_type))
+        + encode_single(<span class="hljs-string">&quot;bytes32&quot;</span>, <span class="hljs-built_in">bytes</span>.fromhex(nonce[<span class="hljs-number">2</span>:]))
+        + encode_single(<span class="hljs-string">&quot;uint256&quot;</span>, to_base_unit_amount(amount, <span class="hljs-number">18</span>))
+        + encode_single(<span class="hljs-string">&quot;uint256&quot;</span>, to_base_unit_amount(price, <span class="hljs-number">18</span>))
+        + encode_single(<span class="hljs-string">&quot;uint256&quot;</span>, to_base_unit_amount(stop_price, <span class="hljs-number">18</span>))
     )</code></pre>
             <p>The parameters that comprise the <code>message</code> for the <code>command</code> to place an order are as follows:</p>
             <table>
@@ -3072,7 +3132,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>address</td>
                      <td>traderAddress</td>
-                     <td>Trader&#39;s ETH address used to sign order intent</td>
+                     <td>Trader&quot;s ETH address used to sign order intent</td>
                   </tr>
                   <tr>
                      <td>bytes32</td>
@@ -3210,7 +3270,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             <h3 id="samples">Samples</h3>
             <p><strong>Please feel free to use these ground truth samples to validate your EIP-712 hashing implementation for correctness.</strong> For the following samples, assume a <code>chainId = 42</code> and <code>verifyingContract = 0x80ead6c2d69acc72dad76fb3151820a9b5d6a9e9</code>.</p>
             <h4 id="place-order-2">Place order</h4>
-            <p>The following sample order placement data results in an EIP-712 hash of: <code>0x6bdd72b4b9ffff78e8faf419cb6e12f9fa9aed99869f55ef2b5f68de6b658345</code>.</p>
+            <p>The following sample order placement data results in an EIP-712 hash of: <code>0xbe03210146bfa6805848787d78d3d9033b05d322159d455f63f33953d89e7860</code>.</p>
             <table>
                <thead>
                   <tr>
@@ -3221,7 +3281,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                <tbody>
                   <tr>
                      <td>traderAddress</td>
-                     <td>&quot;0x4DbaEb213F91B022D0f238a2510380BE149b091a&quot;</td>
+                     <td>&quot;0x00E834EC434DABA538cd1b9Fe1582052B880BD7e63&quot;</td>
                   </tr>
                   <tr>
                      <td>symbol</td>
@@ -3233,7 +3293,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                   <tr>
                      <td>side</td>
-                     <td>&quot;Ask&quot;</td>
+                     <td>&quot;Bid&quot;</td>
                   </tr>
                   <tr>
                      <td>orderType</td>
@@ -3241,15 +3301,15 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                   <tr>
                      <td>nonce</td>
-                     <td>&quot;0x3136323735363831333834363032353830303000000000000000000000000000&quot;</td>
+                     <td>&quot;0x3136343630373732323434323935363430303000000000000000000000000000&quot;</td>
                   </tr>
                   <tr>
                      <td>amount</td>
-                     <td>8.4</td>
+                     <td>6.0</td>
                   </tr>
                   <tr>
                      <td>price</td>
-                     <td>2329.9</td>
+                     <td>2386.3</td>
                   </tr>
                   <tr>
                      <td>stopPrice</td>
@@ -3257,8 +3317,11 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
+            <ul>
+               <li>Take note of the <code>00</code> prefix for the <code>traderAddress</code> representing the chain discriminant, making the field a total of 21-bytes.</li>
+            </ul>
             <h4 id="cancel-order-2">Cancel order</h4>
-            <p>The following sample cancellation data results in an EIP-712 hash of: <code>0x4e66b356549c78264c084a4b3fdcd542119725e0310db11aec048c0a06d3d250</code>.</p>
+            <p>The following sample cancellation data results in an EIP-712 hash of: <code>0x2bc7ddd03ad20e86f99853ab347e981314e67791fdfafd7d17895c9251a9f6c1</code>.</p>
             <table>
                <thead>
                   <tr>
@@ -3273,11 +3336,11 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                   <tr>
                      <td>orderHash</td>
-                     <td>&quot;0xff942700e46eb66ca2f8ca53530b57a09579ffa84221149a4400000000000000&quot;</td>
+                     <td>&quot;0x1c12a57d8a4a522f95680ae30413cd7f268850950e33a4b855&quot;</td>
                   </tr>
                   <tr>
                      <td>nonce</td>
-                     <td>&quot;0x3136323735363833383437323639313330303000000000000000000000000000&quot;</td>
+                     <td>&quot;0x3136343630373933323431363338333130303000000000000000000000000000&quot;</td>
                   </tr>
                </tbody>
             </table>
@@ -3338,16 +3401,16 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
 
     <span class="hljs-keyword">return</span> ciphertext + tag + nonce + my_public_key.<span class="hljs-built_in">format</span>()
 </code></pre>
-            <p>DerivaDEX is a front-running resistant decentralized exchange, achieved with sending encrypted data that can only be decrypted from inside the Operator&#39;s trusted hardware. All <code>commands</code> must be encrypted using an AES-GCM128 scheme. The encryption steps are as follows:</p>
+            <p>DerivaDEX is a front-running resistant decentralized exchange, achieved with sending encrypted data that can only be decrypted from inside the Operator&quot;s trusted hardware. All <code>commands</code> must be encrypted using an AES-GCM128 scheme. The encryption steps are as follows:</p>
             <ol>
                <li>
-                  <p>Generate n 16-byte (128-bit) ECDH shared key using the operator&#39;s public key (<code>0x0215cad31f884747d1c870458fea0c8e580044577be35276cbfbf6c212c813e722</code>) and a 32-byte private key of your choosing (you can randomly generate this each time you are sending a <code>command</code>). Make sure you are using a <code>keccak256</code> ECDH key generation scheme, but since you need a 16-byte shared key, make sure you take only the first 16 bytes of the 32-byte key generated.</p>
+                  <p>Generate n 16-byte (128-bit) ECDH shared key using the operator&quot;s public key (<code>0x0215cad31f884747d1c870458fea0c8e580044577be35276cbfbf6c212c813e722</code>) and a 32-byte private key of your choosing (you can randomly generate this each time you are sending a <code>command</code>). Make sure you are using a <code>keccak256</code> ECDH key generation scheme, but since you need a 16-byte shared key, make sure you take only the first 16 bytes of the 32-byte key generated.</p>
                </li>
                <li>
                   <p>Generate a 12-byte random nonce</p>
                </li>
                <li>
-                  <p>Setup the payload you want to encrypt, which is the bytes-encoded <code>command</code>&#39;s contents prefixed with a 4-byte value indicating the length of this bytes-encoded <code>command</code>&#39;s contents</p>
+                  <p>Setup the payload you want to encrypt, which is the bytes-encoded <code>command</code>&quot;s contents prefixed with a 4-byte value indicating the length of this bytes-encoded <code>command</code>&quot;s contents</p>
                </li>
                <li>
                   <p>Generate the ciphertext and MAC tag using AES-GCM128</p>
@@ -3365,9 +3428,9 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                <li>Step 5: After deriving the public key from the secret key from Step 1 (<code>0x034887c86a15d5c0a01db2c8bc27a4b6ec2acc2e06ccabde4a64962ab3aec63f36</code>), you will arrive at the final encrypted message of: <code>0x3bb4fec9257fb81c846c075fb3944151838c32ce41dadb585049fa7788ae591bb970ea295993d42b238e95595fde09d80d675aa960112533cf61ed4b91b9d77dd3f97d6ecf1cf809800854a11b43d27c5da51d69f550463bddeb471be94fb6a17de3e54cf99665be081ec7f8c24b7eebaef691baa27de167e448ed3a0facf6af0c4fec0e856f56515590c40479cf95f6e25918a42a60b4c15b4362614f91bfbd67eba6a6aad6de9edd45ba5fa7fc33e4473fb9e94a14f492c65bfecc08ff97d7c3126d6ce697aa955234e98ebb027fb042500122c299826267deb278b44a7dfc7f06fad6174f448f4fb41ce13e1003c2013b6de2e9a0bf3d9871658c84644fc41d7e5482bd4efad8370172e64b7220d2a2e596c9a5b3ce38997bae79200b3b62839e47bc6aa876128cb6d4430e18b1f51588d7741161e1a9734d0e203d725c9f4d7dae174a0e75fcdb3882c23590437fbc3330046b150bc90818e7b1c3a42571b62363343f2e46bc7cf6fcd0dfd2550ec83d453641d7a236a3a6677e806125b0c50246d5f26c2db3f61ebc78b955d5095d8b0cd7f4929f5bc2adf53c455b2170f546a09d2e11b463db6cc582a771c6aaad96c3c56123d5010643e584849e6f7cf998495e28b018b4c00bcb64a3aa2b7b7e0cb3faea33c7034887c86a15d5c0a01db2c8bc27a4b6ec2acc2e06ccabde4a64962ab3aec63f36</code></li>
             </ul>
             <h2 id="operator-api--auditor">Operator API &lt;&gt; Auditor</h2>
-            <p>As mentioned in the <a href="#auditor-api">Auditor API</a> section above, the Auditor is an abstraction that exposes a more convenient and familiar API for programmatic traders. It&#39;s connects more directly to the DerivaDEX Operator API&#39;s transaction log WebSocket endpoint. This endpoint provides a snapshot of the Sparse Merkle Tree and streaming transaction&#39;s that transition the state of this data store. Technically, to trade on DerivaDEX you won&#39;t need to understand all of these details as this has been abstracted away using the setup presented above. However, if you are interested in 1) learning more about how the system works, 2) considering rewriting the Auditor, or 3) exploring connecting to the Operator API directly, you should read on to best understand the data you will be working with.</p>
+            <p>As mentioned in the <a href="#auditor-api">Auditor API</a> section above, the Auditor is an abstraction that exposes a more convenient and familiar API for programmatic traders. It&quot;s connects more directly to the DerivaDEX Operator API&quot;s transaction log WebSocket endpoint. This endpoint provides a snapshot of the Sparse Merkle Tree and streaming transaction&quot;s that transition the state of this data store. Technically, to trade on DerivaDEX you won&quot;t need to understand all of these details as this has been abstracted away using the setup presented above. However, if you are interested in 1) learning more about how the system works, 2) considering rewriting the Auditor, or 3) exploring connecting to the Operator API directly, you should read on to best understand the data you will be working with.</p>
             <h3 id="sparse-merkle-tree-state">Sparse merkle tree (state)</h3>
-            <p>DerivaDEX utilizes a <a href="https://medium.com/@kelvinfichter/whats-a-sparse-merkle-tree-acda70aeb837">Sparse Merkle Tree (SMT)</a> in order to efficiently maintain the state of the exchange at all times. Storing data on-chain (such as user&#39;s balances and positions), something most decentralized exchanges do, is very costly and one that is usually passed on to the user, making exchange use prohibitively expensive to most. An SMT, however, allows the system to only store a single root hash (the root of the tree) on-chain, while still allowing for any one to verify the integrity of the data (leaves) through inclusion (or non-inclusion) proofs.</p>
+            <p>DerivaDEX utilizes a <a href="https://medium.com/@kelvinfichter/whats-a-sparse-merkle-tree-acda70aeb837">Sparse Merkle Tree (SMT)</a> in order to efficiently maintain the state of the exchange at all times. Storing data on-chain (such as user&quot;s balances and positions), something most decentralized exchanges do, is very costly and one that is usually passed on to the user, making exchange use prohibitively expensive to most. An SMT, however, allows the system to only store a single root hash (the root of the tree) on-chain, while still allowing for any one to verify the integrity of the data (leaves) through inclusion (or non-inclusion) proofs.</p>
             <p>So what kind of data is stored and where in the SMT? The short answer is - everything. This means any data pertaining to a trader (their account-level data, strategy-level data, positions, and volume statistics), to a given market (the various open orders and the price feed information), and to the system (the insurance fund capitalization) is stored as individual leaf entries in the SMT. The DerivaDEX SMT consists of 2^256 possible leaves, each uniquely located at a specific leaf location (as indicated by its <code>key</code>, which is a 32-byte value). As you might surmise, the <em>vast</em> majority of the SMT will be empty (2^256 is very, <em>very</em>, <em><strong>very</strong></em> large number), but the data that does exist can exist at a location anywhere within these large bounds. For efficient querying and data management (while maintaining practical collision-resistance), the various types of leaf items are prefixed to reside in the same general vicinity as one another. Each leaf item type is described in detail below. The full set of leaf types can be seen in the following table, along with their corresponding numeric discriminants.</p>
             <table>
                <thead>
@@ -3425,7 +3488,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             </table>
             <p>Each item type is described in detail below.</p>
             <h4 id="trader-2">Trader</h4>
-            <p>A <code>Trader</code> contains information pertaining to a trader&#39;s free and frozen DDX balances, and referral address.</p>
+            <p>A <code>Trader</code> contains information pertaining to a trader&quot;s free and frozen DDX balances, and referral address.</p>
             <h5 id="key-encoding--decoding">Key encoding / decoding</h5>
             <blockquote>
                <p>Key encoding / decoding (Python)</p>
@@ -3457,7 +3520,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                   <tr>
                      <td>[1, 21]</td>
-                     <td>Trader&#39;s Ethereum address prefixed with the chain discriminant</td>
+                     <td>Trader&quot;s Ethereum address prefixed with the chain discriminant</td>
                   </tr>
                   <tr>
                      <td>[22, 31]</td>
@@ -3580,7 +3643,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                </tbody>
             </table>
             <h4 id="strategy-2">Strategy</h4>
-            <p>A <code>Strategy</code> contains information pertaining to a trader&#39;s cross-margined strategy, such as their free and frozen collaterals and max leverage.</p>
+            <p>A <code>Strategy</code> contains information pertaining to a trader&quot;s cross-margined strategy, such as their free and frozen collaterals and max leverage.</p>
             <h5 id="key-encoding--decoding-1">Key encoding / decoding</h5>
             <blockquote>
                <p>Key encoding / decoding (Python)</p>
@@ -3624,7 +3687,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                   <tr>
                      <td>[1, 21]</td>
-                     <td>Trader&#39;s Ethereum address prefixed with the chain discriminant</td>
+                     <td>Trader&quot;s Ethereum address prefixed with the chain discriminant</td>
                   </tr>
                   <tr>
                      <td>[22, 25]</td>
@@ -3660,12 +3723,12 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                <p>Value encoding / decoding (Python)</p>
             </blockquote>
             <pre class="highlight python"><code><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> Dict
-<span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
+<span class="hljs-keyword">from</span> ddx_python.decimal <span class="hljs-keyword">import</span> Decimal
 <span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single, decode_single
 <span class="hljs-keyword">from</span> web3.auto <span class="hljs-keyword">import</span> w3
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">round_to_unit</span>(<span class="hljs-params">val</span>):</span>
-    <span class="hljs-keyword">return</span> val.quantize(Decimal(<span class="hljs-string">&quot;.000000000000000001&quot;</span>), rounding=ROUND_DOWN)
+    <span class="hljs-keyword">return</span> val.quantize(<span class="hljs-number">18</span>)
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
     <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(round_to_unit(val) * <span class="hljs-number">10</span> ** decimals)
@@ -3673,11 +3736,20 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount_list</span>(<span class="hljs-params">vals, decimals</span>):</span>
     <span class="hljs-keyword">return</span> [to_base_unit_amount(val, decimals) <span class="hljs-keyword">for</span> val <span class="hljs-keyword">in</span> vals]
 
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_unit_amount</span>(<span class="hljs-params">val: <span class="hljs-built_in">int</span>, decimals: <span class="hljs-built_in">int</span></span>) -&gt; Decimal:</span>
     <span class="hljs-keyword">return</span> Decimal(<span class="hljs-built_in">str</span>(val)) / <span class="hljs-number">10</span> ** decimals
 
-<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_unit_amount_list</span>(<span class="hljs-params">vals, decimals</span>):</span>
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_unit_amount_list</span>(<span class="hljs-params">vals: List[<span class="hljs-built_in">int</span>], decimals: <span class="hljs-built_in">int</span></span>):</span>
     <span class="hljs-keyword">return</span> [to_unit_amount(val, decimals) <span class="hljs-keyword">for</span> val <span class="hljs-keyword">in</span> vals]
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_adjusted_encoding_for_negative_val</span>(<span class="hljs-params">val: <span class="hljs-built_in">int</span></span>):</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-number">16</span> ** <span class="hljs-number">32</span> + <span class="hljs-built_in">abs</span>(val) <span class="hljs-keyword">if</span> val &lt; <span class="hljs-number">0</span> <span class="hljs-keyword">else</span> val
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_adjusted_encoding_for_negative_val_list</span>(<span class="hljs-params">vals: List[<span class="hljs-built_in">int</span>]</span>):</span>
+    <span class="hljs-keyword">return</span> [to_adjusted_encoding_for_negative_val(val) <span class="hljs-keyword">for</span> val <span class="hljs-keyword">in</span> vals]
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">from_adjusted_encoding_for_negative_val</span>(<span class="hljs-params">val: <span class="hljs-built_in">int</span></span>):</span>
+    <span class="hljs-keyword">return</span> val <span class="hljs-keyword">if</span> val &lt; <span class="hljs-number">16</span> ** <span class="hljs-number">32</span> <span class="hljs-keyword">else</span> -(val - <span class="hljs-number">16</span> ** <span class="hljs-number">32</span>)
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_encoded_value</span>(<span class="hljs-params">self, strategy_id: <span class="hljs-built_in">str</span>, free_collateral: Dict[<span class="hljs-built_in">str</span>, Decimal], frozen_collateral: Dict[<span class="hljs-built_in">str</span>, Decimal], max_leverage: <span class="hljs-built_in">int</span>, frozen: <span class="hljs-built_in">bool</span></span>):</span>
     <span class="hljs-comment"># Strategy item discriminant</span>
@@ -3685,7 +3757,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
 
     <span class="hljs-comment"># Scale collateral amounts to DDX grains</span>
     <span class="hljs-keyword">return</span> encode_single(
-        <span class="hljs-string">&quot;((uint8,(bytes32,(address[],uint128[]),(address[],uint128[]),uint64,bool)))&quot;</span>,
+        <span class="hljs-string">&quot;((uint8,(bytes32,(address[],uint256[]),(address[],uint128[]),uint64,bool)))&quot;</span>,
         [
             [
                 item_type,
@@ -3696,8 +3768,10 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                     ],
                     [
                         <span class="hljs-built_in">list</span>(free_collateral.keys()),
-                        to_base_unit_amount_list(
-                            <span class="hljs-built_in">list</span>(free_collateral.values()), <span class="hljs-number">18</span>
+                        to_adjusted_encoding_for_negative_val_list(
+                            to_base_unit_amount_list(
+                                <span class="hljs-built_in">list</span>(free_collateral.values()), <span class="hljs-number">18</span>
+                            )
                         ),
                     ],
                     [
@@ -3726,7 +3800,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             ),
         ),
     ) = decode_single(
-        <span class="hljs-string">&quot;((uint8,(bytes32,(address[],uint128[]),(address[],uint128[]),uint64,bool)))&quot;</span>,
+        <span class="hljs-string">&quot;((uint8,(bytes32,(address[],uint256[]),(address[],uint128[]),uint64,bool)))&quot;</span>,
         w3.toBytes(hexstr=abi_encoded_value),
     )
 
@@ -3734,7 +3808,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
     <span class="hljs-keyword">return</span> (
         strategy_id[<span class="hljs-number">1</span> : <span class="hljs-number">1</span> + strategy_id[<span class="hljs-number">0</span>]].decode(<span class="hljs-string">&quot;utf8&quot;</span>),
         {
-            k: to_unit_amount(v, <span class="hljs-number">18</span>)
+            k: to_unit_amount(from_adjusted_encoding_for_negative_val(v), <span class="hljs-number">18</span>)
             <span class="hljs-keyword">for</span> k, v <span class="hljs-keyword">in</span> <span class="hljs-built_in">zip</span>(
                 <span class="hljs-built_in">list</span>(free_collateral_tokens), <span class="hljs-built_in">list</span>(free_collateral_amounts)
             )
@@ -3895,7 +3969,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                   <tr>
                      <td>[7, 27]</td>
-                     <td>Trader&#39;s Ethereum address prefixed with the chain discriminant</td>
+                     <td>Trader&quot;s Ethereum address prefixed with the chain discriminant</td>
                   </tr>
                   <tr>
                      <td>[28, 31]</td>
@@ -3931,12 +4005,12 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                <p>Value encoding / decoding (Python)</p>
             </blockquote>
             <pre class="highlight python"><code><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> Dict
-<span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
+<span class="hljs-keyword">from</span> ddx_python.decimal <span class="hljs-keyword">import</span> Decimal
 <span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single, decode_single
 <span class="hljs-keyword">from</span> web3.auto <span class="hljs-keyword">import</span> w3
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">round_to_unit</span>(<span class="hljs-params">val</span>):</span>
-    <span class="hljs-keyword">return</span> val.quantize(Decimal(<span class="hljs-string">&quot;.000000000000000001&quot;</span>), rounding=ROUND_DOWN)
+    <span class="hljs-keyword">return</span> val.quantize(<span class="hljs-number">18</span>)
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
     <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(round_to_unit(val) * <span class="hljs-number">10</span> ** decimals)
@@ -4097,7 +4171,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                   <tr>
                      <td>[7, 31]</td>
-                     <td>First 25 bytes of order&#39;s unique hash</td>
+                     <td>First 25 bytes of order&quot;s unique hash</td>
                   </tr>
                </tbody>
             </table>
@@ -4125,12 +4199,12 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                <p>Value encoding / decoding (Python)</p>
             </blockquote>
             <pre class="highlight python"><code><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> Dict
-<span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
+<span class="hljs-keyword">from</span> ddx_python.decimal <span class="hljs-keyword">import</span> Decimal
 <span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single, decode_single
 <span class="hljs-keyword">from</span> web3.auto <span class="hljs-keyword">import</span> w3
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">round_to_unit</span>(<span class="hljs-params">val</span>):</span>
-    <span class="hljs-keyword">return</span> val.quantize(Decimal(<span class="hljs-string">&quot;.000000000000000001&quot;</span>), rounding=ROUND_DOWN)
+    <span class="hljs-keyword">return</span> val.quantize(<span class="hljs-number">18</span>)
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
     <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(round_to_unit(val) * <span class="hljs-number">10</span> ** decimals)
@@ -4162,7 +4236,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">abi_decoded_value</span>(<span class="hljs-params">abi_encoded_value: <span class="hljs-built_in">str</span></span>):</span>
     (
         item_type,
-        (side, amount, price, trader_address, strategy_id_hash, book_ordinal),
+        (side, amount, price, trader_address, strategy_id_hash, book_ordinal, time_value),
     ) = decode_single(
         <span class="hljs-string">&quot;(uint8,(uint8,uint128,uint128,bytes21,bytes32,uint64,uint64))&quot;</span>,
         w3.toBytes(hexstr=abi_encoded_value),
@@ -4176,7 +4250,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-string">f&quot;0x<span class="hljs-subst">{trader_address.<span class="hljs-built_in">hex</span>()}</span>&quot;</span>,
         <span class="hljs-string">f&quot;0x<span class="hljs-subst">{strategy_id_hash[:<span class="hljs-number">4</span>].<span class="hljs-built_in">hex</span>()}</span>&quot;</span>,
         book_ordinal,
-        uint64,
+        time_value,
     )</code></pre>
             <p>A <code>BookOrder</code> leaf holds the following data:</p>
             <table>
@@ -4206,7 +4280,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>str</td>
                      <td>trader_address</td>
-                     <td>The order creator&#39;s Ethereum address prefixed with the chain discriminant</td>
+                     <td>The order creator&quot;s Ethereum address prefixed with the chain discriminant</td>
                   </tr>
                   <tr>
                      <td>str</td>
@@ -4218,10 +4292,15 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                      <td>book_ordinal</td>
                      <td>Numerical sequencing identifier for a BookOrder, which can be used to sort orders at any given price level</td>
                   </tr>
+                  <tr>
+                     <td>int</td>
+                     <td>time_value</td>
+                     <td>Time value of order placement since genesis (s)</td>
+                  </tr>
                </tbody>
             </table>
             <p>These contents are always stored in the tree in ABI-encoded form: <code>(uint8,(uint8,uint128,uint128,address,bytes32,uint64))</code>. Meaning, you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree. A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain variables, is shown on the right.</p>
-            <p>The following sample <code>BookOrder</code> materials generates the following ABI-encoded value: <code>0x000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007068fb1598aa000000000000000000000000000000000000000000000000010191888088a17a000000e36ea790bc9d7ab70c55260c66d52b1eca985f8400000000000000000000002576ebd10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000149ae</code></p>
+            <p>The following sample <code>BookOrder</code> materials generates the following ABI-encoded value: <code>00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001158e460913d0000000000000000000000000000000000000000000000000000d8d726b7177a80000603699848c84529987e14ba32c8a66def67e9ece0000000000000000000000002576ebd100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000003e8</code></p>
             <table>
                <thead>
                   <tr>
@@ -4236,15 +4315,15 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                   <tr>
                      <td>amount</td>
-                     <td>8.1</td>
+                     <td>20</td>
                   </tr>
                   <tr>
                      <td>price</td>
-                     <td>4751.3</td>
+                     <td>250</td>
                   </tr>
                   <tr>
                      <td>trader_address</td>
-                     <td>&quot;0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</td>
+                     <td>&quot;0x603699848c84529987E14Ba32C8a66DEF67E9eCE&quot;</td>
                   </tr>
                   <tr>
                      <td>strategy_id_hash</td>
@@ -4252,12 +4331,16 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                   <tr>
                      <td>book_ordinal</td>
-                     <td>84398</td>
+                     <td>3</td>
+                  </tr>
+                  <tr>
+                     <td>book_ordinal</td>
+                     <td>1000</td>
                   </tr>
                </tbody>
             </table>
             <h4 id="price">Price</h4>
-            <p>A <code>Price</code> contains information pertaining to a market&#39;s price checkpoint.</p>
+            <p>A <code>Price</code> contains information pertaining to a market&quot;s price checkpoint.</p>
             <h5 id="key-encoding--decoding-4">Key encoding / decoding</h5>
             <blockquote>
                <p>Key encoding / decoding (Python)</p>
@@ -4325,7 +4408,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                   <tr>
                      <td>[7, 31]</td>
-                     <td>25 bytes of index price&#39;s unique hash</td>
+                     <td>25 bytes of index price&quot;s unique hash</td>
                   </tr>
                </tbody>
             </table>
@@ -4353,12 +4436,12 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                <p>Value encoding / decoding (Python)</p>
             </blockquote>
             <pre class="highlight python"><code><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> Dict
-<span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
+<span class="hljs-keyword">from</span> ddx_python.decimal <span class="hljs-keyword">import</span> Decimal
 <span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single, decode_single
 <span class="hljs-keyword">from</span> web3.auto <span class="hljs-keyword">import</span> w3
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">round_to_unit</span>(<span class="hljs-params">val</span>):</span>
-    <span class="hljs-keyword">return</span> val.quantize(Decimal(<span class="hljs-string">&quot;.000000000000000001&quot;</span>), rounding=ROUND_DOWN)
+    <span class="hljs-keyword">return</span> val.quantize(<span class="hljs-number">18</span>)
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
     <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(round_to_unit(val) * <span class="hljs-number">10</span> ** decimals)
@@ -4432,7 +4515,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                </tbody>
             </table>
-            <p>These contents are always stored in the tree in ABI-encoded form: <code>(uint8,(uint128,uint256,uint64))</code>. Meaning, you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree. A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain variables, is shown on the right. It&#39;s demonstrated in the code sample, but it&#39;s worth highlighting that the <code>ema</code> component, which can be a negative value, is ABI-encoded to a 32-byte value where the first 16 bytes will either be <code>0x00000000000000000000000000000000</code> (positive) or <code>0x00000000000000000000000000000001</code> (negative), and the next 16 bytes is the absolute value of the <code>ema</code>.</p>
+            <p>These contents are always stored in the tree in ABI-encoded form: <code>(uint8,(uint128,uint256,uint64))</code>. Meaning, you will want to decode the contents into a more suitable form for your purposes as necessary (for example loading data from a snapshot of the state), and will need to encode it back again if you are saving it back into the tree. A sample of Python code that derives this ABI-encoding, including the DDX grains conversion (10 ** 18) for certain variables, is shown on the right. It&quot;s demonstrated in the code sample, but it&quot;s worth highlighting that the <code>ema</code> component, which can be a negative value, is ABI-encoded to a 32-byte value where the first 16 bytes will either be <code>0x00000000000000000000000000000000</code> (positive) or <code>0x00000000000000000000000000000001</code> (negative), and the next 16 bytes is the absolute value of the <code>ema</code>.</p>
             <p>The following sample <code>Price</code> materials generates the following ABI-encoded value: <code>0x00000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000ff439f867f838f4000000000000000000000000000000000000000000000000004d94aaad5556854d300000000000000000000000000000000000000000000000000000000000020e2</code>.</p>
             <table>
                <thead>
@@ -4457,7 +4540,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                </tbody>
             </table>
             <h4 id="insurance-fund">Insurance fund</h4>
-            <p>An <code>InsuranceFund</code> contains information pertaining to the insurance fund&#39;s capitalization.</p>
+            <p>An <code>InsuranceFund</code> contains information pertaining to the insurance fund&quot;s capitalization.</p>
             <h5 id="key-encoding--decoding-5">Key encoding / decoding</h5>
             <blockquote>
                <p>Key encoding / decoding (Python)</p>
@@ -4499,12 +4582,12 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                <p>Value encoding / decoding (Python)</p>
             </blockquote>
             <pre class="highlight python"><code><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> Dict
-<span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
+<span class="hljs-keyword">from</span> ddx_python.decimal <span class="hljs-keyword">import</span> Decimal
 <span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single, decode_single
 <span class="hljs-keyword">from</span> web3.auto <span class="hljs-keyword">import</span> w3
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">round_to_unit</span>(<span class="hljs-params">val</span>):</span>
-    <span class="hljs-keyword">return</span> val.quantize(Decimal(<span class="hljs-string">&quot;.000000000000000001&quot;</span>), rounding=ROUND_DOWN)
+    <span class="hljs-keyword">return</span> val.quantize(<span class="hljs-number">18</span>)
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
     <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(round_to_unit(val) * <span class="hljs-number">10</span> ** decimals)
@@ -4577,7 +4660,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                <tbody>
                   <tr>
                      <td>capitalization</td>
-                     <td>{&#39;0xcfc18cec799fbd1793b5c43e773c98d4d61cc2db&#39;: 392791.65336}</td>
+                     <td>{&quot;0xcfc18cec799fbd1793b5c43e773c98d4d61cc2db&quot;: 392791.65336}</td>
                   </tr>
                </tbody>
             </table>
@@ -4614,7 +4697,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   </tr>
                   <tr>
                      <td>[1, 21]</td>
-                     <td>Trader&#39;s Ethereum address prefixed with the chain discriminant</td>
+                     <td>Trader&quot;s Ethereum address prefixed with the chain discriminant</td>
                   </tr>
                   <tr>
                      <td>[22, 31]</td>
@@ -4642,12 +4725,12 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                <p>Value encoding / decoding (Python)</p>
             </blockquote>
             <pre class="highlight python"><code><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> Dict
-<span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_DOWN
+<span class="hljs-keyword">from</span> ddx_python.decimal <span class="hljs-keyword">import</span> Decimal
 <span class="hljs-keyword">from</span> eth_abi <span class="hljs-keyword">import</span> encode_single, decode_single
 <span class="hljs-keyword">from</span> web3.auto <span class="hljs-keyword">import</span> w3
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">round_to_unit</span>(<span class="hljs-params">val</span>):</span>
-    <span class="hljs-keyword">return</span> val.quantize(Decimal(<span class="hljs-string">&quot;.000000000000000001&quot;</span>), rounding=ROUND_DOWN)
+    <span class="hljs-keyword">return</span> val.quantize(<span class="hljs-number">18</span>)
 
 <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">to_base_unit_amount</span>(<span class="hljs-params">val, decimals</span>):</span>
     <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(round_to_unit(val) * <span class="hljs-number">10</span> ** decimals)
@@ -4844,53 +4927,51 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
             <span class="hljs-attr">&quot;makerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x542ad7f2640447d3e93723253099fd45ae721925e0df64702e&quot;</span>,
             <span class="hljs-attr">&quot;takerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x7854e5da6e9fb7a4e9fca62dc26a5d574afb07950a6ed110ed&quot;</span>,
             <span class="hljs-attr">&quot;makerOrderRemainingAmount&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>
-        }],
-        []
+        }]
     ]
 }</code></pre>
-            <p>A <code>PartialFill</code> transaction is a scenario where the taker order has been partially filled across 1 or more maker orders and thus has a remaining order that enters the order book. The event portion of the transaction response consists of a 3-item array. The first item is the remaining <code>Post</code> event, the second item is a list of <code>TradeFill</code> events, and the third item is any <code>Cancel</code> events pertaining to maker orders that may have been canceled.</p>
+            <p>A <code>PartialFill</code> transaction is a scenario where the taker order has been partially filled across 1 or more maker orders and thus has a remaining order that enters the order book. The event portion of the transaction response consists of a 2-item array. The first item is the remaining <code>Post</code> event, the second item is a list of trade outcomes, which can either be <code>TradeFill</code> or <code>Cancel</code> events pertaining to maker orders that may have been canceled.</p>
             <h4 id="complete-fill">Complete fill</h4>
             <blockquote>
                <p>Sample CompleteFill (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;event&quot;</span>: [
-        [{
-            <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;1860&quot;</span>,
-            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;1.23&quot;</span>,
+    <span class="hljs-attr">&quot;event&quot;</span>: [{
+        <span class="hljs-attr">&quot;Fill&quot;</span>: {
+            <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;2341.9&quot;</span>,
+            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;3.4&quot;</span>,
             <span class="hljs-attr">&quot;reason&quot;</span>: <span class="hljs-string">&quot;Trade&quot;</span>,
             <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
-            <span class="hljs-attr">&quot;takerSide&quot;</span>: <span class="hljs-string">&quot;Ask&quot;</span>,
+            <span class="hljs-attr">&quot;takerSide&quot;</span>: <span class="hljs-string">&quot;Bid&quot;</span>,
             <span class="hljs-attr">&quot;makerOutcome&quot;</span>: {
                 <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
-                <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x006ecbe1db9ef729cbe972c83fb886247691fb6beb&quot;</span>,
-                <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
-                <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
-                <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-string">&quot;Long&quot;</span>,
-                <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-string">&quot;1000000&quot;</span>,
-                <span class="hljs-attr">&quot;ddxFeeElection&quot;</span>: <span class="hljs-literal">false</span>,
-                <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;2.46&quot;</span>,
-                <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;1860&quot;</span>
-            },
-            <span class="hljs-attr">&quot;takerOutcome&quot;</span>: {
-                <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;4.5756&quot;</span>,
-                <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x00e36ea790bc9d7ab70c55260c66d52b1eca985f84&quot;</span>,
+                <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x00e834ec434daba538cd1b9fe1582052b880bd7e63&quot;</span>,
                 <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
                 <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
                 <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-string">&quot;Short&quot;</span>,
-                <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-string">&quot;999990.8488&quot;</span>,
+                <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-string">&quot;898488.410947775628625858&quot;</span>,
                 <span class="hljs-attr">&quot;ddxFeeElection&quot;</span>: <span class="hljs-literal">false</span>,
-                <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;2.46&quot;</span>,
-                <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;1860&quot;</span>
+                <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;91.7&quot;</span>,
+                <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;2436.622890427746688898&quot;</span>
             },
-            <span class="hljs-attr">&quot;makerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x542ad7f2640447d3e93723253099fd45ae721925e0df64702e&quot;</span>,
-            <span class="hljs-attr">&quot;takerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x100d1edd45edede9eedc0e3aac28e7df17168fbef9b459ffc8&quot;</span>,
-            <span class="hljs-attr">&quot;makerOrderRemainingAmount&quot;</span>: <span class="hljs-string">&quot;2.54&quot;</span>
-        }],
-        []
-    ]
+            <span class="hljs-attr">&quot;takerOutcome&quot;</span>: {
+                <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;15.92492&quot;</span>,
+                <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x0059edea06580b5b957381bf12abb177ea2f805c21&quot;</span>,
+                <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
+                <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+                <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-string">&quot;Long&quot;</span>,
+                <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-string">&quot;979.79108&quot;</span>,
+                <span class="hljs-attr">&quot;ddxFeeElection&quot;</span>: <span class="hljs-literal">false</span>,
+                <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;4.2&quot;</span>,
+                <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;2405.823809523809523809&quot;</span>
+            },
+            <span class="hljs-attr">&quot;makerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x6ce6ca28115aabd21db358b52267d73f0c00ee4c27cf1a8c33&quot;</span>,
+            <span class="hljs-attr">&quot;takerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x1c1d9f601fe7f7df77139978190b02de29b64375bfb926278e&quot;</span>,
+            <span class="hljs-attr">&quot;makerOrderRemainingAmount&quot;</span>: <span class="hljs-string">&quot;4.5&quot;</span>
+        }
+    }]
 }</code></pre>
-            <p>A <code>CompleteFill</code> is a scenario where the taker order has been completely filled across 1 or more maker orders. The event portion of the transaction response consists of a consists of a 2-item array. The first item is list of <code>TradeFill</code> events and the second item is any <code>Cancel</code> events pertaining to maker orders that may have been canceled.</p>
+            <p>A <code>CompleteFill</code> is a scenario where the taker order has been completely filled across 1 or more maker orders. The event portion of the transaction response consists of a consists of a trade outcomes, which can either be <code>TradeFill</code> or <code>Cancel</code> events pertaining to maker orders that may have been canceled.</p>
             <h4 id="postorder">PostOrder</h4>
             <blockquote>
                <p>Sample PostOrder (JSON)</p>
@@ -4955,7 +5036,133 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                </tbody>
             </table>
             <h4 id="liquidation">Liquidation</h4>
-            <p>TBD</p>
+            <pre class="highlight json"><code>{
+    <span class="hljs-attr">&quot;event&quot;</span>: [{
+        <span class="hljs-attr">&quot;positions&quot;</span>: [
+            [<span class="hljs-string">&quot;ETHPERP&quot;</span>,
+                {
+                    <span class="hljs-attr">&quot;price&quot;</span>: {
+                        <span class="hljs-attr">&quot;ema&quot;</span>: <span class="hljs-string">&quot;-212.602242612626064356&quot;</span>,
+                        <span class="hljs-attr">&quot;ordinal&quot;</span>: <span class="hljs-number">157</span>,
+                        <span class="hljs-attr">&quot;indexPrice&quot;</span>: <span class="hljs-string">&quot;2718.2459&quot;</span>,
+                        <span class="hljs-attr">&quot;indexPriceHash&quot;</span>: <span class="hljs-string">&quot;0x16f0d2a4abfd17f788c900a392cf4297439bae04d0f5a13cd1&quot;</span>
+                    },
+                    <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;6.1&quot;</span>,
+                    <span class="hljs-attr">&quot;adlOutcomes&quot;</span>: [],
+                    <span class="hljs-attr">&quot;tradeOutcomes&quot;</span>: [{
+                        <span class="hljs-attr">&quot;Fill&quot;</span>: {
+                            <span class="hljs-attr">&quot;price&quot;</span>: <span class="hljs-string">&quot;2322&quot;</span>,
+                            <span class="hljs-attr">&quot;amount&quot;</span>: <span class="hljs-string">&quot;6.1&quot;</span>,
+                            <span class="hljs-attr">&quot;reason&quot;</span>: <span class="hljs-string">&quot;Liquidation&quot;</span>,
+                            <span class="hljs-attr">&quot;symbol&quot;</span>: <span class="hljs-string">&quot;ETHPERP&quot;</span>,
+                            <span class="hljs-attr">&quot;takerSide&quot;</span>: <span class="hljs-string">&quot;Ask&quot;</span>,
+                            <span class="hljs-attr">&quot;makerOutcome&quot;</span>: {
+                                <span class="hljs-attr">&quot;fee&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+                                <span class="hljs-attr">&quot;trader&quot;</span>: <span class="hljs-string">&quot;0x00e834ec434daba538cd1b9fe1582052b880bd7e63&quot;</span>,
+                                <span class="hljs-attr">&quot;strategy&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
+                                <span class="hljs-attr">&quot;realizedPnl&quot;</span>: <span class="hljs-string">&quot;595.832921348314606732&quot;</span>,
+                                <span class="hljs-attr">&quot;positionSide&quot;</span>: <span class="hljs-string">&quot;Short&quot;</span>,
+                                <span class="hljs-attr">&quot;newCollateral&quot;</span>: <span class="hljs-string">&quot;942709.042921348314605958&quot;</span>,
+                                <span class="hljs-attr">&quot;ddxFeeElection&quot;</span>: <span class="hljs-literal">false</span>,
+                                <span class="hljs-attr">&quot;newPositionBalance&quot;</span>: <span class="hljs-string">&quot;2.8&quot;</span>,
+                                <span class="hljs-attr">&quot;newPositionAvgEntryPrice&quot;</span>: <span class="hljs-string">&quot;2419.677528089887640448&quot;</span>
+                            },
+                            <span class="hljs-attr">&quot;indexPriceHash&quot;</span>: <span class="hljs-string">&quot;0x16f0d2a4abfd17f788c900a392cf4297439bae04d0f5a13cd1&quot;</span>,
+                            <span class="hljs-attr">&quot;makerOrderHash&quot;</span>: <span class="hljs-string">&quot;0x63d8e48a6536760deaf29e5f2f2e0039356fc77a437ccc47f7&quot;</span>,
+                            <span class="hljs-attr">&quot;makerOrderRemainingAmount&quot;</span>: <span class="hljs-string">&quot;4.7&quot;</span>
+                        }
+                    }],
+                    <span class="hljs-attr">&quot;newInsuranceFundCap&quot;</span>: <span class="hljs-string">&quot;734.512240000000000005&quot;</span>
+                }
+            ]
+        ],
+        <span class="hljs-attr">&quot;strategyId&quot;</span>: <span class="hljs-string">&quot;main&quot;</span>,
+        <span class="hljs-attr">&quot;traderAddress&quot;</span>: <span class="hljs-string">&quot;0x00d9a605a32d920d90d8119ffd5fe1fd247c500479&quot;</span>,
+        <span class="hljs-attr">&quot;canceledOrders&quot;</span>: []
+    }]
+}</code></pre>
+            <p>A <code>Liquidation</code> is when a set of strategies are under-collateralized and closed out forcibly closed out:</p>
+            <table>
+               <thead>
+                  <tr>
+                     <th>type</th>
+                     <th>field</th>
+                     <th>description</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr>
+                     <td>list</td>
+                     <td>event</td>
+                     <td>The contents of the transaction event</td>
+                  </tr>
+                  <tr>
+                     <td>dict</td>
+                     <td>event[n]</td>
+                     <td>Liquidation entry</td>
+                  </tr>
+                  <tr>
+                     <td>address_s</td>
+                     <td>event[n].traderAddress</td>
+                     <td>Liquidated trader&quot;s prefixed Ethereum address</td>
+                  </tr>
+                  <tr>
+                     <td>string</td>
+                     <td>event[n].strategyId</td>
+                     <td>Liquidated trader&quot;s strategy id</td>
+                  </tr>
+                  <tr>
+                     <td>dict</td>
+                     <td>event[n].strategyId</td>
+                     <td>Liquidated trader&quot;s strategy id</td>
+                  </tr>
+                  <tr>
+                     <td>list</td>
+                     <td>event.canceledOrders</td>
+                     <td><code>Cancel</code> events pertaining to canceled orders for the liquidated trader</td>
+                  </tr>
+                  <tr>
+                     <td>list</td>
+                     <td>event.positions</td>
+                     <td>List of tuples pertaining to liquidated positions</td>
+                  </tr>
+                  <tr>
+                     <td>string</td>
+                     <td>event.positions[n][0]</td>
+                     <td>Liquidated position symbol</td>
+                  </tr>
+                  <tr>
+                     <td>dict</td>
+                     <td>event.positions[n][1]</td>
+                     <td>Liquidated position details</td>
+                  </tr>
+                  <tr>
+                     <td>dict</td>
+                     <td>event.positions[n][1].price</td>
+                     <td>Latest <code>PriceCheckpoint</code> corresponding to this position being liquidated</td>
+                  </tr>
+                  <tr>
+                     <td>decimal_s</td>
+                     <td>event.positions[n][1].amount</td>
+                     <td>Amount of position being liquidated</td>
+                  </tr>
+                  <tr>
+                     <td>list</td>
+                     <td>event.positions[n][1].adlOutcomes</td>
+                     <td>ADL outcomes as a result of liquidation</td>
+                  </tr>
+                  <tr>
+                     <td>list</td>
+                     <td>event.positions[n][1].tradeOutcomes</td>
+                     <td>Trade outcomes as a result of liquidation</td>
+                  </tr>
+                  <tr>
+                     <td>decimal_s</td>
+                     <td>event.positions[n][1].newInsuranceFundCap</td>
+                     <td>New insurance fund capitalization after position has been liquidated</td>
+                  </tr>
+               </tbody>
+            </table>
             <h4 id="strategy-update-1">Strategy update</h4>
             <blockquote>
                <p>Sample StrategyUpdate (JSON)</p>
@@ -4970,7 +5177,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-attr">&quot;collateralAddress&quot;</span>: <span class="hljs-string">&quot;0xb69e673309512a9d726f87304c6984054f87a93b&quot;</span>
     }
 }</code></pre>
-            <p>A <code>StrategyUpdate</code> is an update to a trader&#39;s strategy (such as depositing or withdrawing collateral). The event portion of the transaction has attributes defined as follows:</p>
+            <p>A <code>StrategyUpdate</code> is an update to a trader&quot;s strategy (such as depositing or withdrawing collateral). The event portion of the transaction has attributes defined as follows:</p>
             <table>
                <thead>
                   <tr>
@@ -4993,7 +5200,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>address_pre_s</td>
                      <td>event.trader</td>
-                     <td>Trader&#39;s Ethereum address prefixed with the chain discriminant</td>
+                     <td>Trader&quot;s Ethereum address prefixed with the chain discriminant</td>
                   </tr>
                   <tr>
                      <td>bytes32_s</td>
@@ -5013,7 +5220,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>address_s</td>
                      <td>event.collateralAddress</td>
-                     <td>Deposited / withdrawn collateral token&#39;s Ethereum address</td>
+                     <td>Deposited / withdrawn collateral token&quot;s Ethereum address</td>
                   </tr>
                </tbody>
             </table>
@@ -5029,7 +5236,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
         <span class="hljs-attr">&quot;updateType&quot;</span>: <span class="hljs-string">&quot;Deposit&quot;</span>
     }
 }</code></pre>
-            <p>A <code>TraderUpdate</code> is an update to a trader&#39;s DDX account (such as depositing or withdrawing DDX). The event portion of the transaction has attributes defined as follows:</p>
+            <p>A <code>TraderUpdate</code> is an update to a trader&quot;s DDX account (such as depositing or withdrawing DDX). The event portion of the transaction has attributes defined as follows:</p>
             <table>
                <thead>
                   <tr>
@@ -5052,7 +5259,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>address_pre_s</td>
                      <td>event.trader</td>
-                     <td>Trader&#39;s Ethereum address prefixed with the chain discriminant</td>
+                     <td>Trader&quot;s Ethereum address prefixed with the chain discriminant</td>
                   </tr>
                   <tr>
                      <td>bytes32_s</td>
@@ -5112,12 +5319,12 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>address_s</td>
                      <td>event.signerAddress</td>
-                     <td>Signer&#39;s Ethereum address withdrawal is taking place from</td>
+                     <td>Signer&quot;s Ethereum address withdrawal is taking place from</td>
                   </tr>
                   <tr>
                      <td>address_pre_s</td>
                      <td>event.traderAddress</td>
-                     <td>Trader&#39;s Ethereum address prefixed with the chain discriminant collateral is being withdrawn to</td>
+                     <td>Trader&quot;s Ethereum address prefixed with the chain discriminant collateral is being withdrawn to</td>
                   </tr>
                </tbody>
             </table>
@@ -5155,12 +5362,12 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>address_s</td>
                      <td>event.signerAddress</td>
-                     <td>Signer&#39;s Ethereum address withdrawal is taking place from</td>
+                     <td>Signer&quot;s Ethereum address withdrawal is taking place from</td>
                   </tr>
                   <tr>
                      <td>address_pre_s</td>
                      <td>event.traderAddress</td>
-                     <td>Trader&#39;s Ethereum address prefixed with the chain discriminant DDX is being withdrawn to</td>
+                     <td>Trader&quot;s Ethereum address prefixed with the chain discriminant DDX is being withdrawn to</td>
                   </tr>
                </tbody>
             </table>
@@ -5251,13 +5458,14 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                <p>Sample Funding (JSON)</p>
             </blockquote>
             <pre class="highlight json"><code>{
-    <span class="hljs-attr">&quot;event&quot;</span>: {
-        <span class="hljs-attr">&quot;timeValue&quot;</span>: <span class="hljs-number">1766</span>,
-        <span class="hljs-attr">&quot;fundingRates&quot;</span>: {
-            <span class="hljs-attr">&quot;ETHPERP&quot;</span>: <span class="hljs-string">&quot;0.0024&quot;</span>
+    <span class="hljs-attr">&quot;event&quot;</span>: [{
+            <span class="hljs-attr">&quot;fundingRates&quot;</span>: {
+                <span class="hljs-attr">&quot;ETHPERP&quot;</span>: <span class="hljs-string">&quot;0.005&quot;</span>
+            },
+            <span class="hljs-attr">&quot;settlementEpochId&quot;</span>: <span class="hljs-number">9</span>
         },
-        <span class="hljs-attr">&quot;settlementEpochId&quot;</span>: <span class="hljs-number">15</span>
-    }
+        []
+    ]
 }</code></pre>
             <p>A <code>Funding</code> is when a there is a funding rate distribution. At this time, all strategies are either credited or debited an amount based on the current funding rate and their position notional values and side. The event portion of the transaction has attributes defined as follows:</p>
             <table>
@@ -5270,24 +5478,24 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                </thead>
                <tbody>
                   <tr>
-                     <td>dict</td>
+                     <td>list</td>
                      <td>event</td>
                      <td>The contents of the transaction event</td>
                   </tr>
                   <tr>
-                     <td>int</td>
-                     <td>event.timeValue</td>
-                     <td>Time value</td>
-                  </tr>
-                  <tr>
-                     <td>int</td>
-                     <td>event.settlementEpochId</td>
+                     <td>int_s</td>
+                     <td>event[0].settlementEpochId</td>
                      <td>The epoch id for the funding event</td>
                   </tr>
                   <tr>
                      <td>dict&lt;string, decimal_s&gt;</td>
-                     <td>event.fundingRates</td>
+                     <td>event[0].fundingRates</td>
                      <td>Mapping of market symbol to funding rate</td>
+                  </tr>
+                  <tr>
+                     <td>list</td>
+                     <td>event[1]</td>
+                     <td><code>Liquidation</code> events that have taken place as a result of funding distributions</td>
                   </tr>
                </tbody>
             </table>
@@ -5417,7 +5625,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>address_pre_s</td>
                      <td>event.traderAddress</td>
-                     <td>Trader&#39;s Ethereum address prefixed with the chain discriminant</td>
+                     <td>Trader&quot;s Ethereum address prefixed with the chain discriminant</td>
                   </tr>
                   <tr>
                      <td>timeValue</td>
@@ -5512,7 +5720,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>address_pre_s</td>
                      <td>event.makerOutcome.traderAddress</td>
-                     <td>Maker trader&#39;s Ethereum address prefixed with the chain discrimimant</td>
+                     <td>Maker trader&quot;s Ethereum address prefixed with the chain discrimimant</td>
                   </tr>
                   <tr>
                      <td>string</td>
@@ -5537,22 +5745,22 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>decimal_s</td>
                      <td>event.makerOutcome.newCollateral</td>
-                     <td>New free collateral in maker trader&#39;s strategy as a result of the trade</td>
+                     <td>New free collateral in maker trader&quot;s strategy as a result of the trade</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
                      <td>event.makerOutcome.newPositionAvgEntryPrice</td>
-                     <td>New average entry price for maker&#39;s position as a result of the trade</td>
+                     <td>New average entry price for maker&quot;s position as a result of the trade</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
                      <td>event.makerOutcome.newPositionBalance</td>
-                     <td>New size for maker&#39;s position as a result of the trade</td>
+                     <td>New size for maker&quot;s position as a result of the trade</td>
                   </tr>
                   <tr>
                      <td>int</td>
                      <td>event..makerOutcome.positionSide</td>
-                     <td>New side for maker&#39;s position (<code>long=1</code>, <code>short=2</code>) as a result of the trade</td>
+                     <td>New side for maker&quot;s position (<code>long=1</code>, <code>short=2</code>) as a result of the trade</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -5562,7 +5770,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>address_pre_s</td>
                      <td>event.takerOutcome.traderAddress</td>
-                     <td>Taker trader&#39;s Ethereum address prefixed with the chain discrimimant</td>
+                     <td>Taker trader&quot;s Ethereum address prefixed with the chain discrimimant</td>
                   </tr>
                   <tr>
                      <td>string</td>
@@ -5587,29 +5795,29 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>decimal_s</td>
                      <td>event.takerOutcome.newCollateral</td>
-                     <td>New free collateral in taker trader&#39;s strategy as a result of the trade</td>
+                     <td>New free collateral in taker trader&quot;s strategy as a result of the trade</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
                      <td>event.takerOutcome.newPositionAvgEntryPrice</td>
-                     <td>New average entry price for taker&#39;s position as a result of the trade</td>
+                     <td>New average entry price for taker&quot;s position as a result of the trade</td>
                   </tr>
                   <tr>
                      <td>decimal_s</td>
                      <td>event.takerOutcome.newPositionBalance</td>
-                     <td>New size for taker&#39;s position as a result of the trade</td>
+                     <td>New size for taker&quot;s position as a result of the trade</td>
                   </tr>
                   <tr>
                      <td>int</td>
                      <td>event.takerOutcome.positionSide</td>
-                     <td>New side for taker&#39;s position (<code>long=1</code>, <code>short=2</code>) as a result of the trade</td>
+                     <td>New side for taker&quot;s position (<code>long=1</code>, <code>short=2</code>) as a result of the trade</td>
                   </tr>
                </tbody>
             </table>
             <h3 id="subscription">Subscription</h3>
             <p>You may subscribe to the SMT state leaves and transaction log in raw fashion (much like how the Auditor does behind the scenes prior to exposing a clean API for your consumption).</p>
             <p>Operator transaction log WS endpoint URL: wss://api.derivadex.io/node0/v2/txlog</p>
-            <h4 id="response-15">Response</h4>
+            <h4 id="response-16">Response</h4>
             <blockquote>
                <p>Snapshot response (JSON)</p>
             </blockquote>
@@ -5659,7 +5867,7 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>dict&lt;bytes32_s, bytes_s&gt;</td>
                      <td>leaves</td>
-                     <td>Snapshot leaf data mapping leaf key to leaf value (ABI-encoding of SMT leaf&#39;s value)</td>
+                     <td>Snapshot leaf data mapping leaf key to leaf value (ABI-encoding of SMT leaf&quot;s value)</td>
                   </tr>
                </tbody>
             </table>
@@ -5728,17 +5936,17 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>bytes32_s</td>
                      <td>c.stateRootHash</td>
-                     <td>SMT&#39;s state root hash prior to the transaction being applied</td>
+                     <td>SMT&quot;s state root hash prior to the transaction being applied</td>
                   </tr>
                   <tr>
                      <td>bytes32_s</td>
                      <td>c.batchId</td>
-                     <td>Monotonically increasing numerical value representing when a batch of transactions took place in a given epoch. This is different from the transaction&#39;s ordinal value, which may actually be the same across transactions that are batched (e.g., multiple deposits in the same Ethereum block, or settlement transactions bunched together).</td>
+                     <td>Monotonically increasing numerical value representing when a batch of transactions took place in a given epoch. This is different from the transaction&quot;s ordinal value, which may actually be the same across transactions that are batched (e.g., multiple deposits in the same Ethereum block, or settlement transactions bunched together).</td>
                   </tr>
                   <tr>
                      <td>bytes_s</td>
                      <td>c.signature</td>
-                     <td>Enclave&#39;s signature of transaction data</td>
+                     <td>Enclave&quot;s signature of transaction data</td>
                   </tr>
                   <tr>
                      <td>dict</td>
@@ -5812,17 +6020,17 @@ w3 = Web3(Web3.HTTPProvider(<span class="hljs-string">&quot;https://kovan.infura
                   <tr>
                      <td>bytes32_s</td>
                      <td>c.stateRootHash</td>
-                     <td>SMT&#39;s state root hash prior to the transaction being applied</td>
+                     <td>SMT&quot;s state root hash prior to the transaction being applied</td>
                   </tr>
                   <tr>
                      <td>bytes32_s</td>
                      <td>c.batchId</td>
-                     <td>Monotonically increasing numerical value representing when a batch of transactions took place in a given epoch. This is different from the transaction&#39;s ordinal value, which may actually be the same across transactions that are batched (e.g., multiple deposits in the same Ethereum block, or settlement transactions bunched together).</td>
+                     <td>Monotonically increasing numerical value representing when a batch of transactions took place in a given epoch. This is different from the transaction&quot;s ordinal value, which may actually be the same across transactions that are batched (e.g., multiple deposits in the same Ethereum block, or settlement transactions bunched together).</td>
                   </tr>
                   <tr>
                      <td>bytes_s</td>
                      <td>c.signature</td>
-                     <td>Enclave&#39;s signature of transaction data</td>
+                     <td>Enclave&quot;s signature of transaction data</td>
                   </tr>
                   <tr>
                      <td>dict</td>
