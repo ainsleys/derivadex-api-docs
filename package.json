@@ -32,7 +32,8 @@
       "prebuild": " gulp clean",
       "build": "    gulp build-static-site",
       "postbuild": "gulp lint && gulp publish",
-      "deploy": "   deploy.sh"
+      "deploy": "   deploy.sh",
+      "prettier": "prettier --write 'source/includes/main.md' --config .prettierrc"
    },
    "dependencies": {
       "browser-sync": "~2.26",
@@ -64,6 +65,7 @@
       "marked": "~2.0",
       "merge-stream": "~2.0",
       "node-sass": "~5.0",
+      "prettier": "2.4.1",
       "tocbot": "~4.12"
    }
 }
