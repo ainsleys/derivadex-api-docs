@@ -1,9 +1,10 @@
 title: API Reference
 
 language_tabs:
-   - json
-   - solidity
+   - bash
+   - ruby
    - python
+   - javascript
 
 toc_footers:
    - <a href=https://github.com/center-key/node-slate>node-slate on GitHub</a>
