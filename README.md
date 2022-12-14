@@ -19,10 +19,10 @@
    <a href=https://node-slate.js.org>node-slate.js.org</a></em>
 </p>
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/center-key/node-slate/blob/master/LICENSE.txt)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/center-key/node-slate/blob/main/LICENSE.txt)
 [![npm](https://img.shields.io/npm/v/node-slate.svg)](https://www.npmjs.com/package/node-slate)
 [![Vulnerabilities](https://snyk.io/test/github/center-key/node-slate/badge.svg)](https://snyk.io/test/github/center-key/node-slate)
-[![Build](https://travis-ci.org/center-key/node-slate.svg)](https://travis-ci.org/center-key/node-slate)
+[![Build](https://github.com/center-key/node-slate/workflows/build/badge.svg)](https://github.com/center-key/node-slate/actions/workflows/run-spec-on-push.yaml)
 
 Features
 --------
@@ -54,7 +54,8 @@ You're going to need:
 
 ### Getting Set Up
 
-1. Clone this repo
+1. Fork this repository on Github.
+2. Clone *your forked repository* (not this original one) to your hard drive with `git clone https://github.com/YOURUSERNAME/node-slate.git`
 3. `cd node-slate`
 4. Initialize and start Slate:
 
@@ -79,24 +80,7 @@ Run a dev server that live-reloads at http://localhost:4567:
 ```shell
 npm start
 ```
-The instructions just below this for deploying to gh-pages doesn't work for me. What I've found works is checking out the gh-pages branch, pulling from master, and then pushing the updated gh-pages branch. I am pretty sure something is wrong about that approach but it works for now. 
 
-```
-git checkout gh-pages
-git pull origin master
-git add .
-git push
-```
-And now you should be able to view the updated site at https://ainsleys.github.io/node-slate/#derivadex-api
-
-
-# to update the docs file
-`cd source`
-`cd includes`
-`subl main.md`
-If we ever want to add more than one .md file we just add it in the `includes` folder. Changes here are built and then can be found in `/docs` which is what is deployed to gh-pages.
-
-***doesn't work***
 Publish your docs to `origin/gh-pages` branch:
 
 ```shell
@@ -106,4 +90,10 @@ npm run deploy
 Gulp Task
 ---------
 
-Slate API documentation generation is available as Gulp task with the [gulp-node-slate](https://github.com/center-key/gulp-node-slate) plugin.
+Slate API documentation generation is also available as a Gulp task with the
+[gulp-node-slate](https://github.com/center-key/gulp-node-slate) plugin.
+
+<br>
+
+---
+[MIT License](LICENSE.txt)

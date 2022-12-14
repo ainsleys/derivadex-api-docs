@@ -8,7 +8,7 @@
 
 banner="node-slate"
 projectHome=$(cd $(dirname $0); pwd)
-webPage=build/index.html
+webPage=build/1-dev/index.html
 
 setupTools() {
    # Check for Node.js installation and download project dependencies
@@ -17,7 +17,9 @@ setupTools() {
    echo $banner
    echo $(echo $banner | sed s/./=/g)
    pwd
-   test -d .git && git pull --ff-only
+   test -d .git || { echo "Project must be in a git repository."; exit; }
+   git restore dist/* &>/dev/null
+   git pull --ff-only
    echo
    echo "Node.js:"
    which node || { echo "Need to install Node.js: https://nodejs.org"; exit; }
@@ -31,11 +33,13 @@ setupTools() {
 releaseInstructions() {
    cd $projectHome
    repository=$(grep repository package.json | awk -F'"' '{print $4}' | sed s/github://)
-   package=https://raw.githubusercontent.com/$repository/master/package.json
+   package=https://raw.githubusercontent.com/$repository/main/package.json
    version=v$(grep '"version"' package.json | awk -F'"' '{print $4}')
    pushed=v$(curl --silent $package | grep '"version":' | awk -F'"' '{print $4}')
-   released=$(git tag | tail -1)
    minorVersion=$(echo ${pushed:1} | awk -F"." '{ print $1 "." $2 }')
+   released=$(git tag | tail -1)
+   published=v$(npm view $repository version)
+   test $? -ne 0 && echo "NOTE: Ignore error if package is not yet published."
    echo "Local changes:"
    git status --short
    echo
@@ -43,7 +47,7 @@ releaseInstructions() {
    git tag | tail -5
    echo
    echo "Release progress:"
-   echo "   $version (local) --> $pushed (pushed) --> $released (released)"
+   echo "   $version (local) --> $pushed (pushed) --> $released (released) --> $published (published)"
    echo
    test "$version" ">" "$released" && mode="NOT released" || mode="RELEASED"
    echo "Current version is: $mode"
@@ -78,6 +82,7 @@ runTasks() {
    echo "Tasks:"
    npm test
    npm run build
+   npx gulp publish
    echo
    }
 
