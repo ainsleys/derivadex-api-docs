@@ -64,7 +64,7 @@
       "jshint": "~2.12",
       "marked": "~2.0",
       "merge-stream": "~2.0",
-      "node-sass": "~5.0",
+      "node-sass": "~8.0",
       "prettier": "2.4.1",
       "tocbot": "~4.12"
    }
